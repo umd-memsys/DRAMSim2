@@ -39,7 +39,7 @@ DRAMSim
 	cd traces
 	./traceParse.py k6_aoe_02_short.trc.gz
 
-	Then go back to the DRAMSim directory and run the trace based simulator
+	Then go back to the DRAMSim directory and run the trace based simulator:
 	cd ..
 	./DRAMSim -t traces/k6_aoe_02_short.trc -s system.ini -d ini/DDR3_micron_64M_8B_x4_sg15.ini -c 10000
 
