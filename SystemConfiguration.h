@@ -1,3 +1,28 @@
+/****************************************************************************
+*	 DRAMSim: A Cycle Accurate DRAM simulator
+*
+*	 Copyright (C) 2010   	Elliott Cooper-Balis
+*									Paul Rosenfeld
+*									University of Maryland
+*
+*	 This program is free software: you can redistribute it and/or modify
+*	 it under the terms of the GNU General Public License as published by
+*	 the Free Software Foundation, either version 3 of the License, or
+*	 (at your option) any later version.
+*
+*	 This program is distributed in the hope that it will be useful,
+*	 but WITHOUT ANY WARRANTY; without even the implied warranty of
+*	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*	 GNU General Public License for more details.
+*
+*	 You should have received a copy of the GNU General Public License
+*	 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*
+*****************************************************************************/
+
+
+
+
 #ifndef SYSCONFIG_H
 #define SYSCONFIG_H
 
@@ -15,25 +40,25 @@
 #define ERROR(str) std::cerr<<"[ERROR ("<<__FILE__<<":"<<__LINE__<<")]: "<<str<<std::endl;
 
 #ifdef DEBUG_BUILD
-	#define DEBUG(str)  std::cout<< str <<std::endl;
-	#define DEBUGN(str) std::cout<< str;
+#define DEBUG(str)  std::cout<< str <<std::endl;
+#define DEBUGN(str) std::cout<< str;
 #else
-	#define DEBUG(str) ;
-	#define DEBUGN(str) ;
+#define DEBUG(str) ;
+#define DEBUGN(str) ;
 #endif
 
 
 
 #ifndef NO_OUTPUT
-	#define PRINT(str)  if(SHOW_SIM_OUTPUT) { std::cerr <<str<<std::endl; }
-	#define PRINTN(str) if(SHOW_SIM_OUTPUT) { std::cerr <<str; }
+#define PRINT(str)  if(SHOW_SIM_OUTPUT) { std::cerr <<str<<std::endl; }
+#define PRINTN(str) if(SHOW_SIM_OUTPUT) { std::cerr <<str; }
 #else
-	#undef DEBUG
-	#undef DEBUGN
-	#define DEBUG(str) ;
-	#define DEBUGN(str) ;
-	#define PRINT(str) ;
-	#define PRINTN(str) ;
+#undef DEBUG
+#undef DEBUGN
+#define DEBUG(str) ;
+#define DEBUGN(str) ;
+#define PRINT(str) ;
+#define PRINTN(str) ;
 #endif
 
 
@@ -45,7 +70,7 @@ extern std::ofstream cmd_verify_out; //used by BusPacket.cpp if VERIFICATION_OUT
 //extern std::ofstream visDataOut;
 
 extern int SHOW_SIM_OUTPUT; //enable or disable PRINT() statements -- set by flag in TraceBasedSim.cpp
-extern bool VERIFICATION_OUTPUT; // output suitable to feed to modelsim 
+extern bool VERIFICATION_OUTPUT; // output suitable to feed to modelsim
 
 extern bool DEBUG_TRANS_Q;
 extern bool DEBUG_CMD_Q;
@@ -54,10 +79,10 @@ extern bool DEBUG_BANKSTATE;
 extern bool DEBUG_BUS;
 extern bool DEBUG_BANKS;
 extern bool DEBUG_POWER;
-extern bool USE_LOW_POWER; 
+extern bool USE_LOW_POWER;
 
 extern uint64_t TOTAL_STORAGE;
-extern uint NUM_BANKS; 
+extern uint NUM_BANKS;
 extern uint NUM_RANKS;
 extern uint NUM_CHANS;
 extern uint NUM_ROWS;
@@ -175,31 +200,31 @@ enum SchedulingPolicy
 
 namespace DRAMSim
 {
-	typedef void (*returnCallBack_t)(uint id, uint64_t addr, uint64_t clockcycle);
-	typedef void (*powerCallBack_t)(double bgpower, double burstpower, double refreshpower, double actprepower);
+typedef void (*returnCallBack_t)(uint id, uint64_t addr, uint64_t clockcycle);
+typedef void (*powerCallBack_t)(double bgpower, double burstpower, double refreshpower, double actprepower);
 
-	extern RowBufferPolicy rowBufferPolicy;
-	extern SchedulingPolicy schedulingPolicy;
-	extern AddressMappingScheme addressMappingScheme;
-	extern QueuingStructure queuingStructure;
-	//
-	//FUNCTIONS
-	//
-	
-	uint inline log2(unsigned value)
+extern RowBufferPolicy rowBufferPolicy;
+extern SchedulingPolicy schedulingPolicy;
+extern AddressMappingScheme addressMappingScheme;
+extern QueuingStructure queuingStructure;
+//
+//FUNCTIONS
+//
+
+uint inline log2(unsigned value)
+{
+	uint logbase2 = 0;
+	unsigned orig = value;
+	value>>=1;
+	while (value>0)
 	{
-		uint logbase2 = 0;
-		unsigned orig = value;
-		value>>=1;
-		while(value>0)
-			{
-				value >>= 1;
-				logbase2++;
-			}
-		if((uint)1<<logbase2<orig)logbase2++;
-		return logbase2;
+		value >>= 1;
+		logbase2++;
 	}
-	
+	if ((uint)1<<logbase2<orig)logbase2++;
+	return logbase2;
+}
+
 }
 
 #endif

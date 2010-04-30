@@ -1,3 +1,28 @@
+/****************************************************************************
+*	 DRAMSim: A Cycle Accurate DRAM simulator
+*
+*	 Copyright (C) 2010   	Elliott Cooper-Balis
+*									Paul Rosenfeld
+*									University of Maryland
+*
+*	 This program is free software: you can redistribute it and/or modify
+*	 it under the terms of the GNU General Public License as published by
+*	 the Free Software Foundation, either version 3 of the License, or
+*	 (at your option) any later version.
+*
+*	 This program is distributed in the hope that it will be useful,
+*	 but WITHOUT ANY WARRANTY; without even the implied warranty of
+*	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+*	 GNU General Public License for more details.
+*
+*	 You should have received a copy of the GNU General Public License
+*	 along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*
+*****************************************************************************/
+
+
+
+
 //TraceBasedSim.cpp
 //
 //File to run a trace-based simulation
@@ -17,10 +42,10 @@ using namespace DRAMSim;
 using namespace std;
 
 #ifndef _SIM_
-int SHOW_SIM_OUTPUT = 1; 
+int SHOW_SIM_OUTPUT = 1;
 ofstream visDataOut; //mostly used in MemoryController
 
-void usage() 
+void usage()
 {
 	cout << "DRAMSim Usage: " << endl;
 	cout << "DRAMSim -t tracefile -s system.ini -d ini/device.ini [-c #] [-p pwd] -q" <<endl;
@@ -46,164 +71,164 @@ void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &tra
 	bool useClockCycle = true;
 #endif
 
-	switch(type)
+	switch (type)
 	{
-		case k6:				
-			{
-				spaceIndex = line.find_first_of(" ", 0);
+	case k6:
+	{
+		spaceIndex = line.find_first_of(" ", 0);
 
-				addressStr = line.substr(0, spaceIndex);
-				previousIndex = spaceIndex;
+		addressStr = line.substr(0, spaceIndex);
+		previousIndex = spaceIndex;
 
-				spaceIndex = line.find_first_not_of(" ", previousIndex);
-				cmdStr = line.substr(spaceIndex, line.find_first_of(" ", spaceIndex) - spaceIndex);
-				previousIndex = line.find_first_of(" ", spaceIndex);
+		spaceIndex = line.find_first_not_of(" ", previousIndex);
+		cmdStr = line.substr(spaceIndex, line.find_first_of(" ", spaceIndex) - spaceIndex);
+		previousIndex = line.find_first_of(" ", spaceIndex);
 
-				spaceIndex = line.find_first_not_of(" ", previousIndex);
-				ccStr = line.substr(spaceIndex, line.find_first_of(" ", spaceIndex) - spaceIndex);
+		spaceIndex = line.find_first_not_of(" ", previousIndex);
+		ccStr = line.substr(spaceIndex, line.find_first_of(" ", spaceIndex) - spaceIndex);
 
-				if(cmdStr.compare("P_MEM_WR")==0 ||
-						cmdStr.compare("BOFF")==0)
-				{
-					transType = DATA_WRITE;
-				}
-				else if(cmdStr.compare("P_FETCH")==0 || 
-						cmdStr.compare("P_MEM_RD")==0 ||
-						cmdStr.compare("P_LOCK_RD")==0 ||
-						cmdStr.compare("P_LOCK_WR")==0)
-				{
-					transType = DATA_READ;
-				}
-				else
-				{
-					ERROR("== Unknown Command : "<<cmdStr);
-					exit(0);
-				}
+		if (cmdStr.compare("P_MEM_WR")==0 ||
+		        cmdStr.compare("BOFF")==0)
+		{
+			transType = DATA_WRITE;
+		}
+		else if (cmdStr.compare("P_FETCH")==0 ||
+		         cmdStr.compare("P_MEM_RD")==0 ||
+		         cmdStr.compare("P_LOCK_RD")==0 ||
+		         cmdStr.compare("P_LOCK_WR")==0)
+		{
+			transType = DATA_READ;
+		}
+		else
+		{
+			ERROR("== Unknown Command : "<<cmdStr);
+			exit(0);
+		}
 
-				istringstream a(addressStr.substr(2));//gets rid of 0x
-				a>>hex>>addr;
+		istringstream a(addressStr.substr(2));//gets rid of 0x
+		a>>hex>>addr;
 
-				//if this is set to false, clockCycle will remain at 0, and every line read from the trace
-				//  will be allowed to be issued
-				if(useClockCycle)
-				{
-					istringstream b(ccStr);
-					b>>clockCycle;
-				}
-				break;
-			}
-		case mase:
-			{
-				spaceIndex = line.find_first_of(" ", 0);
+		//if this is set to false, clockCycle will remain at 0, and every line read from the trace
+		//  will be allowed to be issued
+		if (useClockCycle)
+		{
+			istringstream b(ccStr);
+			b>>clockCycle;
+		}
+		break;
+	}
+	case mase:
+	{
+		spaceIndex = line.find_first_of(" ", 0);
 
-				addressStr = line.substr(0, spaceIndex);
-				previousIndex = spaceIndex;
+		addressStr = line.substr(0, spaceIndex);
+		previousIndex = spaceIndex;
 
-				spaceIndex = line.find_first_not_of(" ", previousIndex);
-				cmdStr = line.substr(spaceIndex, line.find_first_of(" ", spaceIndex) - spaceIndex);
-				previousIndex = line.find_first_of(" ", spaceIndex);
+		spaceIndex = line.find_first_not_of(" ", previousIndex);
+		cmdStr = line.substr(spaceIndex, line.find_first_of(" ", spaceIndex) - spaceIndex);
+		previousIndex = line.find_first_of(" ", spaceIndex);
 
-				spaceIndex = line.find_first_not_of(" ", previousIndex);
-				ccStr = line.substr(spaceIndex, line.find_first_of(" ", spaceIndex) - spaceIndex);
+		spaceIndex = line.find_first_not_of(" ", previousIndex);
+		ccStr = line.substr(spaceIndex, line.find_first_of(" ", spaceIndex) - spaceIndex);
 
-				if(cmdStr.compare("IFETCH")==0||
-						cmdStr.compare("READ")==0)
-				{
-					transType = DATA_READ;
-				}
-				else if(cmdStr.compare("WRITE")==0)
-				{
-					transType = DATA_WRITE;
-				}
-				else
-				{
-					ERROR("== Unknown command in tracefile : "<<cmdStr);
-				}
+		if (cmdStr.compare("IFETCH")==0||
+		        cmdStr.compare("READ")==0)
+		{
+			transType = DATA_READ;
+		}
+		else if (cmdStr.compare("WRITE")==0)
+		{
+			transType = DATA_WRITE;
+		}
+		else
+		{
+			ERROR("== Unknown command in tracefile : "<<cmdStr);
+		}
 
-				istringstream a(addressStr.substr(2));//gets rid of 0x
-				a>>hex>>addr;
+		istringstream a(addressStr.substr(2));//gets rid of 0x
+		a>>hex>>addr;
 
-				//if this is set to false, clockCycle will remain at 0, and every line read from the trace
-				//  will be allowed to be issued
-				if(useClockCycle)
-				{
-					istringstream b(ccStr);
-					b>>clockCycle;
-				}
+		//if this is set to false, clockCycle will remain at 0, and every line read from the trace
+		//  will be allowed to be issued
+		if (useClockCycle)
+		{
+			istringstream b(ccStr);
+			b>>clockCycle;
+		}
 
-				break;
-			}
-		case misc:
-			spaceIndex = line.find_first_of(" ", spaceIndex+1);
-			if (spaceIndex == string::npos) 
-			{
-				ERROR("Malformed line: '"<< line <<"'");
-			}
+		break;
+	}
+	case misc:
+		spaceIndex = line.find_first_of(" ", spaceIndex+1);
+		if (spaceIndex == string::npos)
+		{
+			ERROR("Malformed line: '"<< line <<"'");
+		}
 
-			addressStr = line.substr(previousIndex,spaceIndex);
-			previousIndex=spaceIndex;
+		addressStr = line.substr(previousIndex,spaceIndex);
+		previousIndex=spaceIndex;
 
-			spaceIndex = line.find_first_of(" ", spaceIndex+1);
-			if (spaceIndex == string::npos) 
-			{
-				cmdStr = line.substr(previousIndex+1);
-			}
-			else
-			{
-				cmdStr = line.substr(previousIndex+1,spaceIndex-previousIndex-1);
-				dataStr = line.substr(spaceIndex+1);
-			}
+		spaceIndex = line.find_first_of(" ", spaceIndex+1);
+		if (spaceIndex == string::npos)
+		{
+			cmdStr = line.substr(previousIndex+1);
+		}
+		else
+		{
+			cmdStr = line.substr(previousIndex+1,spaceIndex-previousIndex-1);
+			dataStr = line.substr(spaceIndex+1);
+		}
 
-			//convert address string -> number
-			istringstream b(addressStr.substr(2)); //substr(2) chops off 0x characters
-			b >>hex>> addr;
+		//convert address string -> number
+		istringstream b(addressStr.substr(2)); //substr(2) chops off 0x characters
+		b >>hex>> addr;
 
-			// parse command
-			if (cmdStr.compare("read") == 0) 
-			{
-				transType=DATA_READ;
-			}
-			else if (cmdStr.compare("write") == 0) 
-			{
-				transType=DATA_WRITE;
-			}
-			else
-			{
-				ERROR("INVALID COMMAND '"<<cmdStr<<"'");
-				exit(-1);
-			}
-			if (SHOW_SIM_OUTPUT)
-			{
-				DEBUGN("ADDR='"<<hex<<addr<<dec<<"',CMD='"<<transType<<"'");//',DATA='"<<dataBuffer[0]<<"'");
-			}
+		// parse command
+		if (cmdStr.compare("read") == 0)
+		{
+			transType=DATA_READ;
+		}
+		else if (cmdStr.compare("write") == 0)
+		{
+			transType=DATA_WRITE;
+		}
+		else
+		{
+			ERROR("INVALID COMMAND '"<<cmdStr<<"'");
+			exit(-1);
+		}
+		if (SHOW_SIM_OUTPUT)
+		{
+			DEBUGN("ADDR='"<<hex<<addr<<dec<<"',CMD='"<<transType<<"'");//',DATA='"<<dataBuffer[0]<<"'");
+		}
 
-			//parse data
-			//if we are running in a no storage mode, don't allocate space, just return NULL
+		//parse data
+		//if we are running in a no storage mode, don't allocate space, just return NULL
 #ifndef NO_STORAGE
-			if (dataStr.size() > 0 && transType == DATA_WRITE) 
+		if (dataStr.size() > 0 && transType == DATA_WRITE)
+		{
+			// 32 bytes of data per transaction
+			dataBuffer = (uint64_t *)calloc(sizeof(uint64_t),4);
+			size_t strlen = dataStr.size();
+			for (int i=0; i < 4; i++)
 			{
-				// 32 bytes of data per transaction 
-				dataBuffer = (uint64_t *)calloc(sizeof(uint64_t),4);
-				size_t strlen = dataStr.size();
-				for (int i=0; i < 4; i++) 
+				size_t startIndex = i*16;
+				if (startIndex > strlen)
 				{
-					size_t startIndex = i*16; 
-					if (startIndex > strlen)
-					{
-						break;
-					}
-					size_t charsLeft = min(((size_t)16), strlen - startIndex + 1);
-					string piece = dataStr.substr(i*16,charsLeft);
-					istringstream iss(piece);
-					iss >> hex >> dataBuffer[i];
+					break;
 				}
-				PRINTN("\tDATA=");
-				BusPacket::printData(dataBuffer);
+				size_t charsLeft = min(((size_t)16), strlen - startIndex + 1);
+				string piece = dataStr.substr(i*16,charsLeft);
+				istringstream iss(piece);
+				iss >> hex >> dataBuffer[i];
 			}
+			PRINTN("\tDATA=");
+			BusPacket::printData(dataBuffer);
+		}
 
-			PRINT("");
+		PRINT("");
 #endif
-			break;
+		break;
 	}
 	return dataBuffer;
 }
@@ -227,9 +252,9 @@ int main(int argc, char **argv)
 
 	uint numCycles=30;
 	//getopt stuff
-	while (1) 
+	while (1)
 	{
-		static struct option long_options[] = 
+		static struct option long_options[] =
 		{
 			{"deviceini", required_argument, 0, 'd'},
 			{"tracefile", required_argument, 0, 't'},
@@ -243,58 +268,58 @@ int main(int argc, char **argv)
 		};
 		int option_index=0; //for getopt
 		c = getopt_long (argc, argv, "t:s:c:d:o:p:bkq", long_options, &option_index);
-		if (c == -1) 
+		if (c == -1)
 		{
 			break;
 		}
-		switch (c) 
+		switch (c)
 		{
-			case 0: //TODO: figure out what the hell this does, cuz it never seems to get called
-				if (long_options[option_index].flag != 0) //do nothing on a flag
-				{
-					printf("setting flag\n");
-					break; 
-				}
-				printf("option %s",long_options[option_index].name);
-				if (optarg)
-				{
-					printf(" with arg %s", optarg);
-				}
-				printf("\n");
+		case 0: //TODO: figure out what the hell this does, cuz it never seems to get called
+			if (long_options[option_index].flag != 0) //do nothing on a flag
+			{
+				printf("setting flag\n");
 				break;
-			case 'h':
-				usage();
-				exit(0);
-				break;
-			case 't':
-				traceFileName = string(optarg);
-				break;
-			case 's':
-				systemIniFilename = string(optarg);
-				break;
-			case 'd':
-				deviceIniFilename = string(optarg);
-				break;
-			case 'c':
-				numCycles = atoi(optarg);
-				break;
-			case 'p':
-				pwdString = string(optarg);
-				break;
-			case 'q':
-				SHOW_SIM_OUTPUT=false;
-				break;
-			case 'o':
-				tmp = string(optarg);
-				equalsign = tmp.find_first_of('=');
-				overrideKey = tmp.substr(0,equalsign);
-				overrideVal = tmp.substr(equalsign+1,tmp.size()-equalsign+1);
-				overrideOpt = true;
-				break;
-			case '?':
-				usage();
-				exit(-1);
-				break;
+			}
+			printf("option %s",long_options[option_index].name);
+			if (optarg)
+			{
+				printf(" with arg %s", optarg);
+			}
+			printf("\n");
+			break;
+		case 'h':
+			usage();
+			exit(0);
+			break;
+		case 't':
+			traceFileName = string(optarg);
+			break;
+		case 's':
+			systemIniFilename = string(optarg);
+			break;
+		case 'd':
+			deviceIniFilename = string(optarg);
+			break;
+		case 'c':
+			numCycles = atoi(optarg);
+			break;
+		case 'p':
+			pwdString = string(optarg);
+			break;
+		case 'q':
+			SHOW_SIM_OUTPUT=false;
+			break;
+		case 'o':
+			tmp = string(optarg);
+			equalsign = tmp.find_first_of('=');
+			overrideKey = tmp.substr(0,equalsign);
+			overrideVal = tmp.substr(equalsign+1,tmp.size()-equalsign+1);
+			overrideOpt = true;
+			break;
+		case '?':
+			usage();
+			exit(-1);
+			break;
 		}
 	}
 
@@ -303,15 +328,15 @@ int main(int argc, char **argv)
 
 	//get the prefix of the trace name
 	temp = temp.substr(0,temp.find_first_of("_"));
-	if(temp=="mase")
+	if (temp=="mase")
 	{
 		traceType = mase;
 	}
-	else if(temp=="k6")
+	else if (temp=="k6")
 	{
 		traceType = k6;
 	}
-	else if(temp=="misc")
+	else if (temp=="misc")
 	{
 		traceType = misc;
 	}
@@ -323,7 +348,8 @@ int main(int argc, char **argv)
 
 
 	// no default value for the default model name
-	if (deviceIniFilename.length() == 0) {
+	if (deviceIniFilename.length() == 0)
+	{
 		ERROR("Please provide a device ini file");
 		usage();
 		exit(-1);
@@ -347,7 +373,7 @@ int main(int argc, char **argv)
 
 	uint64_t addr;
 	uint64_t clockCycle=0;
-	enum TransactionType transType; 
+	enum TransactionType transType;
 
 	void *data = NULL;
 	int lineNumber = 0;
@@ -356,17 +382,17 @@ int main(int argc, char **argv)
 
 	traceFile.open(traceFileName.c_str());
 
-	if(!traceFile.is_open())
+	if (!traceFile.is_open())
 	{
 		cout << "== Error - Could not open trace file"<<endl;
 		exit(0);
 	}
 
-	for(size_t i=0;i<numCycles;i++)
+	for (size_t i=0;i<numCycles;i++)
 	{
-		if(!pendingTrans)
+		if (!pendingTrans)
 		{
-			if(!traceFile.eof())
+			if (!traceFile.eof())
 			{
 				getline(traceFile, line);
 
@@ -375,9 +401,9 @@ int main(int argc, char **argv)
 					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType);
 					trans = Transaction(transType, addr, data);
 
-					if(i>=clockCycle)
+					if (i>=clockCycle)
 					{
-						if(!(*memorySystem).addTransaction(trans))
+						if (!(*memorySystem).addTransaction(trans))
 						{
 							pendingTrans = true;
 						}
@@ -389,18 +415,18 @@ int main(int argc, char **argv)
 				}
 				else
 				{
-					DEBUG("WARNING: Skipping line "<<lineNumber<< " ('" << line << "') in tracefile"); 
+					DEBUG("WARNING: Skipping line "<<lineNumber<< " ('" << line << "') in tracefile");
 				}
 				lineNumber++;
 			}
-			else 
+			else
 			{
 				//we're out of trace, bail
 				break;
 			}
 		}
 
-		else if(pendingTrans && i >= clockCycle)
+		else if (pendingTrans && i >= clockCycle)
 		{
 			pendingTrans = !(*memorySystem).addTransaction(trans);
 		}
