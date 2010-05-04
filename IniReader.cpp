@@ -479,32 +479,50 @@ void IniReader::InitEnumsFromStrings()
 	if (ADDRESS_MAPPING_SCHEME == "scheme1")
 	{
 		addressMappingScheme = Scheme1;
-		DEBUG("ADDR SCHEME: 1");
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("ADDR SCHEME: 1");
+		}
 	}
 	else if (ADDRESS_MAPPING_SCHEME == "scheme2")
 	{
 		addressMappingScheme = Scheme2;
-		DEBUG("ADDR SCHEME: 2");
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("ADDR SCHEME: 2");
+		}
 	}
 	else if (ADDRESS_MAPPING_SCHEME == "scheme3")
 	{
 		addressMappingScheme = Scheme3;
-		DEBUG("ADDR SCHEME: 3");
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("ADDR SCHEME: 3");
+		}
 	}
 	else if (ADDRESS_MAPPING_SCHEME == "scheme4")
 	{
 		addressMappingScheme = Scheme4;
-		DEBUG("ADDR SCHEME: 4");
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("ADDR SCHEME: 4");
+		}
 	}
 	else if (ADDRESS_MAPPING_SCHEME == "scheme5")
 	{
 		addressMappingScheme = Scheme5;
-		DEBUG("ADDR SCHEME: 5");
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("ADDR SCHEME: 5");
+		}
 	}
 	else if (ADDRESS_MAPPING_SCHEME == "scheme6")
 	{
 		addressMappingScheme = Scheme6;
-		DEBUG("ADDR SCHEME: 6");
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("ADDR SCHEME: 6");
+		}
 	}
 	else
 	{
@@ -515,12 +533,18 @@ void IniReader::InitEnumsFromStrings()
 	if (ROW_BUFFER_POLICY == "open_page")
 	{
 		rowBufferPolicy = OpenPage;
-		DEBUG("ROW BUFFER: open page");
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("ROW BUFFER: open page");
+		}
 	}
 	else if (ROW_BUFFER_POLICY == "close_page")
 	{
 		rowBufferPolicy = ClosePage;
-		DEBUG("ROW BUFFER: close page");
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("ROW BUFFER: close page");
+		}
 	}
 	else
 	{
@@ -531,12 +555,18 @@ void IniReader::InitEnumsFromStrings()
 	if (QUEUING_STRUCTURE == "per_rank_per_bank")
 	{
 		queuingStructure = PerRankPerBank;
-		DEBUG("QUEUING STRUCT: per rank per bank");
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("QUEUING STRUCT: per rank per bank");
+		}
 	}
 	else if (QUEUING_STRUCTURE == "per_rank")
 	{
 		queuingStructure = PerRank;
-		DEBUG("QUEUING STRUCT: per rank");
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("QUEUING STRUCT: per rank");
+		}
 	}
 	else
 	{
@@ -547,12 +577,18 @@ void IniReader::InitEnumsFromStrings()
 	if (SCHEDULING_POLICY == "rank_then_bank_round_robin")
 	{
 		schedulingPolicy = RankThenBankRoundRobin;
-		DEBUG("SCHEDULING: Rank Then Bank");
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("SCHEDULING: Rank Then Bank");
+		}
 	}
 	else if (SCHEDULING_POLICY == "bank_then_rank_round_robin")
 	{
 		schedulingPolicy = BankThenRankRoundRobin;
-		DEBUG("SCHEDULING: Bank Then Rank");
+		if (DEBUG_INI_READER) 
+		{
+			DEBUG("SCHEDULING: Bank Then Rank");
+		}
 	}
 	else
 	{

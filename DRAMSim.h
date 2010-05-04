@@ -29,7 +29,10 @@
  * This is a public header for DRAMSim including this along with libdramsim.so should
  * provide all necessary functionality to talk to an external simulator
  */
+#include <stdint.h>
+#include <string>
 #include "Callback.h"
+#include "Transaction.h"
 using std::string;
 
 namespace DRAMSim
@@ -40,10 +43,10 @@ class MemorySystem
 public:
 	MemorySystem(uint id, string dev, string sys, string pwd, string trc);
 	bool addTransaction(bool isWrite, uint64_t addr);
+	bool addTransaction(Transaction &t);
 	void update();
-	void RegisterCallbacks(
-	    Callback_t *readDone,
-	    Callback_t *writeDone,
+	void RegisterCallbacks( Callback_t *readDone, Callback_t *writeDone,
+			/* TODO: this needs to be a functor as well */
 	    void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
 };
 }

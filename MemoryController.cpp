@@ -540,6 +540,24 @@ void MemoryController::update()
 		//and add them to the command queue
 		if (commandQueue.hasRoomFor(2, newTransactionRank, newTransactionBank))
 		{
+
+			if (DEBUG_ADDR_MAP) 
+			{
+				PRINTN("== New Transaction - Mapping Address [0x" << hex << transaction.address << dec << "]");
+				if (transaction.transactionType == DATA_READ) 
+				{
+					PRINT(" (Read)");
+				}
+				else
+				{
+					PRINT(" (Write)");
+				}
+				PRINT("  Rank : " << newTransactionRank);
+				PRINT("  Bank : " << newTransactionBank);
+				PRINT("  Row  : " << newTransactionRow);
+				PRINT("  Col  : " << newTransactionColumn);
+			}
+
 			if (transaction.transactionType == DATA_READ)
 			{
 				pendingReadTransactions.push_back(transaction);
@@ -821,7 +839,6 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 {
 	uint64_t tempA, tempB;
 
-	if (DEBUG_ADDR_MAP) PRINT("== New Transaction - Mapping Address [0x" << hex << physicalAddress << dec << "]");
 
 	physicalAddress = physicalAddress >> byteOffsetWidth;
 
@@ -976,10 +993,6 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 
 	if (DEBUG_ADDR_MAP)
 	{
-		PRINT("  Rank : " << newTransactionRank);
-		PRINT("  Bank : " << newTransactionBank);
-		PRINT("  Row  : " << newTransactionRow);
-		PRINT("  Col  : " << newTransactionColumn);
 	}
 }
 

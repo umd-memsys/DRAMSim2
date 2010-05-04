@@ -88,7 +88,7 @@ MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFi
 	//calculate the total storage based on the devices the user selected and the number of
 	//  ranks in the system
 	TOTAL_STORAGE = (long)NUM_RANKS * NUM_ROWS * NUM_COLS * NUM_BANKS * DEVICE_WIDTH / 8 * (JEDEC_DATA_BUS_WIDTH / DEVICE_WIDTH);
-	DEBUG("TOTAL_STORAGE : "<<TOTAL_STORAGE);
+//	DEBUG("TOTAL_STORAGE : "<<TOTAL_STORAGE);
 
 	IniReader::InitEnumsFromStrings();
 	if (!IniReader::CheckIfAllSet())

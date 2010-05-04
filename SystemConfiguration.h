@@ -32,34 +32,12 @@
 #include <string>
 #include <cstdlib>
 #include <stdint.h>
+#include "PrintMacros.h"
 
 //SystemConfiguration.h
 //
 //Configuration values for the current system
 
-#define ERROR(str) std::cerr<<"[ERROR ("<<__FILE__<<":"<<__LINE__<<")]: "<<str<<std::endl;
-
-#ifdef DEBUG_BUILD
-#define DEBUG(str)  std::cout<< str <<std::endl;
-#define DEBUGN(str) std::cout<< str;
-#else
-#define DEBUG(str) ;
-#define DEBUGN(str) ;
-#endif
-
-
-
-#ifndef NO_OUTPUT
-#define PRINT(str)  if(SHOW_SIM_OUTPUT) { std::cerr <<str<<std::endl; }
-#define PRINTN(str) if(SHOW_SIM_OUTPUT) { std::cerr <<str; }
-#else
-#undef DEBUG
-#undef DEBUGN
-#define DEBUG(str) ;
-#define DEBUGN(str) ;
-#define PRINT(str) ;
-#define PRINTN(str) ;
-#endif
 
 
 //number of latencies per bucket in the latency histogram
@@ -69,7 +47,6 @@
 extern std::ofstream cmd_verify_out; //used by BusPacket.cpp if VERIFICATION_OUTPUT is enabled
 //extern std::ofstream visDataOut;
 
-extern int SHOW_SIM_OUTPUT; //enable or disable PRINT() statements -- set by flag in TraceBasedSim.cpp
 extern bool VERIFICATION_OUTPUT; // output suitable to feed to modelsim
 
 extern bool DEBUG_TRANS_Q;

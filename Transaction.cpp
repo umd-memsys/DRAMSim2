@@ -30,6 +30,7 @@
 //	the memory controller (read, write, etc.)...
 
 #include "Transaction.h"
+#include "PrintMacros.h"
 
 using namespace DRAMSim;
 using namespace std;
