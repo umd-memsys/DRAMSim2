@@ -1,8 +1,8 @@
 /****************************************************************************
-*	 DRAMSim: A Cycle Accurate DRAM simulator
-*
+*	 DRAMSim2: A Cycle Accurate DRAM simulator 
+*	 
 *	 Copyright (C) 2010   	Elliott Cooper-Balis
-*									Paul Rosenfeld
+*									Paul Rosenfeld 
 *									University of Maryland
 *
 *	 This program is free software: you can redistribute it and/or modify
@@ -19,6 +19,7 @@
 *	 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 *****************************************************************************/
+
 
 
 
@@ -47,7 +48,7 @@ ofstream visDataOut; //mostly used in MemoryController
 
 void usage()
 {
-	cout << "DRAMSim Usage: " << endl;
+	cout << "DRAMSim2 Usage: " << endl;
 	cout << "DRAMSim -t tracefile -s system.ini -d ini/device.ini [-c #] [-p pwd] -q" <<endl;
 	cout << "\t-t, --tracefile=FILENAME \tspecify a tracefile to run  "<<endl;
 	cout << "\t-s, --systemini=FILENAME \tspecify an ini file that describes the memory system parameters  "<<endl;
