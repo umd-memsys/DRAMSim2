@@ -1,14 +1,13 @@
-DRAMSim2
-----------------------------------------
+DRAMSim2: A cycle accurate DRAM Simulator
+================================================================================
 Elliott Cooper-Balis
 Paul Rosenfeld
+Bruce Jacob
 University of Maryland
 dramninjas [at] gmail [dot] com
-----------------------------------------
 
 
-
-1 About DRAMSim2
+1 About DRAMSim2 --------------------------------------------------------------------------------
 
 DRAMSim2 is a cycle accurate model of a DRAM memory controller, the DRAM modules which comprise
 system storage, and the buses by which they communicate.
@@ -17,14 +16,13 @@ simple interface which allows it to be CPU simulator agnostic and should to work
 section 4.2). This core has no external run time or build time dependencies and has been tested with g++ on
 Linux as well as g++ on Cygwin on Windows.
 
-
-2 Getting DRAMSim2 ------------------
+2 Getting DRAMSim2--------------------------------------------------------------------------------
 
 DRAMSim2 is available on github. If you have git installed you can clone our repository by typing:
 
-$ git clone http://github.com/dramninjasUMD/DRAMSim2.git
+$ git clone git://github.com/dramninjasUMD/DRAMSim2.git
 
-3 Building DRAMSim2 ------------------
+3 Building DRAMSim2--------------------------------------------------------------------------------
 
 To build an optimized standalone trace-based simulator called DRAMSim simply type:
 $ make
@@ -35,9 +33,9 @@ To build the DRAMSim2 library, type:
 $ make libdramsim.so
 
 
-4 Running DRAMSim2 -------------------
+4 Running DRAMSim2--------------------------------------------------------------------------------
 
-4.1 Trace-Based Simulation -----------
+4.1 Trace-Based Simulation--------------------------------------------------------------------------------
 In standalone mode, DRAMSim2 can simulate memory system traces. While traces are not as accurate as a
 real CPU model driving the memory model, they are convenient since they can be generated in a number of
 different ways (instrumentation, hardware traces, CPU simulation, etc.) and reused.
@@ -72,7 +70,7 @@ ton add support for your own trace formats.
 The prefix of the filename determines which type of trace this function will use (ex: k6 foo.trc) will use the k6
 format in parseTraceFileLine().
 
-4.2 Library Interface
+4.2 Library Interface--------------------------------------------------------------------------------
 
 In addition to simulating memory traces, DRAMSim2 can also be built as a dynamic shared library which
 is convenient for connecting it to CPU simulators or other custom front ends. A MemorySystem object
@@ -80,8 +78,6 @@ encapsulates the functionality of the memory system (i.e., the memory controller
 comprise DRAMSim2 can be seen in figure 1. A simple example application is provided in the exampleapp/
 directory. At this time we have plans to provide code to integrate DRAMSim2 into MARSSx86, SST, and
 (eventually) M5.
-
-5 Example Output --------------------------------------
 
 The verbosity of the DRAMSim2 can be customized in the system.ini file by turning the various debug flags on
 or off.
@@ -190,11 +186,11 @@ The state of each bank in the system is also displayed:
 Banks can be in many states, including idle, row active (shown with the row that is active), refreshing, or
 precharging. These states will update based on the commands being sent by the controller.
 
-6 Results Output ---------------------------------
+6 Results Output--------------------------------------------------------------------------------
 
 In addition to printing memory statistics and debug information to standard out, DRAMSim2 also produces a
 'vis' file in the results/ directory. A vis file is essentially a summary of relevant statistics that is generated per
-epoch (the number of cycles per epoch can be set by changing the EPOCHCOUNT parameter in the system.ini
+epoch (the number of cycles per epoch can be set by changing the EPOCH_COUNT parameter in the system.ini
 file).
 We are currently working on DRAMVis, which is a cross-platform viewer which parses the vis file and generates
 graphs that can be used to analyze and compare results.
