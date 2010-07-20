@@ -21,11 +21,6 @@
 *
 *****************************************************************************/
 
-
-
-
-
-
 #ifndef MEMORYSYSTEM_H
 #define MEMORYSYSTEM_H
 
@@ -55,6 +50,7 @@ public:
 	bool addTransaction(bool isWrite, uint64_t addr);
 	void printStats();
 	void printStats(bool unused);
+	bool WillAcceptTransaction();
 	string SetOutputFileName(string tracefilename);
 	void RegisterCallbacks(
 	    Callback_t *readDone,
@@ -62,7 +58,7 @@ public:
 	    void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
 
 
-	// mostly for CMPSim
+	// mostly for other simulators
 	void overrideSystemParam(string key, string value);
 	void overrideSystemParam(string kvpair);
 

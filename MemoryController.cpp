@@ -822,6 +822,11 @@ void MemoryController::update()
 	}
 }
 
+bool MemoryController::WillAcceptTransaction()
+{
+	return transactionQueue.size() < TRANS_QUEUE_DEPTH;
+}
+
 //allows outside source to make request of memory system
 bool MemoryController::addTransaction(Transaction &trans)
 {
