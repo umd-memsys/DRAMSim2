@@ -22,6 +22,77 @@
 \tableofcontents
 \HRule
 \lstset{basicstyle={\scriptsize\ttfamily},tabsize=2,frame=single}
+\section{Why Do We Need to Simulate DRAM Systems This Accurately?}
+Modern computer system performance is increasingly limited
+by the performance of DRAM-based memory systems. As a result, there is great
+interest in providing accurate simulations of DRAM based memory systems as part
+of architectural research. Unfortunately, there is great difficulty associated
+with the study of modern DRAM memory systems, arising from
+the fact that DRAM-system performance depends on many
+independent variables such as workload characteristics of memory access rate
+and request sequence, memory-system architecture, memory-system configuration, DRAM
+access protocol, and DRAM device timing parameters. As a result, system
+architects and design engineers often disagree on the usefulness of a given
+performance-enhancing feature, since the performance impact of that feature typically 
+depends on the characteristics of specific workloads, memory-system architecture, 
+memory-system configuration, DRAM access protocol and DRAM device timing parameters. 
+\subsection{DRAM Scheduling Complexity is Growing}
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\linewidth]{docs/why1.gif}
+\caption{Timing diagram showing complexity of DRAM scheduling}
+\label{timingcomplex}
+\end{center}
+\end{figure}
+Figure \ref{timingcomplex} shows the pipelined scheduling of a DDR2 SDRAM device. Despite
+the fact that the simulated memory system uses a closed-page policy and 
+rotates through available banks on the DRAM device, which should simplify
+scheduling considerably, the scheduling of this system is actually more
+complex than earlier DRAM systems: for instance, new timing parameters
+such as t_{RRD} and t_{FAW} are contributing to the growing
+set of timing constraints placed on each successive generation of DRAM 
+devices.
+
+\subsection{DRAM performance characteristics changes every generation}
+DRAM based memory systems are impacted primarily by two attributes: 
+row cycle time and device datarate. Presently, DRAM row cycle times are 
+decreasing at a rate of approximately 7\% per year, and DRAM device
+datarates are increasing with each new generation of DRAM devices at the rate
+of 100\% every three years, 
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\linewidth]{docs/why2.gif}
+\caption{DRAM row cycle time trends}
+\label{classes}
+\end{center}
+\end{figure}
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=\linewidth]{docs/why3.gif}
+\caption{DRAM device data rate trends}
+\label{classes}
+\end{center}
+\end{figure}
+The difference in the scaling trends of the DRAM device means that 
+fundamental DRAM device performance characteristics are changing 
+every single generation, and the changing performance characteristics
+cannot be accurately predicted by linear extrapolations. The result is 
+that no computer architect can rest easy knowing that he or she has 
+obtained X\% of performance improvement with a set of microarchitectural
+techniques on the current generation memory system, because the same set 
+of microarchitectural techniques may not to be as effective in a 
+future memory system due to the differences in the scaling attributes 
+of DRAM devices, 
+
+\subsection{The Sales Pitch}
+Our DRAM-system simulation work enables system architects not
+only to explore the impact of a set of microarchitectual techniques on a 
+given memory system but also to examine the effectiveness of those 
+microarchitectural techniques on a future generation memory system with
+future generations of DRAM devices.
+
 \section{About DRAMSim2}
 	DRAMSim2 is a cycle accurate model of a DRAM memory controller, the DRAM
 	modules which comprise system storage, and the buses by which they
