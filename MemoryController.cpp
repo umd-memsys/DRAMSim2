@@ -42,12 +42,12 @@ MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile)
 		commandQueue (CommandQueue(bankStates)),
 		poppedBusPacket(BusPacket()),
 		totalTransactions(0),
-		channelBitWidth (log2(NUM_CHANS)),
-		rankBitWidth (log2(NUM_RANKS)),
-		bankBitWidth (log2(NUM_BANKS)),
-		rowBitWidth (log2(NUM_ROWS)),
-		colBitWidth (log2(NUM_COLS)),
-		byteOffsetWidth (log2(CACHE_LINE_SIZE)),
+		channelBitWidth (dramsim_log2(NUM_CHANS)),
+		rankBitWidth (dramsim_log2(NUM_RANKS)),
+		bankBitWidth (dramsim_log2(NUM_BANKS)),
+		rowBitWidth (dramsim_log2(NUM_ROWS)),
+		colBitWidth (dramsim_log2(NUM_COLS)),
+		byteOffsetWidth (dramsim_log2(CACHE_LINE_SIZE)),
 		refreshRank(0)
 {
 	//get handle on parent
