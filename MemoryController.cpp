@@ -824,22 +824,15 @@ void MemoryController::update()
 
 bool MemoryController::WillAcceptTransaction()
 {
-	return transactionQueue.size() < TRANS_QUEUE_DEPTH;
+	return true;
 }
 
 //allows outside source to make request of memory system
 bool MemoryController::addTransaction(Transaction &trans)
 {
-	if (transactionQueue.size() == TRANS_QUEUE_DEPTH)
-	{
-		return false;
-	}
-	else
-	{
 		trans.timeAdded = currentClockCycle;
 		transactionQueue.push_back(trans);
 		return true;
-	}
 }
 
 //Breaks up the incoming transaction into commands

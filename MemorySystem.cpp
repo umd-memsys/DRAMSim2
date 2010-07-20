@@ -257,7 +257,8 @@ void MemorySystem::mkdirIfNotExist(string path)
 
 bool MemorySystem::WillAcceptTransaction()
 {
-	return memoryController->WillAcceptTransaction();
+	return true;
+	//return memoryController->WillAcceptTransaction();
 }
 
 bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
