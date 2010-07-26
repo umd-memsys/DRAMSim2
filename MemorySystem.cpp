@@ -39,10 +39,15 @@
 #include <errno.h>
 #include <sstream>
 
-using namespace DRAMSim;
 using namespace std;
 
-ofstream cmd_verify_out; //used in Rank.cpp if VERIFICATION_OUTPUT is set
+
+ofstream cmd_verify_out; //used in Rank.cpp and MemoryController.cpp if VERIFICATION_OUTPUT is set
+
+namespace DRAMSim {
+#ifdef LOG_OUTPUT
+ofstream dramsim_log("dramsim.log"); 
+#endif
 
 #if 0
 returnCallBack_t MemorySystem::ReturnReadData = NULL;
@@ -158,6 +163,19 @@ MemorySystem::~MemorySystem()
 	}
 }
 
+bool fileExists(string path)
+{
+	struct stat stat_buf;
+	if (stat(path.c_str(), &stat_buf) != 0) 
+	{
+		if (errno == ENOENT)
+		{
+			return false; 
+		}
+	}
+	return true;
+}
+
 string MemorySystem::SetOutputFileName(string traceFilename)
 {
 	size_t lastSlash;
@@ -185,9 +203,10 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	}
 
 	string rest;
-	stringstream out;
+	stringstream out,tmpNum,tmpSystemID;
 
 	string path = "results/";
+	string filename;
 	if (pwd.length() > 0)
 	{
 		path = pwd + "/" + path;
@@ -212,28 +231,50 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 		queue = "pRankpBank";
 	}
 
-	out << TOTAL_STORAGE/(1024*1024*1024) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue<<".vis";
+	/* I really don't see how "the C++ way" is better than snprintf()  */
+	out << TOTAL_STORAGE/(1024*1024*1024) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue;
+
+	//filename so far, without .vis extension, see if it exists already
+	filename = out.str();
+	for (int i=0; i<10; i++)
+	{
+		if (fileExists(path+filename+tmpNum.str()+".vis"))
+		{
+			if (i ==0) 
+			{
+				tmpNum << "." << i;
+			}
+			else
+			{
+				tmpNum << i;
+			}
+			//TODO: figure out how to rewind the stream 
+		}
+		else 
+		{
+			filename = filename+tmpNum.str()+".vis";
+			break;
+		}
+	}
 
 	if (systemID!=0)
 	{
-		out<<"."<<systemID;
+		tmpSystemID<<"."<<systemID;
 	}
 
-	rest = out.str();
-	path.append(rest);
+	path.append(filename+tmpSystemID.str());
 	return path;
 }
-
 void MemorySystem::mkdirIfNotExist(string path)
 {
 	struct stat stat_buf;
 	// dwxr-xr-x on the results directories
-	mode_t mode = (S_IXOTH | S_IXGRP | S_IXUSR | S_IROTH | S_IRGRP | S_IRUSR | S_IWUSR) ;
 	if (stat(path.c_str(), &stat_buf) != 0)
 	{
 		if (errno == ENOENT)
 		{
 			DEBUG("\t directory doesn't exist, trying to create ...");
+			mode_t mode = (S_IXOTH | S_IXGRP | S_IXUSR | S_IROTH | S_IRGRP | S_IRUSR | S_IWUSR) ;
 			if (mkdir(path.c_str(), mode) != 0)
 			{
 				perror("Error Has occurred while trying to make directory: ");
@@ -344,6 +385,10 @@ void MemorySystem::RegisterCallbacks( Callback_t* readCB, Callback_t* writeCB,
 	ReportPower = reportPower;
 }
 
+} /*namespace DRAMSim */
+
+
+
 // This function can be used by autoconf AC_CHECK_LIB since
 // apparently it can't detect C++ functions.
 // Basically just an entry in the symbol table
@@ -354,3 +399,4 @@ extern "C"
 		;
 	}
 }
+

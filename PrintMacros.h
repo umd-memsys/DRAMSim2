@@ -32,23 +32,31 @@ extern int SHOW_SIM_OUTPUT; //enable or disable PRINT() statements -- set by fla
 
 
 #ifdef DEBUG_BUILD
-#define DEBUG(str)  std::cout<< str <<std::endl;
-#define DEBUGN(str) std::cout<< str;
+	#define DEBUG(str)  std::cerr<< str <<std::endl;
+	#define DEBUGN(str) std::cerr<< str;
 #else
-#define DEBUG(str) ;
-#define DEBUGN(str) ;
+	#define DEBUG(str) ;
+	#define DEBUGN(str) ;
 #endif
 
-#ifndef NO_OUTPUT
-#define PRINT(str)  if(SHOW_SIM_OUTPUT) { std::cout <<str<<std::endl; }
-#define PRINTN(str) if(SHOW_SIM_OUTPUT) { std::cout <<str; }
+#ifdef NO_OUTPUT
+	#undef DEBUG
+	#undef DEBUGN
+	#define DEBUG(str) ;
+	#define DEBUGN(str) ;
+	#define PRINT(str) ;
+	#define PRINTN(str) ;
 #else
-#undef DEBUG
-#undef DEBUGN
-#define DEBUG(str) ;
-#define DEBUGN(str) ;
-#define PRINT(str) ;
-#define PRINTN(str) ;
+	#ifdef LOG_OUTPUT
+		namespace DRAMSim {
+		extern std::ofstream dramsim_log;
+		}
+		#define PRINT(str)  { DRAMSim::dramsim_log <<str<<std::endl; }
+		#define PRINTN(str) { DRAMSim::dramsim_log <<str; }
+	#else
+		#define PRINT(str)  if(SHOW_SIM_OUTPUT) { std::cout <<str<<std::endl; }
+		#define PRINTN(str) if(SHOW_SIM_OUTPUT) { std::cout <<str; }
+	#endif
 #endif
 
-#endif
+#endif /*PRINT_MACROS_H*/

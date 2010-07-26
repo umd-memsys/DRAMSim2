@@ -614,7 +614,7 @@ void MemoryController::update()
 		}
 		else
 		{
-			//cout << "== Warning - No room in command queue" << endl;
+			//PRINT( "== Warning - No room in command queue" << endl;
 		}
 	}
 
@@ -1041,10 +1041,10 @@ void MemoryController::printStats(bool finalStats)
 	cout.precision(3);
 	cout.setf(ios::fixed,ios::floatfield);
 #ifndef NO_OUTPUT
-	cout << " =======================================================" << endl;
-	cout << " ============== Printing Statistics [id:"<<parentMemorySystem->systemID<<"]==============" << endl;
-	cout << "   Total Return Transactions : " << totalTransactions;
-	cout << " ("<<totalBytesTransferred <<" bytes) aggregate average bandwidth "<<totalBandwidth<<"GB/s"<<endl;
+	PRINT( " =======================================================" );
+	PRINT( " ============== Printing Statistics [id:"<<parentMemorySystem->systemID<<"]==============" );
+	PRINTN( "   Total Return Transactions : " << totalTransactions );
+	PRINT( " ("<<totalBytesTransferred <<" bytes) aggregate average bandwidth "<<totalBandwidth<<"GB/s");
 
 #endif
 
@@ -1054,15 +1054,14 @@ void MemoryController::printStats(bool finalStats)
 	{
 
 #ifndef NO_OUTPUT
-		cout << "      -Rank   "<<i<<" : "<<endl;
-		cout << "        -Reads  : " << totalReadsPerRank[i];
-		cout << " ("<<totalReadsPerRank[i] * bytesPerTransaction<<" bytes)"<<endl;
-		cout << "        -Writes : " << totalWritesPerRank[i];
-		cout << " ("<<totalWritesPerRank[i] * bytesPerTransaction<<" bytes)"<<endl;
+		PRINT( "      -Rank   "<<i<<" : ");
+		PRINTN( "        -Reads  : " << totalReadsPerRank[i]);
+		PRINT( " ("<<totalReadsPerRank[i] * bytesPerTransaction<<" bytes)");
+		PRINTN( "        -Writes : " << totalWritesPerRank[i]);
+		PRINT( " ("<<totalWritesPerRank[i] * bytesPerTransaction<<" bytes)");
 		for (size_t j=0;j<NUM_BANKS;j++)
 		{
-			cout << "        -Bandwidth / Latency  (Bank " <<j<<"): " <<bandwidth[SEQUENTIAL(i,j)] << " GB/s\t\t" <<averageLatency[SEQUENTIAL(i,j)] << " ns" << endl;
-
+			PRINT( "        -Bandwidth / Latency  (Bank " <<j<<"): " <<bandwidth[SEQUENTIAL(i,j)] << " GB/s\t\t" <<averageLatency[SEQUENTIAL(i,j)] << " ns");
 		}
 #endif
 
@@ -1079,12 +1078,12 @@ void MemoryController::printStats(bool finalStats)
 		}
 
 #ifndef NO_OUTPUT
-		cout << " == Power Data for Rank        " << i << endl;
-		cout << "   Average Power (watts)     : " << averagePower[i] << endl;
-		cout << "     -Background (watts)     : " << backgroundPower[i] << endl;
-		cout << "     -Act/Pre    (watts)     : " << actprePower[i] << endl;
-		cout << "     -Burst      (watts)     : " << burstPower[i]<< endl;
-		cout << "     -Refresh    (watts)     : " << refreshPower[i] << endl;
+		PRINT( " == Power Data for Rank        " << i );
+		PRINT( "   Average Power (watts)     : " << averagePower[i] );
+		PRINT( "     -Background (watts)     : " << backgroundPower[i] );
+		PRINT( "     -Act/Pre    (watts)     : " << actprePower[i] );
+		PRINT( "     -Burst      (watts)     : " << burstPower[i]);
+		PRINT( "     -Refresh    (watts)     : " << refreshPower[i] );
 #endif
 
 		// write the vis file output
@@ -1104,35 +1103,33 @@ void MemoryController::printStats(bool finalStats)
 	// only print the latency histogram at the end of the simulation since it clogs the output too much to print every epoch
 	if (finalStats)
 	{
-		cout << " ---  Latency list ("<<latencies.size()<<")"<<endl;
-		cout << "       [lat] : #"<<endl;
+		PRINT( " ---  Latency list ("<<latencies.size()<<")");
+		PRINT( "       [lat] : #");
 
 		(*visDataOut) << "!!HISTOGRAM_DATA"<<endl;
 
 		map<uint,uint>::iterator it; //
 		for (it=latencies.begin(); it!=latencies.end(); it++)
 		{
-			cout << "       ["<< it->first <<"-"<<it->first+(HISTOGRAM_BIN_SIZE-1)<<"] : "<< it->second << endl;
+			PRINT( "       ["<< it->first <<"-"<<it->first+(HISTOGRAM_BIN_SIZE-1)<<"] : "<< it->second );
 			(*visDataOut) << it->first <<"="<< it->second << endl;
 		}
 
-		cout << " ---  Bank usage list"<<endl;
+		PRINT( " ---  Bank usage list");
 		for (size_t i=0;i<NUM_RANKS;i++)
 		{
 			for (size_t j=0;j<NUM_BANKS;j++)
 			{
-				cout << "["<<i<<","<<j<<"] : "<<totalReadsPerBank[i+j]+totalWritesPerBank[i+j]<<endl;
+				PRINT( "["<<i<<","<<j<<"] : "<<totalReadsPerBank[i+j]+totalWritesPerBank[i+j]);
 			}
 		}
 	}
 
-#ifndef NO_OUTPUT
-	cout << endl<< " == Pending Transactions : "<<pendingReadTransactions.size()<<" ("<<currentClockCycle<<")=="<<endl;
-#endif
+	PRINT(endl<< " == Pending Transactions : "<<pendingReadTransactions.size()<<" ("<<currentClockCycle<<")==");
 	/*
 	for(size_t i=0;i<pendingReadTransactions.size();i++)
 		{
-			cout << i << "] I've been waiting for "<<currentClockCycle-pendingReadTransactions[i].timeAdded<<endl;
+			PRINT( i << "] I've been waiting for "<<currentClockCycle-pendingReadTransactions[i].timeAdded<<endl;
 		}
 	*/
 }
