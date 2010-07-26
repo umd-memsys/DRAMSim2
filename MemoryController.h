@@ -57,6 +57,7 @@ public:
 	MemoryController(MemorySystem* ms, std::ofstream *outfile);
 
 	bool addTransaction(Transaction &trans);
+	bool WillAcceptTransaction();
 	void returnReadData(const Transaction &trans);
 	void receiveFromBus(BusPacket *bpacket);
 	void attachRanks(vector<Rank> *ranks);

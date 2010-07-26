@@ -20,13 +20,6 @@
 *	 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *
 *****************************************************************************/
-
-
-
-
-
-
-
 #ifndef CALLBACK_H
 #define CALLBACK_H
 
@@ -75,6 +68,7 @@ private:
 	const PtrMember  member;
 };
 
+typedef CallbackBase <void, uint, uint64_t, uint64_t> TransactionCompleteCB;
 } // namespace DRAMSim
 
 #endif

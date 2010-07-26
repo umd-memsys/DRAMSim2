@@ -191,7 +191,7 @@ extern QueuingStructure queuingStructure;
 //FUNCTIONS
 //
 
-uint inline log2(unsigned value)
+uint inline dramsim_log2(unsigned value)
 {
 	uint logbase2 = 0;
 	unsigned orig = value;
@@ -205,7 +205,7 @@ uint inline log2(unsigned value)
 	return logbase2;
 }
 
-}
+};
 
 #endif
 
