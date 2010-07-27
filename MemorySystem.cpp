@@ -236,19 +236,12 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 
 	//filename so far, without .vis extension, see if it exists already
 	filename = out.str();
-	for (int i=0; i<10; i++)
+	for (int i=0; i<100; i++)
 	{
 		if (fileExists(path+filename+tmpNum.str()+".vis"))
 		{
-			if (i ==0) 
-			{
-				tmpNum << "." << i;
-			}
-			else
-			{
-				tmpNum << i;
-			}
-			//TODO: figure out how to rewind the stream 
+			tmpNum.seekp(0);
+			tmpNum << "." << i;
 		}
 		else 
 		{
