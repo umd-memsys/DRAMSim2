@@ -146,6 +146,8 @@ void MemorySystem::overrideSystemParam(string keyValuePair)
 
 MemorySystem::~MemorySystem()
 {
+	ERROR("CALLED MEMORYSYSTEM DESTRUCTOR");
+	abort();
 //	DEBUG("MEMORY SYSTEM DESTRUCTOR with ID "<<systemID);
 	delete(memoryController);
 	ranks->clear();
@@ -342,6 +344,12 @@ void MemorySystem::RegisterCallbacks( Callback_t* readCB, Callback_t* writeCB,
 	ReturnReadData = readCB;
 	WriteDataDone = writeCB;
 	ReportPower = reportPower;
+}
+namespace DRAMSim {
+	MemorySystem *getMemorySystemInstance(uint id, string dev, string sys, string pwd, string trc)
+	{
+		return new DRAMSim::MemorySystem(id, dev, sys, pwd, trc);
+	}
 }
 
 // This function can be used by autoconf AC_CHECK_LIB since

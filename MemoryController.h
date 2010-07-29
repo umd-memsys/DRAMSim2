@@ -55,6 +55,7 @@ class MemoryController : public SimulatorObject
 public:
 	//functions
 	MemoryController(MemorySystem* ms, std::ofstream *outfile);
+	virtual ~MemoryController();
 
 	bool addTransaction(Transaction &trans);
 	bool WillAcceptTransaction();

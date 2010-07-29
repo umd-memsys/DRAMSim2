@@ -1136,7 +1136,11 @@ void MemoryController::printStats(bool finalStats)
 		}
 	*/
 }
-
+MemoryController::~MemoryController()
+{
+	ERROR("MEMORY CONTROLLER DESTRUCTOR");
+	abort();
+}
 //inserts a latency into the latency histogram
 void MemoryController::insertHistogram(uint latencyValue, uint rank, uint bank)
 {
