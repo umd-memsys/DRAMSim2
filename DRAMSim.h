@@ -36,8 +36,6 @@ namespace DRAMSim
 	class MemorySystem
 	{
 		public:
-
-			MemorySystem(uint id, string dev, string sys, string pwd, string trc);
 			bool addTransaction(bool isWrite, uint64_t addr);
 			bool WillAcceptTransaction();
 			void update();
@@ -46,6 +44,7 @@ namespace DRAMSim
 				TransactionCompleteCB *writeDone,
 				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
 	};
+	MemorySystem *getMemorySystemInstance(uint id, string dev, string sys, string pwd, string trc);
 }
 
 

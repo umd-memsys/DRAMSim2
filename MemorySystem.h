@@ -44,7 +44,7 @@ class MemorySystem : public SimulatorObject
 public:
 	//functions
 	MemorySystem(uint id, string dev, string sys, string pwd, string trc);
-	~MemorySystem();
+	virtual ~MemorySystem();
 	void update();
 	bool addTransaction(Transaction &trans);
 	bool addTransaction(bool isWrite, uint64_t addr);
