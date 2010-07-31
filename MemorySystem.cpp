@@ -382,7 +382,7 @@ void MemorySystem::RegisterCallbacks( Callback_t* readCB, Callback_t* writeCB,
 namespace DRAMSim {
 	MemorySystem *getMemorySystemInstance(uint id, string dev, string sys, string pwd, string trc)
 	{
-		return new DRAMSim::MemorySystem(id, dev, sys, pwd, trc);
+		return new MemorySystem(id, dev, sys, pwd, trc);
 	}
 }
 
