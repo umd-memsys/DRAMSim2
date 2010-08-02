@@ -36,8 +36,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <errno.h>
-#include <sstream>
+#include <errno.h> 
+#include <sstream> //stringstream
+#include <stdlib.h> // getenv()
 
 using namespace std;
 
@@ -183,6 +184,9 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	size_t lastSlash;
 	string deviceName;
 	size_t deviceIniFilenameLength = deviceIniFilename.length();
+	char *sim_description = NULL;
+	
+	sim_description = getenv("SIM_DESC"); 
 
 	// chop off the .ini if its there
 	if (deviceIniFilename.substr(deviceIniFilenameLength-4) == ".ini")
@@ -235,6 +239,10 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 
 	/* I really don't see how "the C++ way" is better than snprintf()  */
 	out << TOTAL_STORAGE/(1024*1024*1024) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue;
+	if (sim_description)
+	{
+		out << "." << sim_description;
+	}
 
 	//filename so far, without .vis extension, see if it exists already
 	filename = out.str();
