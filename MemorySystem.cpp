@@ -47,7 +47,7 @@ ofstream cmd_verify_out; //used in Rank.cpp and MemoryController.cpp if VERIFICA
 
 namespace DRAMSim {
 #ifdef LOG_OUTPUT
-ofstream dramsim_log("dramsim.log"); 
+ofstream dramsim_log;
 #endif
 
 #if 0
@@ -116,18 +116,6 @@ MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFi
 		ranks->push_back(r);
 	}
 
-	if (VERIFICATION_OUTPUT)
-	{
-		cout << "SDFSDFSDFSDFS" << endl;
-		string basefilename = deviceIniFilename.substr(deviceIniFilename.find_last_of("/")+1);
-		string verify_filename =  "verilog/sim_out_"+basefilename+".tmp";
-		cmd_verify_out.open(verify_filename.c_str());
-		if (!cmd_verify_out)
-		{
-			ERROR("Cannot open "<< verify_filename);
-			exit(-1);
-		}
-	}
 
 	memoryController->attachRanks(ranks);
 
@@ -152,9 +140,10 @@ void MemorySystem::overrideSystemParam(string keyValuePair)
 
 MemorySystem::~MemorySystem()
 {
-	ERROR("CALLED MEMORYSYSTEM DESTRUCTOR");
+	/* the MemorySystem should exist for all time, nothing should be destroying it */  
+	ERROR("MEMORY SYSTEM DESTRUCTOR with ID "<<systemID);
 	abort();
-//	DEBUG("MEMORY SYSTEM DESTRUCTOR with ID "<<systemID);
+
 	delete(memoryController);
 	ranks->clear();
 	delete(ranks);
@@ -162,6 +151,7 @@ MemorySystem::~MemorySystem()
 	visDataOut.close();
 	if (VERIFICATION_OUTPUT)
 	{
+		cmd_verify_out.flush();
 		cmd_verify_out.close();
 	}
 }
@@ -182,13 +172,47 @@ bool fileExists(string path)
 string MemorySystem::SetOutputFileName(string traceFilename)
 {
 	size_t lastSlash;
-	string deviceName;
+	string deviceName, dramsimLogFilename;
 	size_t deviceIniFilenameLength = deviceIniFilename.length();
 	char *sim_description = NULL;
 	
 	sim_description = getenv("SIM_DESC"); 
 
-	// chop off the .ini if its there
+#ifdef LOG_OUTPUT
+	dramsimLogFilename = "dramsim"; 
+	if (sim_description != NULL)
+	{
+		dramsimLogFilename += "."+string(sim_description); 
+	}
+	dramsimLogFilename += ".log";
+
+	dramsim_log.open(dramsimLogFilename.c_str());
+	if (!dramsim_log) 
+	{
+		ERROR("Cannot open "<< dramsimLogFilename);
+		exit(-1); 
+	}
+#endif
+
+	// create a properly named verification output file if need be
+	if (VERIFICATION_OUTPUT)
+	{
+		string basefilename = deviceIniFilename.substr(deviceIniFilename.find_last_of("/")+1);
+		string verify_filename =  "sim_out_"+basefilename;
+		if (sim_description != NULL)
+		{
+			verify_filename += "."+string(sim_description);
+		}
+		verify_filename += ".tmp";
+		cmd_verify_out.open(verify_filename.c_str());
+		if (!cmd_verify_out)
+		{
+			ERROR("Cannot open "<< verify_filename);
+			exit(-1);
+		}
+	}
+
+	// chop off the .ini if it's there
 	if (deviceIniFilename.substr(deviceIniFilenameLength-4) == ".ini")
 	{
 		deviceName = deviceIniFilename.substr(0,deviceIniFilenameLength-4);
@@ -203,6 +227,7 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 		deviceName = deviceName.substr(lastSlash+1,deviceIniFilenameLength-lastSlash-1);
 	}
 
+	// working backwards, chop off the next piece of the directory
 	if ((lastSlash = traceFilename.find_last_of("/")) != string::npos)
 	{
 		traceFilename = traceFilename.substr(lastSlash+1,traceFilename.length()-lastSlash-1);
@@ -217,15 +242,15 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	{
 		path = pwd + "/" + path;
 	}
+
+	// create the directories if they don't exist 
 	mkdirIfNotExist(path);
 	path = path + traceFilename + "/";
-//	path.append(traceFilename);
-//	path.append("/");
 	mkdirIfNotExist(path);
 	path = path + deviceName + "/";
-//	path.append(deviceName);
-//	path.append("/");
 	mkdirIfNotExist(path);
+
+	// finally, figure out the filename
 	string sched = "BtR";
 	string queue = "pRank";
 	if (schedulingPolicy == RankThenBankRoundRobin)
@@ -264,10 +289,11 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	{
 		tmpSystemID<<"."<<systemID;
 	}
-
 	path.append(filename+tmpSystemID.str());
+	
 	return path;
 }
+
 void MemorySystem::mkdirIfNotExist(string path)
 {
 	struct stat stat_buf;

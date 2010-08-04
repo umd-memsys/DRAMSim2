@@ -1,4 +1,4 @@
-CXXFLAGS=-DNO_STORAGE -Wall -DDEBUG_BUILD -DLOG_OUTPUT
+CXXFLAGS=-DNO_STORAGE -Wall -DDEBUG_BUILD 
 OPTFLAGS=-O3 
 
 
@@ -43,8 +43,9 @@ $(LIB_NAME): $(POBJ)
 %.o : %.cpp
 	g++ $(CXXFLAGS) -o $@ -c $<
 
+#po = portable object .. for lack of a better term
 %.po : %.cpp
-	g++ $(CXXFLAGS) -fPIC -o $@ -c $<
+	g++ $(CXXFLAGS) -DLOG_OUTPUT -fPIC -o $@ -c $<
 
 clean: 
 	-rm -f $(REBUILDABLES) *.dep
