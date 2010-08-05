@@ -24,8 +24,6 @@
 
 
 
-
-
 #ifndef CMDQUEUE_H
 #define CMDQUEUE_H
 
@@ -48,7 +46,7 @@ class CommandQueue : public SimulatorObject
 {
 public:
 	//typedefs
-	typedef vector<BusPacket> BusPacket1D;
+	typedef vector<BusPacket *> BusPacket1D;
 	typedef vector<BusPacket1D> BusPacket2D;
 	typedef vector<BusPacket2D> BusPacket3D;
 
@@ -56,17 +54,18 @@ public:
 	CommandQueue(vector< vector<BankState> > &states);
 	CommandQueue();
 
-	void enqueue(BusPacket newBusPacket, uint rank, uint bank);
-	bool pop(BusPacket &busPacket);
+	void enqueue(BusPacket *newBusPacket);
+	bool pop(BusPacket **busPacket);
 	bool hasRoomFor(uint numberToEnqueue, uint rank, uint bank);
-	bool isIssuable(BusPacket busPacket);
+	bool isIssuable(BusPacket *busPacket);
 	bool isEmpty(uint rank);
 	void needRefresh(uint rank);
 	void print();
 	void update(); //SimulatorObject requirement
 
 	//fields
-	BusPacket3D queues;
+	
+	BusPacket3D queues; // 3D array of BusPacket pointers
 	vector< vector<BankState> > &bankStates;
 private:
 

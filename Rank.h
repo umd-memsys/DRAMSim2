@@ -22,10 +22,6 @@
 *****************************************************************************/
 
 
-
-
-
-
 #ifndef RANK_H
 #define RANK_H
 
@@ -53,8 +49,7 @@ private:
 public:
 	//functions
 	Rank();
-	void receiveFromBus(BusPacket &packet);
-	void sendToBus(BusPacket &packet);
+	void receiveFromBus(BusPacket *packet);
 	void attachMemoryController(MemoryController *mc);
 	int getId() const;
 	void setId(int id);
@@ -70,7 +65,7 @@ public:
 	bool refreshWaiting;
 
 	//these are vectors so that each element is per-bank
-	vector<BusPacket> readReturnPacket;
+	vector<BusPacket *> readReturnPacket;
 	vector<uint> readReturnCountdown;
 	vector<BankState> bankStates;
 };

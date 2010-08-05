@@ -22,10 +22,6 @@
 *****************************************************************************/
 
 
-
-
-
-
 //MemorySystem.cpp
 //
 //Class file for JEDEC memory system wrapper
@@ -106,6 +102,8 @@ MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFi
 	}
 
 	memoryController = new MemoryController(this, &visDataOut);
+
+	// TODO: change to other vector constructor?
 	ranks = new vector<Rank>();
 
 	for (size_t i=0; i<NUM_RANKS; i++)
@@ -132,6 +130,7 @@ void MemorySystem::overrideSystemParam(string keyValuePair)
 {
 	size_t equalsign=-1;
 	string overrideKey, overrideVal;
+	//FIXME: could use some error checks on the string
 	equalsign = keyValuePair.find_first_of('=');
 	overrideKey = keyValuePair.substr(0,equalsign);
 	overrideVal = keyValuePair.substr(equalsign+1);
@@ -308,6 +307,7 @@ void MemorySystem::mkdirIfNotExist(string path)
 			{
 				perror("Error Has occurred while trying to make directory: ");
 				cerr << path << endl;
+				abort();
 			}
 		}
 	}
@@ -315,16 +315,13 @@ void MemorySystem::mkdirIfNotExist(string path)
 	{
 		if (!S_ISDIR(stat_buf.st_mode))
 		{
-			ERROR("NOT A DIRECTORY");
+			ERROR(path << "is not a directory");
 			abort();
-		}
-		else
-		{
-			//DEBUG("GREAT SUCCESS!");
 		}
 	}
 }
 
+// scrap this? 
 bool MemorySystem::WillAcceptTransaction()
 {
 	return true;
@@ -333,22 +330,14 @@ bool MemorySystem::WillAcceptTransaction()
 
 bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
 {
-	TransactionType type;
-	if (isWrite)
-	{
-		type = DATA_WRITE;
-	}
-	else
-	{
-		type = DATA_READ;
-	}
+	TransactionType type = isWrite ? DATA_WRITE : DATA_READ;
+	Transaction trans(type,addr,NULL);
+	// push_back in memoryController will make a copy of this during
+	// addTransaction so it's kosher for the reference to be local 
 
-	Transaction t = Transaction(type,addr,NULL);
-
-	return memoryController->addTransaction(t);
+	return memoryController->addTransaction(trans);
 }
 
-//allows CPU to make a request to the memory system
 bool MemorySystem::addTransaction(Transaction &trans)
 {
 	return memoryController->addTransaction(trans);
@@ -382,7 +371,6 @@ void MemorySystem::update()
 
 		//write out the ini config values for the visualizer tool
 		IniReader::WriteValuesOut(visDataOut);
-
 	}
 	//PRINT(" ----------------- Memory System Update ------------------");
 
@@ -414,6 +402,7 @@ void MemorySystem::RegisterCallbacks( Callback_t* readCB, Callback_t* writeCB,
 	ReportPower = reportPower;
 }
 
+// static allocator for the library interface 
 MemorySystem *getMemorySystemInstance(uint id, string dev, string sys, string pwd, string trc)
 {
 	return new MemorySystem(id, dev, sys, pwd, trc);

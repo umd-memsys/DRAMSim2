@@ -21,11 +21,6 @@
 *
 *****************************************************************************/
 
-
-
-
-
-
 //MemoryController.cpp
 //
 //Class file for memory controller object
@@ -40,7 +35,7 @@ using namespace DRAMSim;
 
 MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile) :
 		commandQueue (CommandQueue(bankStates)),
-		poppedBusPacket(BusPacket()),
+		poppedBusPacket(NULL),
 		totalTransactions(0),
 		channelBitWidth (dramsim_log2(NUM_CHANS)),
 		rankBitWidth (dramsim_log2(NUM_RANKS)),
@@ -55,6 +50,46 @@ MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile)
 	visDataOut = outfile;
 
 	//calculate number of devices
+	/************************
+	  This code has always been problematic even though it's pretty simple. I'll try to explain it 
+	  for my own sanity. 
+
+	  There are two main variables here that we could let the user choose:
+	  NUM_RANKS or TOTAL_STORAGE.  Since the density and width of the part is
+	  fixed by the device ini file, the only variable that is really
+	  controllable is the number of ranks. Users care more about choosing the
+	  total amount of storage, but with a fixed device they might choose a total
+	  storage that isn't possible. In that sense it's not as good to allow them
+	  to choose TOTAL_STORAGE (because any NUM_RANKS value >1 will be valid).
+
+	  However, users don't care (or know) about ranks, they care about total
+	  storage, so maybe it's better to let them choose and just throw an error
+	  if they choose something invalid. 
+
+	  A bit of background: 
+
+	  Each column contains DEVICE_WIDTH bits. A row contains NUM_COLS columns.
+	  Each bank contains NUM_ROWS rows. Therefore, the total storage per DRAM device is: 
+	  		PER_DEVICE_STORAGE = NUM_ROWS*NUM_COLS*DEVICE_WIDTH*NUM_BANKS (in bits)
+
+	 A rank *must* have a 64 bit output bus (JEDEC standard), so each rank must have:
+	  		NUM_DEVICES_PER_RANK = 64/DEVICE_WIDTH  
+	 
+	If we multiply these two numbers to get the storage per rank (in bits), we get:
+			PER_RANK_STORAGE = PER_DEVICE_STORAGE*NUM_DEVICES_PER_RANK = NUM_ROWS*NUM_COLS*NUM_BANKS*64 
+
+	Finally, to get TOTAL_STORAGE, we need to multiply by NUM_RANKS
+			TOTAL_STORAGE = PER_RANK_STORAGE*NUM_RANKS (total storage in bits)
+
+	So one could compute this in reverse -- compute NUM_DEVICES,
+	PER_DEVICE_STORAGE, and PER_RANK_STORAGE first since all these parameters
+	are set by the device ini. Then, TOTAL_STORAGE/PER_RANK_STORAGE = NUM_RANKS 
+
+	The only way this could run into problems is if TOTAL_STORAGE < PER_RANK_STORAGE,
+	which could happen for very dense parts.
+	*********************/
+	//TODO: 
+
 	//uint64_t total_storage64 = (uint64_t)TOTAL_STORAGE;
 	//NUM_DEVICES = (total_storage64*8) / (NUM_ROWS * NUM_COLS * DEVICE_WIDTH * NUM_BANKS);
 	NUM_DEVICES = ((TOTAL_STORAGE * 8) / ((long)NUM_ROWS * NUM_COLS * DEVICE_WIDTH * NUM_BANKS))/NUM_RANKS;
@@ -117,6 +152,7 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 	//add to return read data queue
 	returnTransaction.push_back(Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data));
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
+
 	// this delete statement saves a mindboggling amount of memory
 	delete(bpacket);
 }
@@ -184,7 +220,7 @@ void MemoryController::update()
 		cmdCyclesLeft--;
 		if (cmdCyclesLeft == 0) //packet is ready to be received by rank
 		{
-			(*ranks)[outgoingCmdPacket->rank].receiveFromBus((*outgoingCmdPacket));
+			(*ranks)[outgoingCmdPacket->rank].receiveFromBus(outgoingCmdPacket);
 			outgoingCmdPacket = NULL;
 		}
 	}
@@ -201,7 +237,7 @@ void MemoryController::update()
 				(*parentMemorySystem->WriteDataDone)(parentMemorySystem->systemID,outgoingDataPacket->physicalAddress, currentClockCycle);
 			}
 
-			(*ranks)[outgoingDataPacket->rank].receiveFromBus((*outgoingDataPacket));
+			(*ranks)[outgoingDataPacket->rank].receiveFromBus(outgoingDataPacket);
 			outgoingDataPacket=NULL;
 		}
 	}
@@ -225,7 +261,7 @@ void MemoryController::update()
 			if (DEBUG_BUS)
 			{
 				PRINTN(" -- MC Issuing On Data Bus    : ");
-				writeDataToSend[0].print();
+				writeDataToSend[0]->print();
 			}
 
 			// queue up the packet to be sent
@@ -235,11 +271,11 @@ void MemoryController::update()
 				exit(-1);
 			}
 
-			outgoingDataPacket = new BusPacket(writeDataToSend[0]);
+			outgoingDataPacket = writeDataToSend[0];
 			dataCyclesLeft = BL/2;
 
 			totalTransactions++;
-			totalWritesPerBank[SEQUENTIAL(writeDataToSend[0].rank,writeDataToSend[0].bank)]++;
+			totalWritesPerBank[SEQUENTIAL(writeDataToSend[0]->rank,writeDataToSend[0]->bank)]++;
 
 			writeDataCountdown.erase(writeDataCountdown.begin());
 			writeDataToSend.erase(writeDataToSend.begin());
@@ -265,27 +301,27 @@ void MemoryController::update()
 		(*ranks)[refreshRank].refreshWaiting = true;
 	}
 
-	//pass in poppedBusPacket as a reference
+	//pass a pointer to a poppedBusPacket
+
 	//function returns true if there is something valid in poppedBusPacket
-	if (commandQueue.pop(poppedBusPacket))
+	if (commandQueue.pop(&poppedBusPacket))
 	{
-		if (poppedBusPacket.busPacketType == WRITE || poppedBusPacket.busPacketType == WRITE_P)
-
-
+		if (poppedBusPacket->busPacketType == WRITE || poppedBusPacket->busPacketType == WRITE_P)
 		{
-			writeDataToSend.push_back(BusPacket(DATA, poppedBusPacket.physicalAddress, poppedBusPacket.column,
-			                                    poppedBusPacket.row, poppedBusPacket.rank, poppedBusPacket.bank,
-			                                    poppedBusPacket.data));
+
+			writeDataToSend.push_back(new BusPacket(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,
+			                                    poppedBusPacket->row, poppedBusPacket->rank, poppedBusPacket->bank,
+			                                    poppedBusPacket->data));
 			writeDataCountdown.push_back(WL);
 		}
 
 		//
 		//update each bank's state based on the command that was just popped out of the command queue
 		//
-		//for readabilities sake
-		uint rank = poppedBusPacket.rank;
-		uint bank = poppedBusPacket.bank;
-		switch (poppedBusPacket.busPacketType)
+		//for readability's sake
+		uint rank = poppedBusPacket->rank;
+		uint bank = poppedBusPacket->bank;
+		switch (poppedBusPacket->busPacketType)
 		{
 		case READ:
 			//add energy to account for total
@@ -303,7 +339,7 @@ void MemoryController::update()
 			{
 				for (size_t j=0;j<NUM_BANKS;j++)
 				{
-					if (i!=poppedBusPacket.rank)
+					if (i!=poppedBusPacket->rank)
 					{
 						//check to make sure it is active before trying to set (save's time?)
 						if (bankStates[i][j].currentBankState == RowActive)
@@ -341,7 +377,7 @@ void MemoryController::update()
 			{
 				for (size_t j=0;j<NUM_BANKS;j++)
 				{
-					if (i!=poppedBusPacket.rank)
+					if (i!=poppedBusPacket->rank)
 					{
 						//check to make sure it is active before trying to set (save's time?)
 						if (bankStates[i][j].currentBankState == RowActive)
@@ -383,7 +419,7 @@ void MemoryController::update()
 			{
 				for (size_t j=0;j<NUM_BANKS;j++)
 				{
-					if (i!=poppedBusPacket.rank)
+					if (i!=poppedBusPacket->rank)
 					{
 						if (bankStates[i][j].currentBankState == RowActive)
 						{
@@ -418,7 +454,7 @@ void MemoryController::update()
 			{
 				for (size_t j=0;j<NUM_BANKS;j++)
 				{
-					if (i!=poppedBusPacket.rank)
+					if (i!=poppedBusPacket->rank)
 					{
 						if (bankStates[i][j].currentBankState == RowActive)
 						{
@@ -453,25 +489,18 @@ void MemoryController::update()
 
 			bankStates[rank][bank].currentBankState = RowActive;
 			bankStates[rank][bank].lastCommand = ACTIVATE;
-			bankStates[rank][bank].openRowAddress = poppedBusPacket.row;
+			bankStates[rank][bank].openRowAddress = poppedBusPacket->row;
 			bankStates[rank][bank].nextActivate = max(currentClockCycle + tRC, bankStates[rank][bank].nextActivate);
 			bankStates[rank][bank].nextPrecharge = max(currentClockCycle + tRAS, bankStates[rank][bank].nextPrecharge);
 
 			//if we are using posted-CAS, the next column access can be sooner than normal operation
-			if (AL>0)
-			{
-				bankStates[rank][bank].nextRead = max(currentClockCycle + (tRCD-AL), bankStates[rank][bank].nextRead);
-				bankStates[rank][bank].nextWrite = max(currentClockCycle + (tRCD-AL), bankStates[rank][bank].nextWrite);
-			}
-			else
-			{
-				bankStates[rank][bank].nextRead = max(currentClockCycle + tRCD, bankStates[rank][bank].nextRead);
-				bankStates[rank][bank].nextWrite = max(currentClockCycle + tRCD, bankStates[rank][bank].nextWrite);
-			}
+
+			bankStates[rank][bank].nextRead = max(currentClockCycle + (tRCD-AL), bankStates[rank][bank].nextRead);
+			bankStates[rank][bank].nextWrite = max(currentClockCycle + (tRCD-AL), bankStates[rank][bank].nextWrite);
 
 			for (size_t i=0;i<NUM_BANKS;i++)
 			{
-				if (i!=poppedBusPacket.bank)
+				if (i!=poppedBusPacket->bank)
 				{
 					bankStates[rank][i].nextActivate = max(currentClockCycle + tRRD, bankStates[rank][i].nextActivate);
 				}
@@ -503,7 +532,7 @@ void MemoryController::update()
 
 			break;
 		default:
-			ERROR("== Error - Popped a command we shouldn't have of type : " << poppedBusPacket.busPacketType);
+			ERROR("== Error - Popped a command we shouldn't have of type : " << poppedBusPacket->busPacketType);
 			exit(0);
 		}
 
@@ -511,7 +540,7 @@ void MemoryController::update()
 		if (DEBUG_BUS)
 		{
 			PRINTN(" -- MC Issuing On Command Bus : ");
-			poppedBusPacket.print();
+			poppedBusPacket->print();
 		}
 
 		//check for collision on bus
@@ -520,7 +549,7 @@ void MemoryController::update()
 			ERROR("== Error - Command Bus Collision");
 			exit(-1);
 		}
-		outgoingCmdPacket = &poppedBusPacket;
+		outgoingCmdPacket = poppedBusPacket;
 		cmdCyclesLeft = tCMD;
 
 	}
@@ -534,9 +563,9 @@ void MemoryController::update()
 		Transaction transaction = transactionQueue[i];
 
 		//map address to rank,bank,row,col
-		//	will set newTransactionRank, newTransactionBank, etc. fields
 		uint newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn;
 
+		// pass these in as references so they get set by the addressMapping function
 		addressMapping(transaction.address, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn);
 
 		//if we have room, break up the transaction into the appropriate commands
@@ -569,41 +598,41 @@ void MemoryController::update()
 			transactionQueue.erase(transactionQueue.begin()+i);
 
 			//create activate command to the row we just translated
-			BusPacket ACTcommand = BusPacket(ACTIVATE, transaction.address, newTransactionColumn, newTransactionRow,
+			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction.address, newTransactionColumn, newTransactionRow,
 			                                 newTransactionRank, newTransactionBank, 0);
-			commandQueue.enqueue(ACTcommand, newTransactionRank, newTransactionBank);
+			commandQueue.enqueue(ACTcommand);
 
 			//create read or write command and enqueue it
 			if (transaction.transactionType == DATA_READ)
 			{
-				BusPacket READcommand;
+				BusPacket *READcommand;
 				if (rowBufferPolicy == OpenPage)
 				{
-					READcommand = BusPacket(READ, transaction.address, newTransactionColumn, newTransactionRow,
+					READcommand = new BusPacket(READ, transaction.address, newTransactionColumn, newTransactionRow,
 					                        newTransactionRank, newTransactionBank,0);
-					commandQueue.enqueue(READcommand, newTransactionRank, newTransactionBank);
+					commandQueue.enqueue(READcommand);
 				}
 				else if (rowBufferPolicy == ClosePage)
 				{
-					READcommand = BusPacket(READ_P, transaction.address, newTransactionColumn, newTransactionRow,
+					READcommand = new BusPacket(READ_P, transaction.address, newTransactionColumn, newTransactionRow,
 					                        newTransactionRank, newTransactionBank,0);
-					commandQueue.enqueue(READcommand, newTransactionRank, newTransactionBank);
+					commandQueue.enqueue(READcommand);
 				}
 			}
 			else if (transaction.transactionType == DATA_WRITE)
 			{
-				BusPacket WRITEcommand;
+				BusPacket *WRITEcommand;
 				if (rowBufferPolicy == OpenPage)
 				{
-					WRITEcommand = BusPacket(WRITE, transaction.address, newTransactionColumn, newTransactionRow,
+					WRITEcommand = new BusPacket(WRITE, transaction.address, newTransactionColumn, newTransactionRow,
 					                         newTransactionRank, newTransactionBank, transaction.data);
-					commandQueue.enqueue(WRITEcommand, newTransactionRank, newTransactionBank);
+					commandQueue.enqueue(WRITEcommand);
 				}
 				else if (rowBufferPolicy == ClosePage)
 				{
-					WRITEcommand = BusPacket(WRITE_P, transaction.address, newTransactionColumn, newTransactionRow,
+					WRITEcommand = new BusPacket(WRITE_P, transaction.address, newTransactionColumn, newTransactionRow,
 					                         newTransactionRank, newTransactionBank, transaction.data);
-					commandQueue.enqueue(WRITEcommand, newTransactionRank, newTransactionBank);
+					commandQueue.enqueue(WRITEcommand);
 				}
 			}
 			else
@@ -760,6 +789,7 @@ void MemoryController::update()
 
 	if (DEBUG_BANKSTATE)
 	{
+		//TODO: move this to BankState.cpp
 		PRINT("== Printing bank states (According to MC)");
 		for (size_t i=0;i<NUM_RANKS;i++)
 		{

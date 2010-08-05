@@ -78,9 +78,9 @@ private:
 	MemorySystem *parentMemorySystem;
 
 	CommandQueue commandQueue;
-	BusPacket poppedBusPacket;
+	BusPacket *poppedBusPacket;
 	vector<uint>refreshCountdown;
-	vector<BusPacket> writeDataToSend;
+	vector<BusPacket *> writeDataToSend;
 	vector<uint> writeDataCountdown;
 	vector<Transaction> returnTransaction;
 	vector<Transaction> pendingReadTransactions;
