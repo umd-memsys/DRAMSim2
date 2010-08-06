@@ -158,6 +158,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 		incomingWriteBank = packet->bank;
 		incomingWriteRow = packet->row;
 		incomingWriteColumn = packet->column;
+		delete(packet);
 		break;
 	case WRITE_P:
 		//make sure a write is allowed
@@ -182,6 +183,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 		incomingWriteBank = packet->bank;
 		incomingWriteRow = packet->row;
 		incomingWriteColumn = packet->column;
+		delete(packet);
 		break;
 	case ACTIVATE:
 		//make sure activate is allowed
@@ -218,6 +220,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 				bankStates[i].nextActivate = max(bankStates[i].nextActivate, currentClockCycle + tRRD);
 			}
 		}
+		delete(packet); 
 		break;
 	case PRECHARGE:
 		//make sure precharge is allowed
@@ -230,6 +233,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 
 		bankStates[packet->bank].currentBankState = Idle;
 		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + tRP);
+		delete(packet); 
 		break;
 	case REFRESH:
 		refreshWaiting = false;
@@ -242,6 +246,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 			}
 			bankStates[i].nextActivate = currentClockCycle + tRFC;
 		}
+		delete(packet); 
 		break;
 	case DATA:
 		// TODO: replace this check with something that works?
@@ -260,8 +265,8 @@ void Rank::receiveFromBus(BusPacket *packet)
 		banks[packet->bank].write(packet);
 #else
 		// end of the line for the write packet
-		delete(packet);
 #endif
+		delete(packet);
 		break;
 	default:
 		ERROR("== Error - Unknown BusPacketType trying to be sent to Bank");

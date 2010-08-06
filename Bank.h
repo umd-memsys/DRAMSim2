@@ -53,8 +53,8 @@ class Bank
 public:
 	//functions
 	Bank();
-	void read(BusPacket &busPacket);
-	void write(const BusPacket &busPacket);
+	void read(BusPacket *busPacket);
+	void write(const BusPacket *busPacket);
 
 	//fields
 	BankState currentState;

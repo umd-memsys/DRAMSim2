@@ -97,7 +97,25 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states) :
 		tFAWCountdown.push_back(vector<uint>());
 	}
 }
-
+CommandQueue::~CommandQueue()
+{
+	ERROR("COMMAND QUEUE destructor");
+	size_t bankMax = NUM_RANKS;
+	if (queuingStructure == PerRank) {
+		bankMax = 1; 
+	}
+	for (size_t r=0; r< NUM_RANKS; r++)
+	{
+		for (size_t b=0; b<bankMax; b++) 
+		{
+			for (size_t i=0; i<queues[r][b].size(); i++)
+			{
+				delete(queues[r][b][i]);
+			}
+			queues[r][b].clear();
+		}
+	}
+}
 //Adds a command to appropriate queue
 void CommandQueue::enqueue(BusPacket *newBusPacket)
 {
@@ -371,11 +389,13 @@ bool CommandQueue::pop(BusPacket **busPacket)
 								//if the bus packet before is an activate, that is the act that was
 								//	paired with the column access we are removing, so we have to remove
 								//	that activate as well (check i>0 because if i==0 then theres nothing before it)
+
 								if (i>0 && queues[nextRank][0][i-1]->busPacketType == ACTIVATE)
 								{
 									rowAccessCounters[(*busPacket)->rank][(*busPacket)->bank]++;
-
-									//erase is exclusive on the upper end (hence the +1)
+									// i is being returned, but i-1 is being thrown away, so must delete it here 
+									delete(queues[nextRank][0][i-1]);
+									//erase is exclusive on the upper end, so really this will erase (i-1) and i
 									queues[nextRank][0].erase(queues[nextRank][0].begin()+i-1,queues[nextRank][0].begin()+i+1);
 								}
 								else
@@ -708,8 +728,10 @@ bool CommandQueue::pop(BusPacket **busPacket)
 								if (i>0 && queues[nextRank][nextBank][i-1]->busPacketType == ACTIVATE)
 								{
 									rowAccessCounters[nextRank][nextBank]++;
+									// (i-1) is thrown away here so get rid of it
+									delete (queues[nextRank][nextBank][i-1]);
 
-									//erase both
+									//erase both i-1 and i
 									queues[nextRank][nextBank].erase(queues[nextRank][nextBank].begin()+i-1,
 									                                 queues[nextRank][nextBank].begin()+i+1);
 								}

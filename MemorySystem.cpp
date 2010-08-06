@@ -141,7 +141,7 @@ MemorySystem::~MemorySystem()
 {
 	/* the MemorySystem should exist for all time, nothing should be destroying it */  
 	ERROR("MEMORY SYSTEM DESTRUCTOR with ID "<<systemID);
-	abort();
+//	abort();
 
 	delete(memoryController);
 	ranks->clear();

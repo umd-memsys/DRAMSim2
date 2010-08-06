@@ -53,6 +53,7 @@ public:
 	//functions
 	CommandQueue(vector< vector<BankState> > &states);
 	CommandQueue();
+	virtual ~CommandQueue(); 
 
 	void enqueue(BusPacket *newBusPacket);
 	bool pop(BusPacket **busPacket);
