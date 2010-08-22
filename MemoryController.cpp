@@ -1022,15 +1022,11 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 		exit(-1);
 	}
 
-	if (DEBUG_ADDR_MAP)
-	{
-	}
 }
 
 //prints statistics at the end of an epoch or  simulation
 void MemoryController::printStats(bool finalStats)
 {
-
 	//skip the print on the first cycle, it's pretty useless
 	if (currentClockCycle == 0)
 		return;
@@ -1068,22 +1064,25 @@ void MemoryController::printStats(bool finalStats)
 			totalWritesPerRank[i] += totalWritesPerBank[SEQUENTIAL(i,j)];
 		}
 	}
+#ifdef LOG_OUTPUT
+	dramsim_log.precision(3);
+	dramsim_log.setf(ios::fixed,ios::floatfield);
+#else
 	cout.precision(3);
 	cout.setf(ios::fixed,ios::floatfield);
-#ifndef NO_OUTPUT
+#endif
+
 	PRINT( " =======================================================" );
 	PRINT( " ============== Printing Statistics [id:"<<parentMemorySystem->systemID<<"]==============" );
 	PRINTN( "   Total Return Transactions : " << totalTransactions );
 	PRINT( " ("<<totalBytesTransferred <<" bytes) aggregate average bandwidth "<<totalBandwidth<<"GB/s");
 
-#endif
 
 	(*visDataOut) << currentClockCycle * tCK * 1E-6<< ":";
 
 	for (size_t i=0;i<NUM_RANKS;i++)
 	{
 
-#ifndef NO_OUTPUT
 		PRINT( "      -Rank   "<<i<<" : ");
 		PRINTN( "        -Reads  : " << totalReadsPerRank[i]);
 		PRINT( " ("<<totalReadsPerRank[i] * bytesPerTransaction<<" bytes)");
@@ -1093,7 +1092,6 @@ void MemoryController::printStats(bool finalStats)
 		{
 			PRINT( "        -Bandwidth / Latency  (Bank " <<j<<"): " <<bandwidth[SEQUENTIAL(i,j)] << " GB/s\t\t" <<averageLatency[SEQUENTIAL(i,j)] << " ns");
 		}
-#endif
 
 		// factor of 1000 at the end is to account for the fact that totalEnergy is accumulated in mJ since IDD values are given in mA
 		backgroundPower[i] = ((double)backgroundEnergy[i] / (double)(cyclesElapsed)) * Vdd / 1000.0;
@@ -1107,14 +1105,12 @@ void MemoryController::printStats(bool finalStats)
 			(*parentMemorySystem->ReportPower)(backgroundPower[i],burstPower[i],refreshPower[i],actprePower[i]);
 		}
 
-#ifndef NO_OUTPUT
 		PRINT( " == Power Data for Rank        " << i );
 		PRINT( "   Average Power (watts)     : " << averagePower[i] );
 		PRINT( "     -Background (watts)     : " << backgroundPower[i] );
 		PRINT( "     -Act/Pre    (watts)     : " << actprePower[i] );
 		PRINT( "     -Burst      (watts)     : " << burstPower[i]);
 		PRINT( "     -Refresh    (watts)     : " << refreshPower[i] );
-#endif
 
 		// write the vis file output
 		(*visDataOut) << "bgp_"<<i<<"="<<backgroundPower[i]<<",";
@@ -1162,6 +1158,9 @@ void MemoryController::printStats(bool finalStats)
 			PRINT( i << "] I've been waiting for "<<currentClockCycle-pendingReadTransactions[i].timeAdded<<endl;
 		}
 	*/
+#ifdef LOG_OUTPUT
+	dramsim_log.flush();
+#endif
 }
 MemoryController::~MemoryController()
 {

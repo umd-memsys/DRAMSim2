@@ -71,7 +71,6 @@ public:
 
 	//output file
 	std::ofstream visDataOut;
-	std::ofstream dramsim_log;
 
 	//function pointers
 	Callback_t* ReturnReadData;
