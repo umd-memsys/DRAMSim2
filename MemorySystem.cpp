@@ -178,6 +178,7 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	string deviceName, dramsimLogFilename;
 	size_t deviceIniFilenameLength = deviceIniFilename.length();
 	char *sim_description = NULL;
+	string sim_description_str;
 	
 	sim_description = getenv("SIM_DESC"); 
 
@@ -185,7 +186,8 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	dramsimLogFilename = "dramsim"; 
 	if (sim_description != NULL)
 	{
-		dramsimLogFilename += "."+string(sim_description); 
+		sim_description_str = string(sim_description);
+		dramsimLogFilename += "."+sim_description_str; 
 	}
 	dramsimLogFilename += ".log";
 
@@ -204,7 +206,7 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 		string verify_filename =  "sim_out_"+basefilename;
 		if (sim_description != NULL)
 		{
-			verify_filename += "."+string(sim_description);
+			verify_filename += "."+sim_description_str;
 		}
 		verify_filename += ".tmp";
 		cmd_verify_out.open(verify_filename.c_str());
@@ -234,6 +236,10 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	if ((lastSlash = traceFilename.find_last_of("/")) != string::npos)
 	{
 		traceFilename = traceFilename.substr(lastSlash+1,traceFilename.length()-lastSlash-1);
+	}
+	if (sim_description != NULL)
+	{
+		traceFilename += "."+sim_description_str;
 	}
 
 	string rest;
