@@ -99,7 +99,7 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states) :
 }
 CommandQueue::~CommandQueue()
 {
-	ERROR("COMMAND QUEUE destructor");
+	//ERROR("COMMAND QUEUE destructor");
 	size_t bankMax = NUM_RANKS;
 	if (queuingStructure == PerRank) {
 		bankMax = 1; 

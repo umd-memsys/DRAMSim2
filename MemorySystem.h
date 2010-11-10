@@ -35,6 +35,7 @@
 #include "Rank.h"
 #include "Transaction.h"
 #include "Callback.h"
+#include <deque>
 
 namespace DRAMSim
 {
@@ -68,6 +69,7 @@ public:
 	// unfortunately, this is the easiest to keep C++ from initializing my members by default
 	MemoryController *memoryController;
 	vector<Rank> *ranks;
+	deque<Transaction> pendingTransactions; 
 
 	//output file
 	std::ofstream visDataOut;

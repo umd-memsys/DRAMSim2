@@ -46,10 +46,6 @@ namespace DRAMSim {
 ofstream dramsim_log;
 #endif
 
-#if 0
-returnCallBack_t MemorySystem::ReturnReadData = NULL;
-returnCallBack_t MemorySystem::WriteDataDone = NULL;
-#endif
 powerCallBack_t MemorySystem::ReportPower = NULL;
 
 MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFilename, string pwd,
@@ -140,7 +136,7 @@ void MemorySystem::overrideSystemParam(string keyValuePair)
 MemorySystem::~MemorySystem()
 {
 	/* the MemorySystem should exist for all time, nothing should be destroying it */  
-	ERROR("MEMORY SYSTEM DESTRUCTOR with ID "<<systemID);
+//	ERROR("MEMORY SYSTEM DESTRUCTOR with ID "<<systemID);
 //	abort();
 
 	delete(memoryController);
@@ -331,11 +327,10 @@ void MemorySystem::mkdirIfNotExist(string path)
 	}
 }
 
-// scrap this? 
 bool MemorySystem::WillAcceptTransaction()
 {
 	return true;
-	//return memoryController->WillAcceptTransaction();
+//	return memoryController->WillAcceptTransaction();
 }
 
 bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
@@ -345,7 +340,15 @@ bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
 	// push_back in memoryController will make a copy of this during
 	// addTransaction so it's kosher for the reference to be local 
 
-	return memoryController->addTransaction(trans);
+	if (memoryController->WillAcceptTransaction()) 
+	{
+		return memoryController->addTransaction(trans); // will be true
+	}
+	else
+	{
+		pendingTransactions.push_back(trans);
+		return true;
+	}
 }
 
 bool MemorySystem::addTransaction(Transaction &trans)
@@ -389,6 +392,13 @@ void MemorySystem::update()
 	for (size_t i=0;i<NUM_RANKS;i++)
 	{
 		(*ranks)[i].update();
+	}
+
+	//pendingTransactions will only have stuff in it if MARSS is adding stuff
+	if (pendingTransactions.size() > 0 && memoryController->WillAcceptTransaction())
+	{
+		memoryController->addTransaction(pendingTransactions.front());
+		pendingTransactions.pop_front();
 	}
 	memoryController->update();
 
