@@ -367,7 +367,7 @@ int main(int argc, char **argv)
 
 
 	MemorySystem *memorySystem;
-	memorySystem = new MemorySystem(0, deviceIniFilename, systemIniFilename, pwdString, traceFileName);
+	memorySystem = new MemorySystem(0, deviceIniFilename, systemIniFilename, pwdString, traceFileName, 0);
 
 	uint64_t addr;
 	uint64_t clockCycle=0;

@@ -49,7 +49,7 @@ ofstream dramsim_log;
 powerCallBack_t MemorySystem::ReportPower = NULL;
 
 MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFilename, string pwd,
-                           string traceFilename) :
+                           string traceFilename, unsigned int megsOfMemory) :
 		ReturnReadData(NULL),
 		WriteDataDone(NULL),
 		systemID(0),
@@ -87,9 +87,24 @@ MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFi
 	IniReader::ReadIniFile(systemIniFilename, true);
 
 	//calculate the total storage based on the devices the user selected and the number of
-	//  ranks in the system
-	TOTAL_STORAGE = (long)NUM_RANKS * NUM_ROWS * NUM_COLS * NUM_BANKS * DEVICE_WIDTH / 8 * (JEDEC_DATA_BUS_WIDTH / DEVICE_WIDTH);
-//	DEBUG("TOTAL_STORAGE : "<<TOTAL_STORAGE);
+
+	// number of bytes per rank
+	unsigned long megsOfStoragePerRank = (((NUM_ROWS * (NUM_COLS * DEVICE_WIDTH) * NUM_BANKS) * (JEDEC_DATA_BUS_WIDTH / DEVICE_WIDTH)) / 8) >> 20;
+
+	// If this is set, effectively override the number of ranks
+	if (megsOfMemory != 0)
+	{
+		NUM_RANKS = megsOfMemory / megsOfStoragePerRank;
+		if (NUM_RANKS == 0)
+		{
+			PRINT("WARNING: Cannot create memory system with "<<megsOfMemory<<"MB, defaulting to minimum size of "<<megsOfStoragePerRank<<"MB");
+			NUM_RANKS=1;
+		}
+	}
+
+	TOTAL_STORAGE = (NUM_RANKS * megsOfStoragePerRank) << 10; 
+
+	DEBUG("TOTAL_STORAGE : "<<TOTAL_STORAGE);
 
 	IniReader::InitEnumsFromStrings();
 	if (!IniReader::CheckIfAllSet())
@@ -127,10 +142,11 @@ void MemorySystem::overrideSystemParam(string keyValuePair)
 	size_t equalsign=-1;
 	string overrideKey, overrideVal;
 	//FIXME: could use some error checks on the string
-	equalsign = keyValuePair.find_first_of('=');
-	overrideKey = keyValuePair.substr(0,equalsign);
-	overrideVal = keyValuePair.substr(equalsign+1);
-	overrideSystemParam(overrideKey, overrideVal);
+	if ((equalsign = keyValuePair.find_first_of('=')) != string::npos) {
+		overrideKey = keyValuePair.substr(0,equalsign);
+		overrideVal = keyValuePair.substr(equalsign+1);
+		overrideSystemParam(overrideKey, overrideVal);
+	}
 }
 
 MemorySystem::~MemorySystem()
@@ -268,7 +284,7 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	}
 
 	/* I really don't see how "the C++ way" is better than snprintf()  */
-	out << TOTAL_STORAGE/(1024*1024*1024) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue;
+	out << (TOTAL_STORAGE>>30) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue;
 	if (sim_description)
 	{
 		out << "." << sim_description;
@@ -423,9 +439,9 @@ void MemorySystem::RegisterCallbacks( Callback_t* readCB, Callback_t* writeCB,
 }
 
 // static allocator for the library interface 
-MemorySystem *getMemorySystemInstance(uint id, string dev, string sys, string pwd, string trc)
+MemorySystem *getMemorySystemInstance(uint id, string dev, string sys, string pwd, string trc, unsigned megsOfMemory)
 {
-	return new MemorySystem(id, dev, sys, pwd, trc);
+	return new MemorySystem(id, dev, sys, pwd, trc, megsOfMemory);
 }
 
 } /*namespace DRAMSim */
