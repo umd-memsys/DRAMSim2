@@ -290,47 +290,49 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			{
 				bool sendREF = true;
 				//make sure we meet all the requirements to send a REF
-				for (size_t i=0;i<NUM_BANKS;i++)
+				for (size_t b=0;b<NUM_BANKS;b++)
 				{
 					//if a bank is active we can't send a REF yet
-					if (bankStates[refreshRank][i].currentBankState == RowActive)
+					if (bankStates[refreshRank][b].currentBankState == RowActive)
 					{
 						sendREF = false;
 						bool closeRow = true;
 						//search for commands going to an open row
-						for (size_t j=0;j<queues[refreshRank][0].size();j++)
+						vector <BusPacket *> refreshQueue = queues[refreshRank][0];
+
+						for (size_t j=0;j<refreshQueue.size();j++)
 						{
+							BusPacket *packet = refreshQueue[j];
 							//if a command in the queue is going to the same row . . .
-							if (bankStates[refreshRank][i].openRowAddress == queues[refreshRank][0][j]->row &&
-							        i == queues[refreshRank][0][j]->bank)
+							if (bankStates[refreshRank][b].openRowAddress == packet->row &&
+							        b == packet->bank)
 							{
 								// . . . and is not an activate . . .
-								if (queues[refreshRank][0][j]->busPacketType != ACTIVATE)
+								if (packet->busPacketType != ACTIVATE)
 								{
 									closeRow = false;
 									// . . . and can be issued . . .
-									if (isIssuable(queues[refreshRank][0][j]))
+									if (isIssuable(packet))
 									{
 										//send it out
-										*busPacket = queues[refreshRank][0][j];
-										queues[refreshRank][0].erase(queues[refreshRank][0].begin()+j);
+										*busPacket = packet;
+										refreshQueue.erase(refreshQueue.begin()+j);
 										sendingREForPRE = true;
 									}
 									break;
 								}
-								else
+								else //command is an activate
 								{
-									//if we've encounted an ACT, no other command will be of interest
 									break;
 								}
 							}
 						}
 
 						//if the bank is open and we are allowed to close it, then send a PRE
-						if (closeRow && currentClockCycle >= bankStates[refreshRank][i].nextPrecharge)
+						if (closeRow && currentClockCycle >= bankStates[refreshRank][b].nextPrecharge)
 						{
-							rowAccessCounters[refreshRank][i]=0;
-							*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, refreshRank, i, 0);
+							rowAccessCounters[refreshRank][b]=0;
+							*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, refreshRank, b, 0);
 							sendingREForPRE = true;
 						}
 						break;
@@ -338,7 +340,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 					//	NOTE: the next ACT and next REF can be issued at the same
 					//				point in the future, so just use nextActivate field instead of
 					//				creating a nextRefresh field
-					else if (bankStates[refreshRank][i].nextActivate > currentClockCycle)
+					else if (bankStates[refreshRank][b].nextActivate > currentClockCycle) //and this bank doesn't have an open row
 					{
 						sendREF = false;
 						break;

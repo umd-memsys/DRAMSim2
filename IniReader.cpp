@@ -192,81 +192,51 @@ static ConfigMap configMap[] =
 	{"", NULL, UINT, SYS_PARAM, false} // tracer value to signify end of list; if you delete it, epic fail will result
 };
 
+void IniReader::WriteParams(std::ofstream &visDataOut, paramType type)
+{
+	for (size_t i=0; configMap[i].variablePtr != NULL; i++)
+	{
+		if (configMap[i].parameterType == type)
+		{
+			visDataOut<<configMap[i].iniKey<<"=";
+			switch (configMap[i].variableType)
+			{
+				//parse and set each type of variable
+			case UINT:
+				visDataOut << *((uint *)configMap[i].variablePtr);
+				break;
+			case UINT64:
+				visDataOut << *((uint64_t *)configMap[i].variablePtr);
+				break;
+			case FLOAT:
+				visDataOut << *((float *)configMap[i].variablePtr);
+				break;
+			case STRING:
+				visDataOut << *((string *)configMap[i].variablePtr);
+				break;
+			case BOOL:
+				if (*((bool *)configMap[i].variablePtr))
+				{
+					visDataOut <<"true";
+				}
+				else
+				{
+					visDataOut <<"false";
+				}
+				break;
+			}
+			visDataOut << endl;
+		}
+	}
+}
 void IniReader::WriteValuesOut(std::ofstream &visDataOut)
 {
-	//DEBUG("WRITE CALLED");
 	visDataOut<<"!!SYSTEM_INI"<<endl;
-	for (size_t i=0; configMap[i].variablePtr != NULL; i++)
-	{
-		if (configMap[i].parameterType == SYS_PARAM)
-		{
-			visDataOut<<configMap[i].iniKey<<"=";
-			switch (configMap[i].variableType)
-			{
-				//parse and set each type of variable
-			case UINT:
-				visDataOut << *((uint *)configMap[i].variablePtr);
-				break;
-			case UINT64:
-				visDataOut << *((uint64_t *)configMap[i].variablePtr);
-				break;
-			case FLOAT:
-				visDataOut << *((float *)configMap[i].variablePtr);
-				break;
-			case STRING:
-				visDataOut << *((string *)configMap[i].variablePtr);
-				break;
-			case BOOL:
-				if (*((bool *)configMap[i].variablePtr))
-				{
-					visDataOut <<"true";
-				}
-				else
-				{
-					visDataOut <<"false";
-				}
-				break;
-			}
-			visDataOut << endl;
-		}
-	}
 
+	WriteParams(visDataOut, SYS_PARAM); 
 	visDataOut<<"!!DEVICE_INI"<<endl;
-	for (size_t i=0; configMap[i].variablePtr != NULL; i++)
-	{
-		if (configMap[i].parameterType == DEV_PARAM)
-		{
-			visDataOut<<configMap[i].iniKey<<"=";
-			switch (configMap[i].variableType)
-			{
-				//parse and set each type of variable
-			case UINT:
-				visDataOut << *((uint *)configMap[i].variablePtr);
-				break;
-			case UINT64:
-				visDataOut << *((uint64_t *)configMap[i].variablePtr);
-				break;
 
-			case FLOAT:
-				visDataOut << *((float *)configMap[i].variablePtr);
-				break;
-			case STRING:
-				visDataOut << *((string *)configMap[i].variablePtr);
-				break;
-			case BOOL:
-				if (*((bool *)configMap[i].variablePtr))
-				{
-					visDataOut <<"true";
-				}
-				else
-				{
-					visDataOut <<"false";
-				}
-				break;
-			}
-			visDataOut << endl;
-		}
-	}
+	WriteParams(visDataOut, DEV_PARAM); 
 	visDataOut<<"!!EPOCH_DATA"<<endl;
 
 }
