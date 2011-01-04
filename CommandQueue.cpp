@@ -298,7 +298,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 						sendREF = false;
 						bool closeRow = true;
 						//search for commands going to an open row
-						vector <BusPacket *> refreshQueue = queues[refreshRank][0];
+						vector <BusPacket *> &refreshQueue = queues[refreshRank][0];
 
 						for (size_t j=0;j<refreshQueue.size();j++)
 						{
