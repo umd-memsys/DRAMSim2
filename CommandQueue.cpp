@@ -461,41 +461,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 								}
 							}
 						}
-
-						//rank-then-bank round robin
-						if (schedulingPolicy == RankThenBankRoundRobin)
-						{
-							nextRankPRE++;
-							if (nextRankPRE == NUM_RANKS)
-							{
-								nextRankPRE = 0;
-								nextBankPRE++;
-								if (nextBankPRE == NUM_BANKS)
-								{
-									nextBankPRE = 0;
-								}
-							}
-						}
-						//bank-then-rank round robin
-						else if (schedulingPolicy == BankThenRankRoundRobin)
-						{
-							nextBankPRE++;
-							if (nextBankPRE == NUM_BANKS)
-							{
-								nextBankPRE = 0;
-								nextRankPRE++;
-								if (nextRankPRE == NUM_RANKS)
-								{
-									nextRankPRE = 0;
-								}
-							}
-						}
-						else
-						{
-							ERROR("== Error - Unknown scheduling policy");
-							exit(0);
-						}
-
+						nextRankAndBank(nextRankPRE, nextBankPRE);		
 					}
 					while (!(startingRank == nextRankPRE && startingBank == nextBankPRE));
 
@@ -583,40 +549,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 							break;
 						}
 					}
-
-					//rank-then-bank round robin
-					if (schedulingPolicy == RankThenBankRoundRobin)
-					{
-						nextRank++;
-						if (nextRank == NUM_RANKS)
-						{
-							nextRank = 0;
-							nextBank++;
-							if (nextBank == NUM_BANKS)
-							{
-								nextBank = 0;
-							}
-						}
-					}
-					//bank-then-rank round robin
-					else if (schedulingPolicy == BankThenRankRoundRobin)
-					{
-						nextBank++;
-						if (nextBank == NUM_BANKS)
-						{
-							nextBank = 0;
-							nextRank++;
-							if (nextRank == NUM_RANKS)
-							{
-								nextRank = 0;
-							}
-						}
-					}
-					else
-					{
-						ERROR("== Error - Unknown scheduling policy");
-						exit(0);
-					}
+					nextRankAndBank(nextRank, nextBank);
 				}
 				while (!(startingRank == nextRank && startingBank == nextBank));
 
@@ -751,40 +684,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
 
 					//if we found something, break out of do-while
 					if (foundIssuable) break;
+					nextRankAndBank(nextRank, nextBank); 
 
-					//rank-then-bank round robin
-					if (schedulingPolicy == RankThenBankRoundRobin)
-					{
-						nextRank++;
-						if (nextRank == NUM_RANKS)
-						{
-							nextRank = 0;
-							nextBank++;
-							if (nextBank == NUM_BANKS)
-							{
-								nextBank = 0;
-							}
-						}
-					}
-					//bank-then-rank round robin
-					else if (schedulingPolicy == BankThenRankRoundRobin)
-					{
-						nextBank++;
-						if (nextBank == NUM_BANKS)
-						{
-							nextBank = 0;
-							nextRank++;
-							if (nextRank == NUM_RANKS)
-							{
-								nextRank = 0;
-							}
-						}
-					}
-					else
-					{
-						ERROR("== Error - Unknown scheduling policy");
-						exit(0);
-					}
 				}
 				while (!(startingRank == nextRank && startingBank == nextBank));
 
@@ -824,41 +725,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 								}
 							}
 						}
-
-
-						//rank-then-bank round robin
-						if (schedulingPolicy == RankThenBankRoundRobin)
-						{
-							nextRankPRE++;
-							if (nextRankPRE == NUM_RANKS)
-							{
-								nextRankPRE = 0;
-								nextBankPRE++;
-								if (nextBankPRE == NUM_BANKS)
-								{
-									nextBankPRE = 0;
-								}
-							}
-						}
-						//bank-then-rank round robin
-						else if (schedulingPolicy == BankThenRankRoundRobin)
-						{
-							nextBankPRE++;
-							if (nextBankPRE == NUM_BANKS)
-							{
-								nextBankPRE = 0;
-								nextRankPRE++;
-								if (nextRankPRE == NUM_RANKS)
-								{
-									nextRankPRE = 0;
-								}
-							}
-						}
-						else
-						{
-							ERROR("== Error - Unknown scheduling policy");
-							exit(0);
-						}
+						nextRankAndBank(nextRankPRE, nextBankPRE);
 					}
 					while (!(startingRank == nextRankPRE && startingBank == nextBankPRE));
 
@@ -1085,6 +952,43 @@ void CommandQueue::needRefresh(uint rank)
 {
 	refreshWaiting = true;
 	refreshRank = rank;
+}
+
+void CommandQueue::nextRankAndBank(unsigned &rank, unsigned &bank)
+{
+	if (schedulingPolicy == RankThenBankRoundRobin)
+	{
+		rank++;
+		if (rank == NUM_RANKS)
+		{
+			rank = 0;
+			bank++;
+			if (bank == NUM_BANKS)
+			{
+				bank = 0;
+			}
+		}
+	}
+	//bank-then-rank round robin
+	else if (schedulingPolicy == BankThenRankRoundRobin)
+	{
+		bank++;
+		if (bank == NUM_BANKS)
+		{
+			bank = 0;
+			rank++;
+			if (rank == NUM_RANKS)
+			{
+				rank = 0;
+			}
+		}
+	}
+	else
+	{
+		ERROR("== Error - Unknown scheduling policy");
+		exit(0);
+	}
+
 }
 
 void CommandQueue::update()
