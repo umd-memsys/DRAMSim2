@@ -68,8 +68,6 @@ public:
 	static void InitEnumsFromStrings();
 	static bool CheckIfAllSet();
 	static void WriteValuesOut(std::ofstream &visDataOut);
-private:
-	static void Trim(string &str);
 };
 }
 

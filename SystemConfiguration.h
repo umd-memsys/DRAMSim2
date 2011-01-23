@@ -45,6 +45,7 @@
 extern std::ofstream cmd_verify_out; //used by BusPacket.cpp if VERIFICATION_OUTPUT is enabled
 //extern std::ofstream visDataOut;
 
+//TODO: namespace these to DRAMSim:: 
 extern bool VERIFICATION_OUTPUT; // output suitable to feed to modelsim
 
 extern bool DEBUG_TRANS_Q;
@@ -104,6 +105,8 @@ extern uint IDD5;
 extern uint IDD6;
 extern uint IDD6L;
 extern uint IDD7;
+extern float Vdd; 
+extern unsigned NUM_DEVICES;
 
 //same bank
 #define READ_TO_PRE_DELAY (AL+BL/2+max(((int)tRTP),2)-2)
@@ -115,7 +118,7 @@ extern uint IDD7;
 #define WRITE_TO_READ_DELAY_R (WL+BL/2+tRTRS-RL) //interrank
 
 //in bytes
-extern uint CACHE_LINE_SIZE; //4
+extern uint CACHE_LINE_SIZE; 
 
 extern uint JEDEC_DATA_BUS_WIDTH;
 

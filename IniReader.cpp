@@ -35,7 +35,6 @@ using namespace std;
 
 uint64_t TOTAL_STORAGE;
 uint NUM_BANKS;
-uint NUM_RANKS;
 uint NUM_CHANS;
 uint NUM_ROWS;
 uint NUM_COLS;
@@ -43,6 +42,7 @@ uint DEVICE_WIDTH;
 
 uint REFRESH_PERIOD;
 float tCK;
+float Vdd;
 uint CL;
 uint AL;
 uint BL;
@@ -79,7 +79,7 @@ uint IDD7;
 
 
 //in bytes
-uint CACHE_LINE_SIZE; //4
+uint CACHE_LINE_SIZE;
 
 uint JEDEC_DATA_BUS_WIDTH;
 
@@ -162,9 +162,8 @@ static ConfigMap configMap[] =
 	DEFINE_UINT_PARAM(IDD6,DEV_PARAM),
 	DEFINE_UINT_PARAM(IDD6L,DEV_PARAM),
 	DEFINE_UINT_PARAM(IDD7,DEV_PARAM),
+	DEFINE_FLOAT_PARAM(Vdd,DEV_PARAM),
 
-	//DEFINE_UINT64_PARAM(TOTAL_STORAGE,SYS_PARAM),
-	DEFINE_UINT_PARAM(NUM_RANKS,SYS_PARAM),
 	DEFINE_UINT_PARAM(NUM_CHANS,SYS_PARAM),
 	DEFINE_UINT_PARAM(CACHE_LINE_SIZE,SYS_PARAM),
 	DEFINE_UINT_PARAM(JEDEC_DATA_BUS_WIDTH,SYS_PARAM),
@@ -187,7 +186,6 @@ static ConfigMap configMap[] =
 	DEFINE_BOOL_PARAM(DEBUG_BUS,SYS_PARAM),
 	DEFINE_BOOL_PARAM(DEBUG_BANKS,SYS_PARAM),
 	DEFINE_BOOL_PARAM(DEBUG_POWER,SYS_PARAM),
-	//modelsim output mode?
 	DEFINE_BOOL_PARAM(VERIFICATION_OUTPUT,SYS_PARAM),
 	{"", NULL, UINT, SYS_PARAM, false} // tracer value to signify end of list; if you delete it, epic fail will result
 };
@@ -601,21 +599,4 @@ void IniReader::InitEnumsFromStrings()
 
 }
 
-#if 0
-// Wrote it, but did not use it -- might be handy in the future
-void IniReader::Trim(string &str)
-{
-	size_t begin,end;
-	if ((begin = str.find_first_not_of(" ")) == string::npos)
-	{
-		begin = 0;
-	}
-	if ((end = str.find_last_not_of(" ")) == string::npos)
-	{
-		end = str.size()-1;
-	}
-	str = str.substr(begin,end-begin+1);
-}
-#endif
-
-}
+} // namespace DRAMSim

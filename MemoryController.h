@@ -123,7 +123,6 @@ private:
 
 	uint refreshRank;
 
-	uint NUM_DEVICES;
 };
 }
 

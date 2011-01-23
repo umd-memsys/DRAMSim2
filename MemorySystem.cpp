@@ -41,6 +41,9 @@ using namespace std;
 
 ofstream cmd_verify_out; //used in Rank.cpp and MemoryController.cpp if VERIFICATION_OUTPUT is set
 
+unsigned NUM_DEVICES;
+unsigned NUM_RANKS;
+
 namespace DRAMSim {
 #ifdef LOG_OUTPUT
 ofstream dramsim_log;
@@ -89,7 +92,7 @@ MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFi
 	//calculate the total storage based on the devices the user selected and the number of
 
 	// number of bytes per rank
-	unsigned long megsOfStoragePerRank = (((NUM_ROWS * (NUM_COLS * DEVICE_WIDTH) * NUM_BANKS) * (JEDEC_DATA_BUS_WIDTH / DEVICE_WIDTH)) / 8) >> 20;
+	unsigned long megsOfStoragePerRank = ((((long)NUM_ROWS * (NUM_COLS * DEVICE_WIDTH) * NUM_BANKS) * ((long)JEDEC_DATA_BUS_WIDTH / DEVICE_WIDTH)) / 8) >> 20;
 
 	// If this is set, effectively override the number of ranks
 	if (megsOfMemory != 0)
@@ -102,9 +105,10 @@ MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFi
 		}
 	}
 
-	TOTAL_STORAGE = (NUM_RANKS * megsOfStoragePerRank) << 10; 
+	NUM_DEVICES = 64/DEVICE_WIDTH;
+	TOTAL_STORAGE = (NUM_RANKS * megsOfStoragePerRank); 
 
-	DEBUG("TOTAL_STORAGE : "<<TOTAL_STORAGE);
+	DEBUG("TOTAL_STORAGE : "<< TOTAL_STORAGE << "MB | "<<NUM_RANKS<<" Ranks | "<< NUM_DEVICES <<" Devices per rank");
 
 	IniReader::InitEnumsFromStrings();
 	if (!IniReader::CheckIfAllSet())
@@ -284,7 +288,7 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	}
 
 	/* I really don't see how "the C++ way" is better than snprintf()  */
-	out << (TOTAL_STORAGE>>30) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue;
+	out << (TOTAL_STORAGE>>10) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue;
 	if (sim_description)
 	{
 		out << "." << sim_description;

@@ -90,11 +90,6 @@ MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile)
 	*********************/
 	//TODO: 
 
-	//uint64_t total_storage64 = (uint64_t)TOTAL_STORAGE;
-	//NUM_DEVICES = (total_storage64*8) / (NUM_ROWS * NUM_COLS * DEVICE_WIDTH * NUM_BANKS);
-	NUM_DEVICES = ((TOTAL_STORAGE * 8) / ((long)NUM_ROWS * NUM_COLS * DEVICE_WIDTH * NUM_BANKS))/NUM_RANKS;
-
-	DEBUG ("NUM DEVICES="<<NUM_DEVICES);
 
 	//bus related fields
 	outgoingCmdPacket = NULL;
@@ -1037,9 +1032,6 @@ void MemoryController::printStats(bool finalStats)
 	//skip the print on the first cycle, it's pretty useless
 	if (currentClockCycle == 0)
 		return;
-
-//TODO: move Vdd to config file
-	float Vdd = 1.9;
 
 	//if we are not at the end of the epoch, make sure to adjust for the actual number of cycles elapsed
 
