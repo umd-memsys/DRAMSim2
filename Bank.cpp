@@ -136,6 +136,5 @@ void Bank::write(const BusPacket *busPacket)
 			PRINT("");
 		}
 	}
-	delete(busPacket);
 }
 

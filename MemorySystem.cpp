@@ -91,8 +91,48 @@ MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFi
 
 	//calculate the total storage based on the devices the user selected and the number of
 
+	//calculate number of devices
+	/************************
+	  This code has always been problematic even though it's pretty simple. I'll try to explain it 
+	  for my own sanity. 
+
+	  There are two main variables here that we could let the user choose:
+	  NUM_RANKS or TOTAL_STORAGE.  Since the density and width of the part is
+	  fixed by the device ini file, the only variable that is really
+	  controllable is the number of ranks. Users care more about choosing the
+	  total amount of storage, but with a fixed device they might choose a total
+	  storage that isn't possible. In that sense it's not as good to allow them
+	  to choose TOTAL_STORAGE (because any NUM_RANKS value >1 will be valid).
+
+	  However, users don't care (or know) about ranks, they care about total
+	  storage, so maybe it's better to let them choose and just throw an error
+	  if they choose something invalid. 
+
+	  A bit of background: 
+
+	  Each column contains DEVICE_WIDTH bits. A row contains NUM_COLS columns.
+	  Each bank contains NUM_ROWS rows. Therefore, the total storage per DRAM device is: 
+	  		PER_DEVICE_STORAGE = NUM_ROWS*NUM_COLS*DEVICE_WIDTH*NUM_BANKS (in bits)
+
+	 A rank *must* have a 64 bit output bus (JEDEC standard), so each rank must have:
+	  		NUM_DEVICES_PER_RANK = 64/DEVICE_WIDTH  
+	 
+	If we multiply these two numbers to get the storage per rank (in bits), we get:
+			PER_RANK_STORAGE = PER_DEVICE_STORAGE*NUM_DEVICES_PER_RANK = NUM_ROWS*NUM_COLS*NUM_BANKS*64 
+
+	Finally, to get TOTAL_STORAGE, we need to multiply by NUM_RANKS
+			TOTAL_STORAGE = PER_RANK_STORAGE*NUM_RANKS (total storage in bits)
+
+	So one could compute this in reverse -- compute NUM_DEVICES,
+	PER_DEVICE_STORAGE, and PER_RANK_STORAGE first since all these parameters
+	are set by the device ini. Then, TOTAL_STORAGE/PER_RANK_STORAGE = NUM_RANKS 
+
+	The only way this could run into problems is if TOTAL_STORAGE < PER_RANK_STORAGE,
+	which could happen for very dense parts.
+	*********************/
+
 	// number of bytes per rank
-	unsigned long megsOfStoragePerRank = ((((long)NUM_ROWS * (NUM_COLS * DEVICE_WIDTH) * NUM_BANKS) * ((long)JEDEC_DATA_BUS_WIDTH / DEVICE_WIDTH)) / 8) >> 20;
+	unsigned long megsOfStoragePerRank = ((((long long)NUM_ROWS * (NUM_COLS * DEVICE_WIDTH) * NUM_BANKS) * ((long long)JEDEC_DATA_BUS_WIDTH / DEVICE_WIDTH)) / 8) >> 20;
 
 	// If this is set, effectively override the number of ranks
 	if (megsOfMemory != 0)
