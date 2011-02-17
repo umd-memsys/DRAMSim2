@@ -202,8 +202,11 @@ MemorySystem::~MemorySystem()
 	delete(memoryController);
 	ranks->clear();
 	delete(ranks);
-	visDataOut.flush();
-	visDataOut.close();
+	if (VIS_FILE_OUTPUT) 
+	{	
+		visDataOut.flush();
+		visDataOut.close();
+	}
 	if (VERIFICATION_OUTPUT)
 	{
 		cmd_verify_out.flush();
@@ -272,91 +275,95 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 			exit(-1);
 		}
 	}
-
-	// chop off the .ini if it's there
-	if (deviceIniFilename.substr(deviceIniFilenameLength-4) == ".ini")
+	// TODO: move this to its own function or something? 
+	if (VIS_FILE_OUTPUT)
 	{
-		deviceName = deviceIniFilename.substr(0,deviceIniFilenameLength-4);
-		deviceIniFilenameLength -= 4;
-	}
-
-	cout << deviceName << endl;
-
-	// chop off everything past the last / (i.e. leave filename only)
-	if ((lastSlash = deviceName.find_last_of("/")) != string::npos)
-	{
-		deviceName = deviceName.substr(lastSlash+1,deviceIniFilenameLength-lastSlash-1);
-	}
-
-	// working backwards, chop off the next piece of the directory
-	if ((lastSlash = traceFilename.find_last_of("/")) != string::npos)
-	{
-		traceFilename = traceFilename.substr(lastSlash+1,traceFilename.length()-lastSlash-1);
-	}
-	if (sim_description != NULL)
-	{
-		traceFilename += "."+sim_description_str;
-	}
-
-	string rest;
-	stringstream out,tmpNum,tmpSystemID;
-
-	string path = "results/";
-	string filename;
-	if (pwd.length() > 0)
-	{
-		path = pwd + "/" + path;
-	}
-
-	// create the directories if they don't exist 
-	mkdirIfNotExist(path);
-	path = path + traceFilename + "/";
-	mkdirIfNotExist(path);
-	path = path + deviceName + "/";
-	mkdirIfNotExist(path);
-
-	// finally, figure out the filename
-	string sched = "BtR";
-	string queue = "pRank";
-	if (schedulingPolicy == RankThenBankRoundRobin)
-	{
-		sched = "RtB";
-	}
-	if (queuingStructure == PerRankPerBank)
-	{
-		queue = "pRankpBank";
-	}
-
-	/* I really don't see how "the C++ way" is better than snprintf()  */
-	out << (TOTAL_STORAGE>>10) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue;
-	if (sim_description)
-	{
-		out << "." << sim_description;
-	}
-
-	//filename so far, without .vis extension, see if it exists already
-	filename = out.str();
-	for (int i=0; i<100; i++)
-	{
-		if (fileExists(path+filename+tmpNum.str()+".vis"))
+		// chop off the .ini if it's there
+		if (deviceIniFilename.substr(deviceIniFilenameLength-4) == ".ini")
 		{
-			tmpNum.seekp(0);
-			tmpNum << "." << i;
+			deviceName = deviceIniFilename.substr(0,deviceIniFilenameLength-4);
+			deviceIniFilenameLength -= 4;
 		}
-		else 
-		{
-			filename = filename+tmpNum.str()+".vis";
-			break;
-		}
-	}
 
-	if (systemID!=0)
-	{
-		tmpSystemID<<"."<<systemID;
+		cout << deviceName << endl;
+
+		// chop off everything past the last / (i.e. leave filename only)
+		if ((lastSlash = deviceName.find_last_of("/")) != string::npos)
+		{
+			deviceName = deviceName.substr(lastSlash+1,deviceIniFilenameLength-lastSlash-1);
+		}
+
+		// working backwards, chop off the next piece of the directory
+		if ((lastSlash = traceFilename.find_last_of("/")) != string::npos)
+		{
+			traceFilename = traceFilename.substr(lastSlash+1,traceFilename.length()-lastSlash-1);
+		}
+		if (sim_description != NULL)
+		{
+			traceFilename += "."+sim_description_str;
+		}
+
+		string rest;
+		stringstream out,tmpNum,tmpSystemID;
+
+		string path = "results/";
+		string filename;
+		if (pwd.length() > 0)
+		{
+			path = pwd + "/" + path;
+		}
+
+		// create the directories if they don't exist 
+		mkdirIfNotExist(path);
+		path = path + traceFilename + "/";
+		mkdirIfNotExist(path);
+		path = path + deviceName + "/";
+		mkdirIfNotExist(path);
+
+		// finally, figure out the filename
+		string sched = "BtR";
+		string queue = "pRank";
+		if (schedulingPolicy == RankThenBankRoundRobin)
+		{
+			sched = "RtB";
+		}
+		if (queuingStructure == PerRankPerBank)
+		{
+			queue = "pRankpBank";
+		}
+
+		/* I really don't see how "the C++ way" is better than snprintf()  */
+		out << (TOTAL_STORAGE>>10) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue;
+		if (sim_description)
+		{
+			out << "." << sim_description;
+		}
+
+		//filename so far, without .vis extension, see if it exists already
+		filename = out.str();
+		for (int i=0; i<100; i++)
+		{
+			if (fileExists(path+filename+tmpNum.str()+".vis"))
+			{
+				tmpNum.seekp(0);
+				tmpNum << "." << i;
+			}
+			else 
+			{
+				filename = filename+tmpNum.str()+".vis";
+				break;
+			}
+		}
+
+		if (systemID!=0)
+		{
+			tmpSystemID<<"."<<systemID;
+		}
+		path.append(filename+tmpSystemID.str());
+
+		return path;
 	}
-	path.append(filename+tmpSystemID.str());
-	
-	return path;
+	return string("");
 }
 
 void MemorySystem::mkdirIfNotExist(string path)
@@ -434,16 +441,19 @@ void MemorySystem::update()
 	if (currentClockCycle == 0)
 	{
 		string visOutputFilename = SetOutputFileName(traceFilename);
-		cerr << "writing vis file to " <<visOutputFilename<<endl;
-		visDataOut.open(visOutputFilename.c_str());
-		if (!visDataOut)
+		if (VIS_FILE_OUTPUT)
 		{
-			ERROR("Cannot open '"<<visOutputFilename<<"'");
-			exit(-1);
-		}
+			cerr << "writing vis file to " <<visOutputFilename<<endl;
 
-		//write out the ini config values for the visualizer tool
-		IniReader::WriteValuesOut(visDataOut);
+			visDataOut.open(visOutputFilename.c_str());
+			if (!visDataOut)
+			{
+				ERROR("Cannot open '"<<visOutputFilename<<"'");
+				exit(-1);
+			}
+			//write out the ini config values for the visualizer tool
+			IniReader::WriteValuesOut(visDataOut);
+		}	
 	}
 	//PRINT(" ----------------- Memory System Update ------------------");
 

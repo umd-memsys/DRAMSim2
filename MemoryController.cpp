@@ -47,7 +47,10 @@ MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile)
 {
 	//get handle on parent
 	parentMemorySystem = parent;
-	visDataOut = outfile;
+	if (VIS_FILE_OUTPUT) 
+	{
+		visDataOut = outfile;
+	}
 
 	//bus related fields
 	outgoingCmdPacket = NULL;
@@ -1034,8 +1037,10 @@ void MemoryController::printStats(bool finalStats)
 	PRINTN( "   Total Return Transactions : " << totalTransactions );
 	PRINT( " ("<<totalBytesTransferred <<" bytes) aggregate average bandwidth "<<totalBandwidth<<"GB/s");
 
-
-	(*visDataOut) << currentClockCycle * tCK * 1E-6<< ":";
+	if (VIS_FILE_OUTPUT)
+	{
+		(*visDataOut) << currentClockCycle * tCK * 1E-6<< ":";
+	}
 
 	for (size_t i=0;i<NUM_RANKS;i++)
 	{
@@ -1068,34 +1073,43 @@ void MemoryController::printStats(bool finalStats)
 		PRINT( "     -Act/Pre    (watts)     : " << actprePower[i] );
 		PRINT( "     -Burst      (watts)     : " << burstPower[i]);
 		PRINT( "     -Refresh    (watts)     : " << refreshPower[i] );
-
-		// write the vis file output
-		(*visDataOut) << "bgp_"<<i<<"="<<backgroundPower[i]<<",";
-		(*visDataOut) << "ap_"<<i<<"="<<actprePower[i]<<",";
-		(*visDataOut) << "bp_"<<i<<"="<<burstPower[i]<<",";
-		(*visDataOut) << "rp_"<<i<<"="<<refreshPower[i]<<",";
-		for (size_t j=0; j<NUM_BANKS; j++)
+		if (VIS_FILE_OUTPUT)
 		{
-			(*visDataOut) << "b_" <<i<<"_"<<j<<"="<<bandwidth[SEQUENTIAL(i,j)]<<",";
-			(*visDataOut) << "l_" <<i<<"_"<<j<<"="<<averageLatency[SEQUENTIAL(i,j)]<<",";
+			// write the vis file output
+			(*visDataOut) << "bgp_"<<i<<"="<<backgroundPower[i]<<",";
+			(*visDataOut) << "ap_"<<i<<"="<<actprePower[i]<<",";
+			(*visDataOut) << "bp_"<<i<<"="<<burstPower[i]<<",";
+			(*visDataOut) << "rp_"<<i<<"="<<refreshPower[i]<<",";
+			for (size_t j=0; j<NUM_BANKS; j++)
+			{
+				(*visDataOut) << "b_" <<i<<"_"<<j<<"="<<bandwidth[SEQUENTIAL(i,j)]<<",";
+				(*visDataOut) << "l_" <<i<<"_"<<j<<"="<<averageLatency[SEQUENTIAL(i,j)]<<",";
+			}
 		}
 	}
-
-	(*visDataOut) <<endl;
+	if (VIS_FILE_OUTPUT)
+	{
+		(*visDataOut) <<endl;
+	}
 
 	// only print the latency histogram at the end of the simulation since it clogs the output too much to print every epoch
 	if (finalStats)
 	{
 		PRINT( " ---  Latency list ("<<latencies.size()<<")");
 		PRINT( "       [lat] : #");
-
-		(*visDataOut) << "!!HISTOGRAM_DATA"<<endl;
+		if (VIS_FILE_OUTPUT)
+		{
+			(*visDataOut) << "!!HISTOGRAM_DATA"<<endl;
+		}
 
 		map<uint,uint>::iterator it; //
 		for (it=latencies.begin(); it!=latencies.end(); it++)
 		{
 			PRINT( "       ["<< it->first <<"-"<<it->first+(HISTOGRAM_BIN_SIZE-1)<<"] : "<< it->second );
-			(*visDataOut) << it->first <<"="<< it->second << endl;
+			if (VIS_FILE_OUTPUT)
+			{
+				(*visDataOut) << it->first <<"="<< it->second << endl;
+			}
 		}
 
 		PRINT( " ---  Bank usage list");

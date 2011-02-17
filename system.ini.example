@@ -19,6 +19,7 @@ DEBUG_BUS=false
 DEBUG_BANKSTATE=false
 DEBUG_BANKS=false
 DEBUG_POWER=false
+VIS_FILE_OUTPUT=true
 
 USE_LOW_POWER=true 					; go into low power mode when idle?
 VERIFICATION_OUTPUT=false 			; should be false for normal operation

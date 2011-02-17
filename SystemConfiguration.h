@@ -56,6 +56,7 @@ extern bool DEBUG_BUS;
 extern bool DEBUG_BANKS;
 extern bool DEBUG_POWER;
 extern bool USE_LOW_POWER;
+extern bool VIS_FILE_OUTPUT;
 
 extern uint64_t TOTAL_STORAGE;
 extern uint NUM_BANKS;
