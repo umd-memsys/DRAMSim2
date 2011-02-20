@@ -47,54 +47,10 @@ MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile)
 {
 	//get handle on parent
 	parentMemorySystem = parent;
-	visDataOut = outfile;
-
-	//calculate number of devices
-	/************************
-	  This code has always been problematic even though it's pretty simple. I'll try to explain it 
-	  for my own sanity. 
-
-	  There are two main variables here that we could let the user choose:
-	  NUM_RANKS or TOTAL_STORAGE.  Since the density and width of the part is
-	  fixed by the device ini file, the only variable that is really
-	  controllable is the number of ranks. Users care more about choosing the
-	  total amount of storage, but with a fixed device they might choose a total
-	  storage that isn't possible. In that sense it's not as good to allow them
-	  to choose TOTAL_STORAGE (because any NUM_RANKS value >1 will be valid).
-
-	  However, users don't care (or know) about ranks, they care about total
-	  storage, so maybe it's better to let them choose and just throw an error
-	  if they choose something invalid. 
-
-	  A bit of background: 
-
-	  Each column contains DEVICE_WIDTH bits. A row contains NUM_COLS columns.
-	  Each bank contains NUM_ROWS rows. Therefore, the total storage per DRAM device is: 
-	  		PER_DEVICE_STORAGE = NUM_ROWS*NUM_COLS*DEVICE_WIDTH*NUM_BANKS (in bits)
-
-	 A rank *must* have a 64 bit output bus (JEDEC standard), so each rank must have:
-	  		NUM_DEVICES_PER_RANK = 64/DEVICE_WIDTH  
-	 
-	If we multiply these two numbers to get the storage per rank (in bits), we get:
-			PER_RANK_STORAGE = PER_DEVICE_STORAGE*NUM_DEVICES_PER_RANK = NUM_ROWS*NUM_COLS*NUM_BANKS*64 
-
-	Finally, to get TOTAL_STORAGE, we need to multiply by NUM_RANKS
-			TOTAL_STORAGE = PER_RANK_STORAGE*NUM_RANKS (total storage in bits)
-
-	So one could compute this in reverse -- compute NUM_DEVICES,
-	PER_DEVICE_STORAGE, and PER_RANK_STORAGE first since all these parameters
-	are set by the device ini. Then, TOTAL_STORAGE/PER_RANK_STORAGE = NUM_RANKS 
-
-	The only way this could run into problems is if TOTAL_STORAGE < PER_RANK_STORAGE,
-	which could happen for very dense parts.
-	*********************/
-	//TODO: 
-
-	//uint64_t total_storage64 = (uint64_t)TOTAL_STORAGE;
-	//NUM_DEVICES = (total_storage64*8) / (NUM_ROWS * NUM_COLS * DEVICE_WIDTH * NUM_BANKS);
-	NUM_DEVICES = ((TOTAL_STORAGE * 8) / ((long)NUM_ROWS * NUM_COLS * DEVICE_WIDTH * NUM_BANKS))/NUM_RANKS;
-
-	DEBUG ("NUM DEVICES="<<NUM_DEVICES);
+	if (VIS_FILE_OUTPUT) 
+	{
+		visDataOut = outfile;
+	}
 
 	//bus related fields
 	outgoingCmdPacket = NULL;
@@ -996,9 +952,6 @@ void MemoryController::printStats(bool finalStats)
 	if (currentClockCycle == 0)
 		return;
 
-//TODO: move Vdd to config file
-	float Vdd = 1.9;
-
 	//if we are not at the end of the epoch, make sure to adjust for the actual number of cycles elapsed
 
 	uint64_t cyclesElapsed = (currentClockCycle % EPOCH_COUNT == 0) ? EPOCH_COUNT : currentClockCycle % EPOCH_COUNT;
@@ -1042,8 +995,10 @@ void MemoryController::printStats(bool finalStats)
 	PRINTN( "   Total Return Transactions : " << totalTransactions );
 	PRINT( " ("<<totalBytesTransferred <<" bytes) aggregate average bandwidth "<<totalBandwidth<<"GB/s");
 
-
-	(*visDataOut) << currentClockCycle * tCK * 1E-6<< ":";
+	if (VIS_FILE_OUTPUT)
+	{
+		(*visDataOut) << currentClockCycle * tCK * 1E-6<< ":";
+	}
 
 	for (size_t i=0;i<NUM_RANKS;i++)
 	{
@@ -1076,34 +1031,43 @@ void MemoryController::printStats(bool finalStats)
 		PRINT( "     -Act/Pre    (watts)     : " << actprePower[i] );
 		PRINT( "     -Burst      (watts)     : " << burstPower[i]);
 		PRINT( "     -Refresh    (watts)     : " << refreshPower[i] );
-
-		// write the vis file output
-		(*visDataOut) << "bgp_"<<i<<"="<<backgroundPower[i]<<",";
-		(*visDataOut) << "ap_"<<i<<"="<<actprePower[i]<<",";
-		(*visDataOut) << "bp_"<<i<<"="<<burstPower[i]<<",";
-		(*visDataOut) << "rp_"<<i<<"="<<refreshPower[i]<<",";
-		for (size_t j=0; j<NUM_BANKS; j++)
+		if (VIS_FILE_OUTPUT)
 		{
-			(*visDataOut) << "b_" <<i<<"_"<<j<<"="<<bandwidth[SEQUENTIAL(i,j)]<<",";
-			(*visDataOut) << "l_" <<i<<"_"<<j<<"="<<averageLatency[SEQUENTIAL(i,j)]<<",";
+			// write the vis file output
+			(*visDataOut) << "bgp_"<<i<<"="<<backgroundPower[i]<<",";
+			(*visDataOut) << "ap_"<<i<<"="<<actprePower[i]<<",";
+			(*visDataOut) << "bp_"<<i<<"="<<burstPower[i]<<",";
+			(*visDataOut) << "rp_"<<i<<"="<<refreshPower[i]<<",";
+			for (size_t j=0; j<NUM_BANKS; j++)
+			{
+				(*visDataOut) << "b_" <<i<<"_"<<j<<"="<<bandwidth[SEQUENTIAL(i,j)]<<",";
+				(*visDataOut) << "l_" <<i<<"_"<<j<<"="<<averageLatency[SEQUENTIAL(i,j)]<<",";
+			}
 		}
 	}
-
-	(*visDataOut) <<endl;
+	if (VIS_FILE_OUTPUT)
+	{
+		(*visDataOut) <<endl;
+	}
 
 	// only print the latency histogram at the end of the simulation since it clogs the output too much to print every epoch
 	if (finalStats)
 	{
 		PRINT( " ---  Latency list ("<<latencies.size()<<")");
 		PRINT( "       [lat] : #");
-
-		(*visDataOut) << "!!HISTOGRAM_DATA"<<endl;
+		if (VIS_FILE_OUTPUT)
+		{
+			(*visDataOut) << "!!HISTOGRAM_DATA"<<endl;
+		}
 
 		map<uint,uint>::iterator it; //
 		for (it=latencies.begin(); it!=latencies.end(); it++)
 		{
 			PRINT( "       ["<< it->first <<"-"<<it->first+(HISTOGRAM_BIN_SIZE-1)<<"] : "<< it->second );
-			(*visDataOut) << it->first <<"="<< it->second << endl;
+			if (VIS_FILE_OUTPUT)
+			{
+				(*visDataOut) << it->first <<"="<< it->second << endl;
+			}
 		}
 
 		PRINT( " ---  Bank usage list");

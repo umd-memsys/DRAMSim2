@@ -54,6 +54,7 @@ void usage()
 	cout << "\t-q, --quiet \t\t\tflag to suppress simulation output (except final stats) [default=no]"<<endl;
 	cout << "\t-o, --option=OPTION_A=234\t\t\toverwrite any ini file option from the command line"<<endl;
 	cout << "\t-p, --pwd=DIRECTORY\t\tSet the working directory (i.e. usually DRAMSim directory where ini/ and results/ are)"<<endl;
+	cout << "\t-S, --size=# \t\t\tSize of the memory system in megabytes"<<endl;
 }
 #endif
 
@@ -241,6 +242,7 @@ int main(int argc, char **argv)
 	string systemIniFilename = "ini/system.ini";
 	string deviceIniFilename = "";
 	string pwdString = "";
+	unsigned megsOfMemory=2048;
 
 	bool overrideOpt = false;
 	string overrideKey = "";
@@ -248,7 +250,7 @@ int main(int argc, char **argv)
 	string tmp = "";
 	size_t equalsign;
 
-	uint numCycles=30;
+	uint numCycles=100;
 	//getopt stuff
 	while (1)
 	{
@@ -262,10 +264,11 @@ int main(int argc, char **argv)
 			{"option",  required_argument,	0, 'o'},
 			{"quiet",  no_argument, &SHOW_SIM_OUTPUT, 'q'},
 			{"help", no_argument, 0, 'h'},
+			{"size", required_argument, 0, 'S'},
 			{0, 0, 0, 0}
 		};
 		int option_index=0; //for getopt
-		c = getopt_long (argc, argv, "t:s:c:d:o:p:bkq", long_options, &option_index);
+		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:bkq", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -300,6 +303,9 @@ int main(int argc, char **argv)
 			break;
 		case 'c':
 			numCycles = atoi(optarg);
+			break;
+		case 'S':
+			megsOfMemory=atoi(optarg);
 			break;
 		case 'p':
 			pwdString = string(optarg);
@@ -366,8 +372,7 @@ int main(int argc, char **argv)
 	string line;
 
 
-	MemorySystem *memorySystem;
-	memorySystem = new MemorySystem(0, deviceIniFilename, systemIniFilename, pwdString, traceFileName);
+	MemorySystem *memorySystem = new MemorySystem(0, deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory);
 
 	uint64_t addr;
 	uint64_t clockCycle=0;
