@@ -67,27 +67,6 @@ MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFi
 
 	DEBUG("===== MemorySystem "<<systemID<<" =====");
 
-	if (pwd.length() > 0)
-	{
-		//ignore the pwd argument if the argument is an absolute path
-		if (deviceIniFilename[0] != '/')
-		{
-			deviceIniFilename = pwd + "/" + deviceIniFilename;
-		}
-
-		if (systemIniFilename[0] != '/')
-		{
-			systemIniFilename = pwd + "/" + systemIniFilename;
-		}
-	}
-
-
-
-
-	DEBUG("== Loading device model file '"<<deviceIniFilename<<"' == ");
-	IniReader::ReadIniFile(deviceIniFilename, false);
-	DEBUG("== Loading system model file '"<<systemIniFilename<<"' == ");
-	IniReader::ReadIniFile(systemIniFilename, true);
 
 	//calculate the total storage based on the devices the user selected and the number of
 
@@ -240,7 +219,7 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	string sim_description_str;
 	
 	sim_description = getenv("SIM_DESC"); 
-
+// XXX: Need to force it so that only the top level module does this ... 
 #ifdef LOG_OUTPUT
 	dramsimLogFilename = "dramsim"; 
 	if (sim_description != NULL)
@@ -254,7 +233,7 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	if (!dramsim_log) 
 	{
 		ERROR("Cannot open "<< dramsimLogFilename);
-		exit(-1); 
+//		exit(-1); 
 	}
 #endif
 

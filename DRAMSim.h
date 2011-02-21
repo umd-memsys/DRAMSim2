@@ -29,6 +29,7 @@
  * provide all necessary functionality to talk to an external simulator
  */
 #include "Callback.h"
+#include <string>
 using std::string;
 
 namespace DRAMSim 
@@ -45,7 +46,21 @@ namespace DRAMSim
 				TransactionCompleteCB *writeDone,
 				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
 	};
-	MemorySystem *getMemorySystemInstance(uint id, string dev, string sys, string pwd, string trc, unsigned megsOfMemory);
+	MemorySystem *getMemorySystemInstance(unsigned id, string dev, string sys, string pwd, string trc, unsigned megsOfMemory);
+
+	class MultiChannelMemorySystem {
+		public: 
+	MultiChannelMemorySystem(string dev, string sys, string pwd, string trc, unsigned megsOfMemory);
+			bool addTransaction(bool isWrite, uint64_t addr);
+			void update();
+			void printStats();
+			void RegisterCallbacks( 
+				TransactionCompleteCB *readDone,
+				TransactionCompleteCB *writeDone,
+				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
+	};
+	MultiChannelMemorySystem *getMultiChannelMemorySystemInstance(string dev, string sys, string pwd, string trc, unsigned megsOfMemory);
+
 }
 
 

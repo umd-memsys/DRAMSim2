@@ -22,18 +22,18 @@
 *****************************************************************************/
 
 
-
+#include <stdio.h>
 #include "dramsim_test.h"
 
 using namespace DRAMSim;
 
 /* callback functors */
-void some_object::read_complete(uint id, uint64_t address, uint64_t clock_cycle)
+void some_object::read_complete(unsigned id, uint64_t address, uint64_t clock_cycle)
 {
 	printf("[Callback] read complete: %d 0x%lx cycle=%lu\n", id, address, clock_cycle);
 }
 
-void some_object::write_complete(uint id, uint64_t address, uint64_t clock_cycle)
+void some_object::write_complete(unsigned id, uint64_t address, uint64_t clock_cycle)
 {
 	printf("[Callback] write complete: %d 0x%lx cycle=%lu\n", id, address, clock_cycle);
 }
@@ -47,16 +47,17 @@ void power_callback(double a, double b, double c, double d)
 int some_object::add_one_and_run()
 {
 	/* pick a DRAM part to simulate */
-	MemorySystem *mem = new MemorySystem(0, "ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename"); 
+	MultiChannelMemorySystem *mem = getMultiChannelMemorySystemInstance("ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 8192); 
 
 	/* create and register our callback functions */
-	Callback_t *read_cb = new Callback<some_object, void, uint, uint64_t, uint64_t>(this, &some_object::read_complete);
-	Callback_t *write_cb = new Callback<some_object, void, uint, uint64_t, uint64_t>(this, &some_object::write_complete);
+	TransactionCompleteCB *read_cb = new Callback<some_object, void, unsigned, uint64_t, uint64_t>(this, &some_object::read_complete);
+	TransactionCompleteCB *write_cb = new Callback<some_object, void, unsigned, uint64_t, uint64_t>(this, &some_object::write_complete);
 	mem->RegisterCallbacks(read_cb, write_cb, power_callback);
 
 	/* create a transaction and add it */
-	Transaction tr = Transaction(DATA_READ, 0x50000, NULL);
-	mem->addTransaction(tr);
+	uint64_t addr = 0x50000; 
+	bool isWrite = false; 
+	mem->addTransaction(isWrite, addr);
 
 	/* do a bunch of updates (i.e. clocks) -- at some point the callback will fire */
 	for (int i=0; i<5; i++)
@@ -65,8 +66,10 @@ int some_object::add_one_and_run()
 	}
 
 	/* add another some time in the future */
-	Transaction tw = Transaction(DATA_WRITE, 0x90012, NULL);
-	mem->addTransaction(tw);
+	isWrite = true; 
+	addr = 0x900012; 
+
+	mem->addTransaction(isWrite, addr);
 
 	for (int i=0; i<45; i++)
 	{
