@@ -24,11 +24,16 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(string deviceIniFilename, str
 
 
 
-
 	DEBUG("== Loading device model file '"<<deviceIniFilename<<"' == ");
 	IniReader::ReadIniFile(deviceIniFilename, false);
 	DEBUG("== Loading system model file '"<<systemIniFilename<<"' == ");
 	IniReader::ReadIniFile(systemIniFilename, true);
+
+	if (NUM_CHANS == 0) 
+	{
+		ERROR("Zero channels"); 
+		abort(); 
+	}
 
 	printf("MM CONSTRUCTOR\n"); 
 	for (size_t i=0; i<NUM_CHANS; i++)
@@ -56,10 +61,10 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 	size_t channelBits = dramsim_log2(NUM_CHANS);
 	size_t totalBits = dramsim_log2(megsOfMemory) + 20; 
 	// all our address mapping schemes so far assume top bits for the channel
-	unsigned channelNumber = addr >> (totalBits-channelBits);
-	if (channelNumber > NUM_CHANS)
+	unsigned channelNumber = (addr >> (totalBits-channelBits)) & ((1<<channelBits)-1);
+	if (channelNumber >= NUM_CHANS)
 	{
-		ERROR("Got channel "<<channelNumber<<" but only "<<NUM_CHANS<<" exist"); 
+		ERROR("Got channel index "<<channelNumber<<" but only "<<NUM_CHANS<<" exist"); 
 		abort();
 	}
 	return channelNumber;
