@@ -219,7 +219,6 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	string sim_description_str;
 	
 	sim_description = getenv("SIM_DESC"); 
-// XXX: Need to force it so that only the top level module does this ... 
 #ifdef LOG_OUTPUT
 	dramsimLogFilename = "dramsim"; 
 	if (sim_description != NULL)
@@ -229,11 +228,14 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	}
 	dramsimLogFilename += ".log";
 
-	dramsim_log.open(dramsimLogFilename.c_str(), ios_base::out | ios_base::trunc );
+	if (!dramsim_log) 
+	{
+		dramsim_log.open(dramsimLogFilename.c_str(), ios_base::out | ios_base::trunc );
+	}
 	if (!dramsim_log) 
 	{
 		ERROR("Cannot open "<< dramsimLogFilename);
-//		exit(-1); 
+		exit(-1); 
 	}
 #endif
 
