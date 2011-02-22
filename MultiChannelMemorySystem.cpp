@@ -41,8 +41,35 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(string deviceIniFilename, str
 		MemorySystem *channel = new MemorySystem(i, deviceIniFilename,systemIniFilename,pwd,trc,megsOfMemory/NUM_CHANS);
 		channels.push_back(channel);
 	}
-}
+#ifdef LOG_OUTPUT
+	char *sim_description = getenv("SIM_DESC");
+	string sim_description_str;
+	string dramsimLogFilename;
+	dramsimLogFilename = "dramsim"; 
+	if (sim_description != NULL)
+	{
+		sim_description_str = string(sim_description);
+		dramsimLogFilename += "."+sim_description_str; 
+	}
+	dramsimLogFilename += ".log";
 
+	dramsim_log.open(dramsimLogFilename.c_str(), ios_base::out | ios_base::trunc );
+
+	if (!dramsim_log) 
+	{
+// ERROR("Cannot open "<< dramsimLogFilename);
+	//	exit(-1); 
+	}
+#endif
+
+}
+MultiChannelMemorySystem::~MultiChannelMemorySystem()
+{
+#ifdef LOG_OUTPUT
+	dramsim_log.flush();
+	dramsim_log.close();
+#endif
+}
 void MultiChannelMemorySystem::update() 
 {
 	for (size_t i=0; i<NUM_CHANS; i++)

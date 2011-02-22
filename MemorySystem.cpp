@@ -191,10 +191,6 @@ MemorySystem::~MemorySystem()
 		cmd_verify_out.flush();
 		cmd_verify_out.close();
 	}
-#ifdef LOG_OUTPUT
-	dramsim_log.flush();
-	dramsim_log.close();
-#endif
 }
 
 bool fileExists(string path)
@@ -213,31 +209,11 @@ bool fileExists(string path)
 string MemorySystem::SetOutputFileName(string traceFilename)
 {
 	size_t lastSlash;
-	string deviceName, dramsimLogFilename;
 	size_t deviceIniFilenameLength = deviceIniFilename.length();
-	char *sim_description = NULL;
 	string sim_description_str;
+	string deviceName;
 	
-	sim_description = getenv("SIM_DESC"); 
-#ifdef LOG_OUTPUT
-	dramsimLogFilename = "dramsim"; 
-	if (sim_description != NULL)
-	{
-		sim_description_str = string(sim_description);
-		dramsimLogFilename += "."+sim_description_str; 
-	}
-	dramsimLogFilename += ".log";
-
-	if (!dramsim_log) 
-	{
-		dramsim_log.open(dramsimLogFilename.c_str(), ios_base::out | ios_base::trunc );
-	}
-	if (!dramsim_log) 
-	{
-		ERROR("Cannot open "<< dramsimLogFilename);
-		exit(-1); 
-	}
-#endif
+	char *sim_description = getenv("SIM_DESC");
 
 	// create a properly named verification output file if need be
 	if (VERIFICATION_OUTPUT)

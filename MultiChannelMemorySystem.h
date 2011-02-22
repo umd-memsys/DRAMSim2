@@ -12,6 +12,7 @@ class MultiChannelMemorySystem : public SimulatorObject
 	public: 
 
 	MultiChannelMemorySystem(string dev, string sys, string pwd, string trc, unsigned megsOfMemory);
+		virtual ~MultiChannelMemorySystem();
 			bool addTransaction(Transaction &trans);
 			bool addTransaction(bool isWrite, uint64_t addr);
 			void update();
