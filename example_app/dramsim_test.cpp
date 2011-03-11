@@ -47,7 +47,7 @@ void power_callback(double a, double b, double c, double d)
 int some_object::add_one_and_run()
 {
 	/* pick a DRAM part to simulate */
-	MemorySystem *mem = new MemorySystem(0, "ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename"); 
+	MemorySystem *mem = new MemorySystem(0, "ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 2048); 
 
 	/* create and register our callback functions */
 	Callback_t *read_cb = new Callback<some_object, void, uint, uint64_t, uint64_t>(this, &some_object::read_complete);
