@@ -424,8 +424,8 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-				//we're out of trace, bail
-				break;
+				//we're out of trace, set pending=false and let the thing spin without adding transactions
+				pendingTrans = false; 
 			}
 		}
 
