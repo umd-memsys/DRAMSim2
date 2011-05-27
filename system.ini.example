@@ -1,13 +1,12 @@
 ; COPY THIS FILE AND MODIFY IT TO SUIT YOUR NEEDS
 
 NUM_CHANS=1								; we haven't tested a whole lot with CHANS>1 so use at your own peril 
-JEDEC_DATA_BUS_WIDTH=64 			; will never change for DDR parts
-CACHE_LINE_SIZE=64						; should never change for a normal CPU (in bytes)
+JEDEC_DATA_BUS_BITS=64 					; will never change for DDR parts
 TRANS_QUEUE_DEPTH=512					; transaction queue ex: READ 0xbeef
 CMD_QUEUE_DEPTH=512						; command queue ex: RAS 4
-EPOCH_COUNT=100000						; length of an epoch in cycles (granularity of simulation)
+EPOCH_LENGTH=100000						; length of an epoch in cycles (granularity of simulation)
 ROW_BUFFER_POLICY=open_page 		; close_page or open_page
-ADDRESS_MAPPING_SCHEME=scheme2	;valid schemes 1-6
+ADDRESS_MAPPING_SCHEME=scheme6	;valid schemes 1-6; FIXME: for now please use either 4 or 6
 SCHEDULING_POLICY=rank_then_bank_round_robin  ; bank_then_rank_round_robin or rank_then_bank_round_robin 
 QUEUING_STRUCTURE=per_rank			;per_rank or per_rank_per_bank
 

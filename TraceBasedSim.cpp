@@ -234,12 +234,21 @@ void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &tra
 
 #ifndef _SIM_
 
+void alignTransactionAddress(Transaction &trans)
+{
+	// zero out the low order bits which correspond to the size of a transaction
+
+	unsigned throwAwayBits = dramsim_log2((BL*JEDEC_DATA_BUS_BITS/8));
+
+	trans.address >>= throwAwayBits;
+	trans.address <<= throwAwayBits;
+}
 int main(int argc, char **argv)
 {
 	int c;
 	string traceFileName = "";
 	TraceType traceType;
-	string systemIniFilename = "ini/system.ini";
+	string systemIniFilename = "system.ini";
 	string deviceIniFilename = "";
 	string pwdString = "";
 	unsigned megsOfMemory=2048;
@@ -250,7 +259,7 @@ int main(int argc, char **argv)
 	string tmp = "";
 	size_t equalsign;
 
-	uint numCycles=100;
+	uint numCycles=1000;
 	//getopt stuff
 	while (1)
 	{
@@ -403,6 +412,7 @@ int main(int argc, char **argv)
 				{
 					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType);
 					trans = Transaction(transType, addr, data);
+					alignTransactionAddress(trans); 
 
 					if (i>=clockCycle)
 					{

@@ -116,6 +116,8 @@ MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFi
 
 	 A rank *must* have a 64 bit output bus (JEDEC standard), so each rank must have:
 	  		NUM_DEVICES_PER_RANK = 64/DEVICE_WIDTH  
+			(note: if you have multiple channels ganged together, the bus width is 
+			effectively NUM_CHANS * 64/DEVICE_WIDTH)
 	 
 	If we multiply these two numbers to get the storage per rank (in bits), we get:
 			PER_RANK_STORAGE = PER_DEVICE_STORAGE*NUM_DEVICES_PER_RANK = NUM_ROWS*NUM_COLS*NUM_BANKS*64 
@@ -132,7 +134,7 @@ MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFi
 	*********************/
 
 	// number of bytes per rank
-	unsigned long megsOfStoragePerRank = ((((long long)NUM_ROWS * (NUM_COLS * DEVICE_WIDTH) * NUM_BANKS) * ((long long)JEDEC_DATA_BUS_WIDTH / DEVICE_WIDTH)) / 8) >> 20;
+	unsigned long megsOfStoragePerRank = ((((long long)NUM_ROWS * (NUM_COLS * DEVICE_WIDTH) * NUM_BANKS) * ((long long)JEDEC_DATA_BUS_BITS / DEVICE_WIDTH)) / 8) >> 20;
 
 	// If this is set, effectively override the number of ranks
 	if (megsOfMemory != 0)
@@ -145,7 +147,7 @@ MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFi
 		}
 	}
 
-	NUM_DEVICES = 64/DEVICE_WIDTH;
+	NUM_DEVICES = JEDEC_DATA_BUS_BITS/DEVICE_WIDTH;
 	TOTAL_STORAGE = (NUM_RANKS * megsOfStoragePerRank); 
 
 	DEBUG("TOTAL_STORAGE : "<< TOTAL_STORAGE << "MB | "<<NUM_RANKS<<" Ranks | "<< NUM_DEVICES <<" Devices per rank");

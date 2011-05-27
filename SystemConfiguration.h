@@ -118,16 +118,13 @@ extern unsigned NUM_DEVICES;
 #define WRITE_TO_READ_DELAY_B (WL+BL/2+tWTR) //interbank
 #define WRITE_TO_READ_DELAY_R (WL+BL/2+tRTRS-RL) //interrank
 
-//in bytes
-extern uint CACHE_LINE_SIZE; 
-
-extern uint JEDEC_DATA_BUS_WIDTH;
+extern uint JEDEC_DATA_BUS_BITS;
 
 //Memory Controller related parameters
 extern uint TRANS_QUEUE_DEPTH;
 extern uint CMD_QUEUE_DEPTH;
 
-extern uint EPOCH_COUNT;
+extern uint EPOCH_LENGTH;
 
 extern uint TOTAL_ROW_ACCESSES;
 

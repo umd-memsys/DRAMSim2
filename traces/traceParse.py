@@ -54,7 +54,9 @@ if tracefile_filename.startswith("k6"):
             outfile.write("%s %s %s\n" % (address,command,time)) 
             
 elif tracefile_filename.startswith("mase"):
-  print "mase trace ..."
+  print "mase trace ...",
+  os.system("cp %s %s"%(temp_trace, tracefile_filename));
+  print "OK"
       
 else:
   print "Unknown trace file!!!"

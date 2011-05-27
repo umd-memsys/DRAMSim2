@@ -42,7 +42,8 @@ MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile)
 		bankBitWidth (dramsim_log2(NUM_BANKS)),
 		rowBitWidth (dramsim_log2(NUM_ROWS)),
 		colBitWidth (dramsim_log2(NUM_COLS)),
-		byteOffsetWidth (dramsim_log2(CACHE_LINE_SIZE)),
+		// this forces the alignment to the width of a single burst (64 bits = 8 bytes = 3 address bits for DDR parts)
+		byteOffsetWidth (dramsim_log2((JEDEC_DATA_BUS_BITS/8))),
 		refreshRank(0)
 {
 	//get handle on parent
@@ -742,7 +743,7 @@ void MemoryController::update()
 	commandQueue.step();
 
 	//print stats if we're at the end of an epoch
-	if (currentClockCycle % EPOCH_COUNT == 0)
+	if (currentClockCycle % EPOCH_LENGTH == 0)
 	{
 		this->printStats();
 
@@ -786,13 +787,32 @@ bool MemoryController::addTransaction(Transaction &trans)
 	}
 }
 
-//Breaks up the incoming transaction into commands
 void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransactionRank, uint &newTransactionBank, uint &newTransactionRow, uint &newTransactionColumn)
 {
 	uint64_t tempA, tempB;
+	unsigned transactionSize = (JEDEC_DATA_BUS_BITS/8)*BL; 
+	uint64_t transactionMask =  transactionSize - 1; //ex: (64 bit bus width) x (8 Burst Length) - 1 = 64 bytes - 1 = 63 = 0x3f mask
+	// Since we're assuming that a request is for BL*BUS_WIDTH, the bottom bits
+	// of this address *should* be all zeros if it's not, issue a warning
 
+	if ((physicalAddress & transactionMask) != 0)
+	{
+		DEBUG("WARNING: address 0x"<<std::hex<<physicalAddress<<std::dec<<" is not aligned to the request size of "<<transactionSize); 
+	}
+
+	// each burst will contain JEDEC_DATA_BUS_BITS/8 bytes of data, so the bottom bits (3 bits for a single channel DDR system) are
+	// 	thrown away before mapping the other bits
 
 	physicalAddress = physicalAddress >> byteOffsetWidth;
+
+	// FIXME: as it turns out, the column bits should always be at the bottom
+	// (or at least split between the bottom and some other bits) since the
+	// column address is what iterates on subsequent bursts. Really, that means
+	// that scheme4 and scheme6 are the only ones that actually make any
+	// sense here. 
+	//
+	//	one approach from DRAMSim1 is to split the column into two fields:
+	//	COL_HI and COL_LOW 
 
 	//perform various address mapping schemes
 	if (addressMappingScheme == Scheme1)
@@ -954,7 +974,7 @@ void MemoryController::printStats(bool finalStats)
 
 	//if we are not at the end of the epoch, make sure to adjust for the actual number of cycles elapsed
 
-	uint64_t cyclesElapsed = (currentClockCycle % EPOCH_COUNT == 0) ? EPOCH_COUNT : currentClockCycle % EPOCH_COUNT;
+	uint64_t cyclesElapsed = (currentClockCycle % EPOCH_LENGTH == 0) ? EPOCH_LENGTH : currentClockCycle % EPOCH_LENGTH;
 	uint bytesPerTransaction = (64*BL)/8;
 	uint64_t totalBytesTransferred = totalTransactions * bytesPerTransaction;
 	double secondsThisEpoch = (double)cyclesElapsed * tCK * 1E-9;
