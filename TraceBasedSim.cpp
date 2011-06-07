@@ -96,7 +96,7 @@ class TransactionReceiver
 			uint64_t latency = done_cycle - added_cycle;
 
 			pendingReadRequests[address].pop_front();
-			cout << "Read Callback: 0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
+			cout << "Read Callback:  0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
 		}
 		void write_complete(uint id, uint64_t address, uint64_t done_cycle)
 		{
@@ -120,7 +120,7 @@ class TransactionReceiver
 			uint64_t latency = done_cycle - added_cycle;
 
 			pendingWriteRequests[address].pop_front();
-			cout << "Read Callback: 0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
+			cout << "Write Callback: 0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
 		}
 };
 #endif
