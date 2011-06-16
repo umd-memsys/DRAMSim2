@@ -172,7 +172,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 
 		//update state table
 		bankStates[packet->bank].currentBankState = Idle;
-		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + WRITE_TO_PRE_DELAY);
+		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + WRITE_AUTOPRE_DELAY);
 		for (size_t i=0;i<NUM_BANKS;i++)
 		{
 			bankStates[packet->bank].nextWrite = max(bankStates[packet->bank].nextWrite, currentClockCycle + max(tCCD, BL/2));
