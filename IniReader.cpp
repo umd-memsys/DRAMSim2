@@ -228,6 +228,10 @@ void IniReader::WriteParams(std::ofstream &visDataOut, paramType type)
 			visDataOut << endl;
 		}
 	}
+	if (type == SYS_PARAM)
+	{
+		visDataOut<<"NUM_RANKS="<<NUM_RANKS <<"\n";
+	}
 }
 void IniReader::WriteValuesOut(std::ofstream &visDataOut)
 {
