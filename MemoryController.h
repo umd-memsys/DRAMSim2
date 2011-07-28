@@ -99,6 +99,7 @@ private:
 	uint dataCyclesLeft;
 
 	uint64_t totalTransactions;
+	vector<uint64_t> grandTotalBankAccesses; 
 	vector<uint64_t> totalReadsPerBank;
 	vector<uint64_t> totalWritesPerBank;
 

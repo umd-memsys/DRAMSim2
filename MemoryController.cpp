@@ -66,6 +66,7 @@ MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile)
 	transactionQueue.reserve(TRANS_QUEUE_DEPTH);
 	bankStates = vector< vector <BankState> >(NUM_RANKS, vector<BankState>(NUM_BANKS));
 	powerDown = vector<bool>(NUM_RANKS,false);
+	grandTotalBankAccesses = vector<uint64_t>(NUM_RANKS*NUM_BANKS,0);
 	totalReadsPerBank = vector<uint64_t>(NUM_RANKS*NUM_BANKS,0);
 	totalWritesPerBank = vector<uint64_t>(NUM_RANKS*NUM_BANKS,0);
 	totalReadsPerRank = vector<uint64_t>(NUM_RANKS,0);
@@ -752,6 +753,7 @@ void MemoryController::update()
 		{
 			for (size_t j=0; j<NUM_BANKS; j++)
 			{
+				grandTotalBankAccesses[SEQUENTIAL(i,j)] += totalReadsPerBank[SEQUENTIAL(i,j)] + totalWritesPerBank[SEQUENTIAL(i,j)];
 				totalReadsPerBank[SEQUENTIAL(i,j)] = 0;
 				totalWritesPerBank[SEQUENTIAL(i,j)] = 0;
 				totalEpochLatency[SEQUENTIAL(i,j)] = 0;
@@ -1107,15 +1109,18 @@ void MemoryController::printStats(bool finalStats)
 			}
 		}
 
-		PRINT( " ---  Bank usage list");
+		PRINT( " --- Grand Total Bank usage list");
 		for (size_t i=0;i<NUM_RANKS;i++)
 		{
+			PRINT("Rank "<<i<<":"); 
 			for (size_t j=0;j<NUM_BANKS;j++)
 			{
-				PRINT( "["<<i<<","<<j<<"] : "<<totalReadsPerBank[i+j]+totalWritesPerBank[i+j]);
+				PRINT( "  b"<<j<<": "<<grandTotalBankAccesses[SEQUENTIAL(i,j)]);
 			}
 		}
+
 	}
+
 
 	PRINT(endl<< " == Pending Transactions : "<<pendingReadTransactions.size()<<" ("<<currentClockCycle<<")==");
 	/*
