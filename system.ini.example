@@ -6,7 +6,7 @@ TRANS_QUEUE_DEPTH=512					; transaction queue ex: READ 0xbeef
 CMD_QUEUE_DEPTH=512						; command queue ex: RAS 4
 EPOCH_LENGTH=100000						; length of an epoch in cycles (granularity of simulation)
 ROW_BUFFER_POLICY=open_page 		; close_page or open_page
-ADDRESS_MAPPING_SCHEME=scheme6	;valid schemes 1-6; FIXME: for now please use either 4 or 6
+ADDRESS_MAPPING_SCHEME=scheme2	;valid schemes 1-6; 
 SCHEDULING_POLICY=rank_then_bank_round_robin  ; bank_then_rank_round_robin or rank_then_bank_round_robin 
 QUEUING_STRUCTURE=per_rank			;per_rank or per_rank_per_bank
 
