@@ -802,17 +802,34 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 
 	// each burst will contain JEDEC_DATA_BUS_BITS/8 bytes of data, so the bottom bits (3 bits for a single channel DDR system) are
 	// 	thrown away before mapping the other bits
+	physicalAddress >>= byteOffsetWidth;
 
-	physicalAddress = physicalAddress >> byteOffsetWidth;
-
-	// FIXME: as it turns out, the column bits should always be at the bottom
-	// (or at least split between the bottom and some other bits) since the
-	// column address is what iterates on subsequent bursts. Really, that means
-	// that scheme4 and scheme6 are the only ones that actually make any
-	// sense here. 
+	// The next thing we have to consider is that when a request is made for a
+	// we've taken into account the granulaity of a single burst by shifting 
+	// off the bottom 3 bits, but a transaction has to take into account the
+	// burst length (i.e. the requests will be aligned to cache line sizes which
+	// should be equal to transactionSize above). 
 	//
-	//	one approach from DRAMSim1 is to split the column into two fields:
-	//	COL_HI and COL_LOW 
+	// Since the column address increments internally on bursts, the bottom n 
+	// bits of the column (colLow) have to be zero in order to account for the 
+	// total size of the transaction. These n bits should be shifted off the 
+	// address and also subtracted from the total column width. 
+	//
+	// I am having a hard time explaining the reasoning here, but it comes down
+	// this: for a 64 byte transaction, the bottom 6 bits of the address must be 
+	// zero. These zero bits must be made up of the byte offset (3 bits) and also
+	// from the bottom bits of the column 
+	// 
+	// For example: cowLowBits = log2(64bytes) - 3 bits = 3 bits 
+	unsigned colLowBitWidth = dramsim_log2(transactionSize) - byteOffsetWidth;
+
+	physicalAddress >>= colLowBitWidth;
+	unsigned colHighBitWidth = colBitWidth - colLowBitWidth; 
+
+#if 0
+	PRINT("Bit widths: ch:"<<channelBitWidth<<" r:"<<rankBitWidth<<" b:"<<bankBitWidth<<" row:"<<rowBitWidth<<" colLow:"<<colLowBitWidth<< " colHigh:"<<colHighBitWidth<<" off:"<<byteOffsetWidth << " Total:"<< (channelBitWidth + rankBitWidth + bankBitWidth + rowBitWidth + colLowBitWidth + colHighBitWidth + byteOffsetWidth));
+	exit(0)
+#endif
 
 	//perform various address mapping schemes
 	if (addressMappingScheme == Scheme1)
@@ -824,8 +841,8 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 		newTransactionBank = tempA ^ tempB;
 
 		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colBitWidth;
-		tempB = physicalAddress << colBitWidth;
+		physicalAddress = physicalAddress >> colHighBitWidth;
+		tempB = physicalAddress << colHighBitWidth;
 		newTransactionColumn = tempA ^ tempB;
 
 		tempA = physicalAddress;
@@ -852,8 +869,8 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 		newTransactionBank = tempA ^ tempB;
 
 		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colBitWidth;
-		tempB = physicalAddress << colBitWidth;
+		physicalAddress = physicalAddress >> colHighBitWidth;
+		tempB = physicalAddress << colHighBitWidth;
 		newTransactionColumn = tempA ^ tempB;
 
 		tempA = physicalAddress;
@@ -870,8 +887,8 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 		newTransactionRow = tempA ^ tempB;
 
 		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colBitWidth;
-		tempB = physicalAddress << colBitWidth;
+		physicalAddress = physicalAddress >> colHighBitWidth;
+		tempB = physicalAddress << colHighBitWidth;
 		newTransactionColumn = tempA ^ tempB;
 
 		tempA = physicalAddress;
@@ -888,8 +905,8 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 	{
 		//chan:rank:bank:row:col
 		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colBitWidth;
-		tempB = physicalAddress << colBitWidth;
+		physicalAddress = physicalAddress >> colHighBitWidth;
+		tempB = physicalAddress << colHighBitWidth;
 		newTransactionColumn = tempA ^ tempB;
 
 		tempA = physicalAddress;
@@ -922,8 +939,8 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 		newTransactionRank = tempA ^ tempB;
 
 		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colBitWidth;
-		tempB = physicalAddress << colBitWidth;
+		physicalAddress = physicalAddress >> colHighBitWidth;
+		tempB = physicalAddress << colHighBitWidth;
 		newTransactionColumn = tempA ^ tempB;
 
 		tempA = physicalAddress;
@@ -937,8 +954,8 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 		//chan:row:bank:rank:col
 
 		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colBitWidth;
-		tempB = physicalAddress << colBitWidth;
+		physicalAddress = physicalAddress >> colHighBitWidth;
+		tempB = physicalAddress << colHighBitWidth;
 		newTransactionColumn = tempA ^ tempB;
 
 		tempA = physicalAddress;
