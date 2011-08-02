@@ -28,12 +28,12 @@
 using namespace DRAMSim;
 
 /* callback functors */
-void some_object::read_complete(uint id, uint64_t address, uint64_t clock_cycle)
+void some_object::read_complete(unsigned id, uint64_t address, uint64_t clock_cycle)
 {
 	printf("[Callback] read complete: %d 0x%lx cycle=%lu\n", id, address, clock_cycle);
 }
 
-void some_object::write_complete(uint id, uint64_t address, uint64_t clock_cycle)
+void some_object::write_complete(unsigned id, uint64_t address, uint64_t clock_cycle)
 {
 	printf("[Callback] write complete: %d 0x%lx cycle=%lu\n", id, address, clock_cycle);
 }
@@ -50,8 +50,8 @@ int some_object::add_one_and_run()
 	MemorySystem *mem = new MemorySystem(0, "ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 2048); 
 
 	/* create and register our callback functions */
-	Callback_t *read_cb = new Callback<some_object, void, uint, uint64_t, uint64_t>(this, &some_object::read_complete);
-	Callback_t *write_cb = new Callback<some_object, void, uint, uint64_t, uint64_t>(this, &some_object::write_complete);
+	Callback_t *read_cb = new Callback<some_object, void, unsigned, uint64_t, uint64_t>(this, &some_object::read_complete);
+	Callback_t *write_cb = new Callback<some_object, void, unsigned, uint64_t, uint64_t>(this, &some_object::write_complete);
 	mem->RegisterCallbacks(read_cb, write_cb, power_callback);
 
 	/* create a transaction and add it */

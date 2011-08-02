@@ -57,10 +57,10 @@ public:
 
 	void enqueue(BusPacket *newBusPacket);
 	bool pop(BusPacket **busPacket);
-	bool hasRoomFor(uint numberToEnqueue, uint rank, uint bank);
+	bool hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned bank);
 	bool isIssuable(BusPacket *busPacket);
-	bool isEmpty(uint rank);
-	void needRefresh(uint rank);
+	bool isEmpty(unsigned rank);
+	void needRefresh(unsigned rank);
 	void print();
 	void update(); //SimulatorObject requirement
 
@@ -71,17 +71,17 @@ public:
 private:
 	void nextRankAndBank(unsigned &rank, unsigned &bank);
 	//fields
-	uint nextBank;
-	uint nextRank;
+	unsigned nextBank;
+	unsigned nextRank;
 
-	uint nextBankPRE;
-	uint nextRankPRE;
+	unsigned nextBankPRE;
+	unsigned nextRankPRE;
 
-	uint refreshRank;
+	unsigned refreshRank;
 	bool refreshWaiting;
 
-	vector< vector<uint> > tFAWCountdown;
-	vector< vector<uint> > rowAccessCounters;
+	vector< vector<unsigned> > tFAWCountdown;
+	vector< vector<unsigned> > rowAccessCounters;
 
 	bool sendAct;
 };

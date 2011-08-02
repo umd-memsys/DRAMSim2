@@ -51,7 +51,7 @@ ofstream dramsim_log;
 
 powerCallBack_t MemorySystem::ReportPower = NULL;
 
-MemorySystem::MemorySystem(uint id, string deviceIniFilename, string systemIniFilename, string pwd,
+MemorySystem::MemorySystem(unsigned id, string deviceIniFilename, string systemIniFilename, string pwd,
                            string traceFilename, unsigned int megsOfMemory) :
 		ReturnReadData(NULL),
 		WriteDataDone(NULL),
@@ -495,7 +495,7 @@ void MemorySystem::RegisterCallbacks( Callback_t* readCB, Callback_t* writeCB,
 }
 
 // static allocator for the library interface 
-MemorySystem *getMemorySystemInstance(uint id, string dev, string sys, string pwd, string trc, unsigned megsOfMemory)
+MemorySystem *getMemorySystemInstance(unsigned id, string dev, string sys, string pwd, string trc, unsigned megsOfMemory)
 {
 	return new MemorySystem(id, dev, sys, pwd, trc, megsOfMemory);
 }

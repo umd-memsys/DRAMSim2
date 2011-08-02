@@ -41,9 +41,9 @@ class Rank : public SimulatorObject
 {
 private:
 	int id;
-	uint incomingWriteBank;
-	uint incomingWriteRow;
-	uint incomingWriteColumn;
+	unsigned incomingWriteBank;
+	unsigned incomingWriteRow;
+	unsigned incomingWriteColumn;
 	bool isPowerDown;
 
 public:
@@ -61,12 +61,12 @@ public:
 	vector<Bank> banks;
 	MemoryController *memoryController;
 	BusPacket *outgoingDataPacket;
-	uint dataCyclesLeft;
+	unsigned dataCyclesLeft;
 	bool refreshWaiting;
 
 	//these are vectors so that each element is per-bank
 	vector<BusPacket *> readReturnPacket;
-	vector<uint> readReturnCountdown;
+	vector<unsigned> readReturnCountdown;
 	vector<BankState> bankStates;
 };
 }

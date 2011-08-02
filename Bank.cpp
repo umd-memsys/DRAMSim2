@@ -59,7 +59,7 @@ Bank::Bank():
 
 
 
-Bank::DataStruct *Bank::searchForRow(uint row, DataStruct *head)
+Bank::DataStruct *Bank::searchForRow(unsigned row, DataStruct *head)
 {
 	while (head != NULL)
 	{

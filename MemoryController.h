@@ -71,20 +71,20 @@ public:
 	vector< vector <BankState> > bankStates;
 private:
 	//functions
-	void addressMapping(uint64_t physicalAddress, uint &rank, uint &bank, uint &row, uint &col);
-	void insertHistogram(uint latencyValue, uint rank, uint bank);
+	void addressMapping(uint64_t physicalAddress, unsigned &rank, unsigned &bank, unsigned &row, unsigned &col);
+	void insertHistogram(unsigned latencyValue, unsigned rank, unsigned bank);
 
 	//fields
 	MemorySystem *parentMemorySystem;
 
 	CommandQueue commandQueue;
 	BusPacket *poppedBusPacket;
-	vector<uint>refreshCountdown;
+	vector<unsigned>refreshCountdown;
 	vector<BusPacket *> writeDataToSend;
-	vector<uint> writeDataCountdown;
+	vector<unsigned> writeDataCountdown;
 	vector<Transaction> returnTransaction;
 	vector<Transaction> pendingReadTransactions;
-	map<uint,uint> latencies; // latencyValue -> latencyCount
+	map<unsigned,unsigned> latencies; // latencyValue -> latencyCount
 	vector<bool> powerDown;
 
 	vector<Rank> *ranks;
@@ -94,9 +94,9 @@ private:
 
 	// these packets are counting down waiting to be transmitted on the "bus"
 	BusPacket *outgoingCmdPacket;
-	uint cmdCyclesLeft;
+	unsigned cmdCyclesLeft;
 	BusPacket *outgoingDataPacket;
-	uint dataCyclesLeft;
+	unsigned dataCyclesLeft;
 
 	uint64_t totalTransactions;
 	vector<uint64_t> grandTotalBankAccesses; 
@@ -114,15 +114,15 @@ private:
 
 	vector< uint64_t > totalEpochLatency;
 
-	uint channelBitWidth;
-	uint rankBitWidth;
-	uint bankBitWidth;
-	uint rowBitWidth;
-	uint colBitWidth;
-	uint byteOffsetWidth;
+	unsigned channelBitWidth;
+	unsigned rankBitWidth;
+	unsigned bankBitWidth;
+	unsigned rowBitWidth;
+	unsigned colBitWidth;
+	unsigned byteOffsetWidth;
 
 
-	uint refreshRank;
+	unsigned refreshRank;
 
 };
 }

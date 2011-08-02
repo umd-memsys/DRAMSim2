@@ -39,12 +39,12 @@
 
 namespace DRAMSim
 {
-typedef CallbackBase<void,uint,uint64_t,uint64_t> Callback_t;
+typedef CallbackBase<void,unsigned,uint64_t,uint64_t> Callback_t;
 class MemorySystem : public SimulatorObject
 {
 public:
 	//functions
-	MemorySystem(uint id, string dev, string sys, string pwd, string trc, unsigned megsOfMemory);
+	MemorySystem(unsigned id, string dev, string sys, string pwd, string trc, unsigned megsOfMemory);
 	virtual ~MemorySystem();
 	void update();
 	bool addTransaction(Transaction &trans);
@@ -80,7 +80,7 @@ public:
 	//TODO: make this a functor as well?
 	static powerCallBack_t ReportPower;
 
-	uint systemID;
+	unsigned systemID;
 
 private:
 	static void mkdirIfNotExist(string path);

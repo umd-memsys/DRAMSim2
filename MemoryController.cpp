@@ -277,8 +277,8 @@ void MemoryController::update()
 		//update each bank's state based on the command that was just popped out of the command queue
 		//
 		//for readability's sake
-		uint rank = poppedBusPacket->rank;
-		uint bank = poppedBusPacket->bank;
+		unsigned rank = poppedBusPacket->rank;
+		unsigned bank = poppedBusPacket->bank;
 		switch (poppedBusPacket->busPacketType)
 		{
 			case READ_P:
@@ -479,7 +479,7 @@ void MemoryController::update()
 		Transaction transaction = transactionQueue[i];
 
 		//map address to rank,bank,row,col
-		uint newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn;
+		unsigned newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn;
 
 		// pass these in as references so they get set by the addressMapping function
 		addressMapping(transaction.address, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn);
@@ -671,7 +671,7 @@ void MemoryController::update()
 				//		pendingReadTransactions[i].print();
 				//		exit(0);
 				//	}
-				uint rank,bank,row,col;
+				unsigned rank,bank,row,col;
 				addressMapping(returnTransaction[0].address,rank,bank,row,col);
 				insertHistogram(currentClockCycle-pendingReadTransactions[i].timeAdded,rank,bank);
 				//return latency
@@ -789,7 +789,7 @@ bool MemoryController::addTransaction(Transaction &trans)
 	}
 }
 
-void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransactionRank, uint &newTransactionBank, uint &newTransactionRow, uint &newTransactionColumn)
+void MemoryController::addressMapping(uint64_t physicalAddress, unsigned &newTransactionRank, unsigned &newTransactionBank, unsigned &newTransactionRow, unsigned &newTransactionColumn)
 {
 	uint64_t tempA, tempB;
 	unsigned transactionSize = (JEDEC_DATA_BUS_BITS/8)*BL; 
@@ -994,7 +994,7 @@ void MemoryController::printStats(bool finalStats)
 	//if we are not at the end of the epoch, make sure to adjust for the actual number of cycles elapsed
 
 	uint64_t cyclesElapsed = (currentClockCycle % EPOCH_LENGTH == 0) ? EPOCH_LENGTH : currentClockCycle % EPOCH_LENGTH;
-	uint bytesPerTransaction = (64*BL)/8;
+	unsigned bytesPerTransaction = (64*BL)/8;
 	uint64_t totalBytesTransferred = totalTransactions * bytesPerTransaction;
 	double secondsThisEpoch = (double)cyclesElapsed * tCK * 1E-9;
 
@@ -1099,7 +1099,7 @@ void MemoryController::printStats(bool finalStats)
 			(*visDataOut) << "!!HISTOGRAM_DATA"<<endl;
 		}
 
-		map<uint,uint>::iterator it; //
+		map<unsigned,unsigned>::iterator it; //
 		for (it=latencies.begin(); it!=latencies.end(); it++)
 		{
 			PRINT( "       ["<< it->first <<"-"<<it->first+(HISTOGRAM_BIN_SIZE-1)<<"] : "<< it->second );
@@ -1139,7 +1139,7 @@ MemoryController::~MemoryController()
 	//abort();
 }
 //inserts a latency into the latency histogram
-void MemoryController::insertHistogram(uint latencyValue, uint rank, uint bank)
+void MemoryController::insertHistogram(unsigned latencyValue, unsigned rank, unsigned bank)
 {
 	totalEpochLatency[SEQUENTIAL(rank,bank)] += latencyValue;
 	//poor man's way to bin things.

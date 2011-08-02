@@ -74,7 +74,7 @@ class TransactionReceiver
 			}
 		}
 
-		void read_complete(uint id, uint64_t address, uint64_t done_cycle)
+		void read_complete(unsigned id, uint64_t address, uint64_t done_cycle)
 		{
 			map<uint64_t, list<uint64_t> >::iterator it;
 			it = pendingReadRequests.find(address); 
@@ -98,7 +98,7 @@ class TransactionReceiver
 			pendingReadRequests[address].pop_front();
 			cout << "Read Callback:  0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
 		}
-		void write_complete(uint id, uint64_t address, uint64_t done_cycle)
+		void write_complete(unsigned id, uint64_t address, uint64_t done_cycle)
 		{
 			map<uint64_t, list<uint64_t> >::iterator it;
 			it = pendingWriteRequests.find(address); 
@@ -341,7 +341,7 @@ int main(int argc, char **argv)
 	string tmp = "";
 	size_t equalsign;
 
-	uint numCycles=1000;
+	unsigned numCycles=1000;
 	//getopt stuff
 	while (1)
 	{
@@ -468,8 +468,8 @@ int main(int argc, char **argv)
 #ifdef RETURN_TRANSACTIONS
 	TransactionReceiver transactionReceiver; 
 	/* create and register our callback functions */
-	Callback_t *read_cb = new Callback<TransactionReceiver, void, uint, uint64_t, uint64_t>(&transactionReceiver, &TransactionReceiver::read_complete);
-	Callback_t *write_cb = new Callback<TransactionReceiver, void, uint, uint64_t, uint64_t>(&transactionReceiver, &TransactionReceiver::write_complete);
+	Callback_t *read_cb = new Callback<TransactionReceiver, void, unsigned, uint64_t, uint64_t>(&transactionReceiver, &TransactionReceiver::read_complete);
+	Callback_t *write_cb = new Callback<TransactionReceiver, void, unsigned, uint64_t, uint64_t>(&transactionReceiver, &TransactionReceiver::write_complete);
 	memorySystem->RegisterCallbacks(read_cb, write_cb, NULL);
 #endif
 

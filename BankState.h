@@ -53,7 +53,7 @@ class BankState
 public:
 	//Fields
 	CurrentBankState currentBankState;
-	uint openRowAddress;
+	unsigned openRowAddress;
 	uint64_t nextRead;
 	uint64_t nextWrite;
 	uint64_t nextActivate;
@@ -61,7 +61,7 @@ public:
 	uint64_t nextPowerUp;
 
 	BusPacketType lastCommand;
-	uint stateChangeCountdown;
+	unsigned stateChangeCountdown;
 
 	//Functions
 	BankState();

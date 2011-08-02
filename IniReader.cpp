@@ -34,62 +34,62 @@ using namespace std;
 // have global scope even though they are set by IniReader
 
 uint64_t TOTAL_STORAGE;
-uint NUM_BANKS;
-uint NUM_CHANS;
-uint NUM_ROWS;
-uint NUM_COLS;
-uint DEVICE_WIDTH;
+unsigned NUM_BANKS;
+unsigned NUM_CHANS;
+unsigned NUM_ROWS;
+unsigned NUM_COLS;
+unsigned DEVICE_WIDTH;
 
-uint REFRESH_PERIOD;
+unsigned REFRESH_PERIOD;
 float tCK;
 float Vdd;
-uint CL;
-uint AL;
-uint BL;
-uint tRAS;
-uint tRCD;
-uint tRRD;
-uint tRC;
-uint tRP;
-uint tCCD;
-uint tRTP;
-uint tWTR;
-uint tWR;
-uint tRTRS;
-uint tRFC;
-uint tFAW;
-uint tCKE;
-uint tXP;
-uint tCMD;
+unsigned CL;
+unsigned AL;
+unsigned BL;
+unsigned tRAS;
+unsigned tRCD;
+unsigned tRRD;
+unsigned tRC;
+unsigned tRP;
+unsigned tCCD;
+unsigned tRTP;
+unsigned tWTR;
+unsigned tWR;
+unsigned tRTRS;
+unsigned tRFC;
+unsigned tFAW;
+unsigned tCKE;
+unsigned tXP;
+unsigned tCMD;
 
-uint IDD0;
-uint IDD1;
-uint IDD2P;
-uint IDD2Q;
-uint IDD2N;
-uint IDD3Pf;
-uint IDD3Ps;
-uint IDD3N;
-uint IDD4W;
-uint IDD4R;
-uint IDD5;
-uint IDD6;
-uint IDD6L;
-uint IDD7;
+unsigned IDD0;
+unsigned IDD1;
+unsigned IDD2P;
+unsigned IDD2Q;
+unsigned IDD2N;
+unsigned IDD3Pf;
+unsigned IDD3Ps;
+unsigned IDD3N;
+unsigned IDD4W;
+unsigned IDD4R;
+unsigned IDD5;
+unsigned IDD6;
+unsigned IDD6L;
+unsigned IDD7;
 
 
 //in bytes
-uint JEDEC_DATA_BUS_BITS;
+unsigned JEDEC_DATA_BUS_BITS;
 
 //Memory Controller related parameters
-uint TRANS_QUEUE_DEPTH;
-uint CMD_QUEUE_DEPTH;
+unsigned TRANS_QUEUE_DEPTH;
+unsigned CMD_QUEUE_DEPTH;
 
 //cycles within an epoch
-uint EPOCH_LENGTH;
+unsigned EPOCH_LENGTH;
 
 //row accesses allowed before closing (open page)
-uint TOTAL_ROW_ACCESSES;
+unsigned TOTAL_ROW_ACCESSES;
 
 // strings and their associated enums
 string ROW_BUFFER_POLICY;
@@ -203,7 +203,7 @@ void IniReader::WriteParams(std::ofstream &visDataOut, paramType type)
 			{
 				//parse and set each type of variable
 			case UINT:
-				visDataOut << *((uint *)configMap[i].variablePtr);
+				visDataOut << *((unsigned *)configMap[i].variablePtr);
 				break;
 			case UINT64:
 				visDataOut << *((uint64_t *)configMap[i].variablePtr);
@@ -248,7 +248,7 @@ void IniReader::WriteValuesOut(std::ofstream &visDataOut)
 void IniReader::SetKey(string key, string valueString, bool isSystemParam, size_t lineNumber)
 {
 	size_t i;
-	uint intValue;
+	unsigned intValue;
 	uint64_t int64Value;
 	float floatValue;
 
@@ -266,7 +266,7 @@ void IniReader::SetKey(string key, string valueString, bool isSystemParam, size_
 				{
 					ERROR("could not parse line "<<lineNumber<<" (non-numeric value '"<<valueString<<"')?");
 				}
-				*((uint *)configMap[i].variablePtr) = intValue;
+				*((unsigned *)configMap[i].variablePtr) = intValue;
 				if (DEBUG_INI_READER)
 				{
 					DEBUG("\t - SETTING "<<configMap[i].iniKey<<"="<<intValue);

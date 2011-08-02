@@ -66,7 +66,7 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states) :
 	}
 
 	//vector of counters used to ensure rows don't stay open too long
-	rowAccessCounters = vector< vector<uint> >(NUM_RANKS, vector<uint>(NUM_BANKS,0));
+	rowAccessCounters = vector< vector<unsigned> >(NUM_RANKS, vector<unsigned>(NUM_BANKS,0));
 
 	//create queue based on the structure we want
 	BusPacket1D actualQueue;
@@ -94,7 +94,7 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states) :
 	for (size_t i=0;i<NUM_RANKS;i++)
 	{
 		//init the empty vectors here so we don't seg fault later
-		tFAWCountdown.push_back(vector<uint>());
+		tFAWCountdown.push_back(vector<unsigned>());
 	}
 }
 CommandQueue::~CommandQueue()
@@ -119,15 +119,15 @@ CommandQueue::~CommandQueue()
 //Adds a command to appropriate queue
 void CommandQueue::enqueue(BusPacket *newBusPacket)
 {
-	uint rank = newBusPacket->rank;
-	uint bank = newBusPacket->bank;
+	unsigned rank = newBusPacket->rank;
+	unsigned bank = newBusPacket->bank;
 	if (queuingStructure==PerRank)
 	{
 		queues[rank][0].push_back(newBusPacket);
 		if (queues[rank][0].size()>CMD_QUEUE_DEPTH)
 		{
 			ERROR("== Error - Enqueued more than allowed in command queue");
-			ERROR("						Need to call .hasRoomFor(int numberToEnqueue, uint rank, uint bank) first");
+			ERROR("						Need to call .hasRoomFor(int numberToEnqueue, unsigned rank, unsigned bank) first");
 			exit(0);
 		}
 	}
@@ -137,7 +137,7 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
 		if (queues[rank][bank].size()>CMD_QUEUE_DEPTH)
 		{
 			ERROR("== Error - Enqueued more than allowed in command queue");
-			ERROR("						Need to call .hasRoomFor(int numberToEnqueue, uint rank, uint bank) first");
+			ERROR("						Need to call .hasRoomFor(int numberToEnqueue, unsigned rank, unsigned bank) first");
 			exit(0);
 		}
 	}
@@ -238,7 +238,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			if (!sendingREF)
 			{
 				bool foundIssuable = false;
-				uint startingRank = nextRank;
+				unsigned startingRank = nextRank;
 				do
 				{
 					//make sure there is something in this queue first
@@ -360,7 +360,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 
 			if (!sendingREForPRE)
 			{
-				uint startingRank = nextRank;
+				unsigned startingRank = nextRank;
 				bool foundIssuable = false;
 				do
 				{
@@ -430,8 +430,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
 				{
 					//search for banks to close
 					bool sendingPRE = false;
-					uint startingRank = nextRankPRE;
-					uint startingBank = nextBankPRE;
+					unsigned startingRank = nextRankPRE;
+					unsigned startingBank = nextBankPRE;
 					do
 					{
 						bool found = false;
@@ -531,8 +531,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			//if we're not sending a REF, proceed as normal
 			if (!sendingREF)
 			{
-				uint startingRank = nextRank;
-				uint startingBank = nextBank;
+				unsigned startingRank = nextRank;
+				unsigned startingBank = nextBank;
 				bool foundIssuable = false;
 				do
 				{
@@ -629,8 +629,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
 
 			if (!sendingREForPRE)
 			{
-				uint startingRank = nextRank;
-				uint startingBank = nextBank;
+				unsigned startingRank = nextRank;
+				unsigned startingBank = nextBank;
 				bool foundIssuable = false;
 				do
 				{
@@ -798,7 +798,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 }
 
 //check if a rank/bank queue has room for a certain number of bus packets
-bool CommandQueue::hasRoomFor(uint numberToEnqueue, uint rank, uint bank)
+bool CommandQueue::hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned bank)
 {
 	if (queuingStructure == PerRank)
 	{
@@ -926,7 +926,7 @@ bool CommandQueue::isIssuable(BusPacket *busPacket)
 }
 
 //figures out if a rank's queue is empty
-bool CommandQueue::isEmpty(uint rank)
+bool CommandQueue::isEmpty(unsigned rank)
 {
 	if (queuingStructure == PerRank)
 	{
@@ -948,7 +948,7 @@ bool CommandQueue::isEmpty(uint rank)
 }
 
 //tells the command queue that a particular rank is in need of a refresh
-void CommandQueue::needRefresh(uint rank)
+void CommandQueue::needRefresh(unsigned rank)
 {
 	refreshWaiting = true;
 	refreshRank = rank;

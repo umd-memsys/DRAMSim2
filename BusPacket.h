@@ -54,15 +54,15 @@ class BusPacket
 public:
 	//Fields
 	BusPacketType busPacketType;
-	uint column;
-	uint row;
-	uint bank;
-	uint rank;
+	unsigned column;
+	unsigned row;
+	unsigned bank;
+	unsigned rank;
 	uint64_t physicalAddress;
 	void *data;
 
 	//Functions
-	BusPacket(BusPacketType packtype, uint64_t physicalAddr, uint col, uint rw, uint r, uint b, void *dat);
+	BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, void *dat);
 	BusPacket();
 
 	void print();

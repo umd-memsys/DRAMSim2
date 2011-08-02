@@ -59,53 +59,53 @@ extern bool USE_LOW_POWER;
 extern bool VIS_FILE_OUTPUT;
 
 extern uint64_t TOTAL_STORAGE;
-extern uint NUM_BANKS;
-extern uint NUM_RANKS;
-extern uint NUM_CHANS;
-extern uint NUM_ROWS;
-extern uint NUM_COLS;
-extern uint DEVICE_WIDTH;
+extern unsigned NUM_BANKS;
+extern unsigned NUM_RANKS;
+extern unsigned NUM_CHANS;
+extern unsigned NUM_ROWS;
+extern unsigned NUM_COLS;
+extern unsigned DEVICE_WIDTH;
 
 //in nanoseconds
-extern uint REFRESH_PERIOD;
+extern unsigned REFRESH_PERIOD;
 extern float tCK;
 
-extern uint CL;
-extern uint AL;
+extern unsigned CL;
+extern unsigned AL;
 #define RL (CL+AL)
 #define WL (RL-1)
-extern uint BL;
-extern uint tRAS;
-extern uint tRCD;
-extern uint tRRD;
-extern uint tRC;
-extern uint tRP;
-extern uint tCCD;
-extern uint tRTP;
-extern uint tWTR;
-extern uint tWR;
-extern uint tRTRS;
-extern uint tRFC;
-extern uint tFAW;
-extern uint tCKE;
-extern uint tXP;
+extern unsigned BL;
+extern unsigned tRAS;
+extern unsigned tRCD;
+extern unsigned tRRD;
+extern unsigned tRC;
+extern unsigned tRP;
+extern unsigned tCCD;
+extern unsigned tRTP;
+extern unsigned tWTR;
+extern unsigned tWR;
+extern unsigned tRTRS;
+extern unsigned tRFC;
+extern unsigned tFAW;
+extern unsigned tCKE;
+extern unsigned tXP;
 
-extern uint tCMD;
+extern unsigned tCMD;
 
-extern uint IDD0;
-extern uint IDD1;
-extern uint IDD2P;
-extern uint IDD2Q;
-extern uint IDD2N;
-extern uint IDD3Pf;
-extern uint IDD3Ps;
-extern uint IDD3N;
-extern uint IDD4W;
-extern uint IDD4R;
-extern uint IDD5;
-extern uint IDD6;
-extern uint IDD6L;
-extern uint IDD7;
+extern unsigned IDD0;
+extern unsigned IDD1;
+extern unsigned IDD2P;
+extern unsigned IDD2Q;
+extern unsigned IDD2N;
+extern unsigned IDD3Pf;
+extern unsigned IDD3Ps;
+extern unsigned IDD3N;
+extern unsigned IDD4W;
+extern unsigned IDD4R;
+extern unsigned IDD5;
+extern unsigned IDD6;
+extern unsigned IDD6L;
+extern unsigned IDD7;
 extern float Vdd; 
 extern unsigned NUM_DEVICES;
 
@@ -118,15 +118,15 @@ extern unsigned NUM_DEVICES;
 #define WRITE_TO_READ_DELAY_B (WL+BL/2+tWTR) //interbank
 #define WRITE_TO_READ_DELAY_R (WL+BL/2+tRTRS-RL) //interrank
 
-extern uint JEDEC_DATA_BUS_BITS;
+extern unsigned JEDEC_DATA_BUS_BITS;
 
 //Memory Controller related parameters
-extern uint TRANS_QUEUE_DEPTH;
-extern uint CMD_QUEUE_DEPTH;
+extern unsigned TRANS_QUEUE_DEPTH;
+extern unsigned CMD_QUEUE_DEPTH;
 
-extern uint EPOCH_LENGTH;
+extern unsigned EPOCH_LENGTH;
 
-extern uint TOTAL_ROW_ACCESSES;
+extern unsigned TOTAL_ROW_ACCESSES;
 
 extern std::string ROW_BUFFER_POLICY;
 extern std::string SCHEDULING_POLICY;
@@ -176,7 +176,7 @@ enum SchedulingPolicy
 
 namespace DRAMSim
 {
-typedef void (*returnCallBack_t)(uint id, uint64_t addr, uint64_t clockcycle);
+typedef void (*returnCallBack_t)(unsigned id, uint64_t addr, uint64_t clockcycle);
 typedef void (*powerCallBack_t)(double bgpower, double burstpower, double refreshpower, double actprepower);
 
 extern RowBufferPolicy rowBufferPolicy;
@@ -187,9 +187,9 @@ extern QueuingStructure queuingStructure;
 //FUNCTIONS
 //
 
-uint inline dramsim_log2(unsigned value)
+unsigned inline dramsim_log2(unsigned value)
 {
-	uint logbase2 = 0;
+	unsigned logbase2 = 0;
 	unsigned orig = value;
 	value>>=1;
 	while (value>0)
@@ -197,7 +197,7 @@ uint inline dramsim_log2(unsigned value)
 		value >>= 1;
 		logbase2++;
 	}
-	if ((uint)1<<logbase2<orig)logbase2++;
+	if ((unsigned)1<<logbase2<orig)logbase2++;
 	return logbase2;
 }
 

@@ -45,7 +45,7 @@ class Bank
 {
 	typedef struct _DataStruct
 	{
-		uint row;
+		unsigned row;
 		void *data;
 		struct _DataStruct *next;
 	} DataStruct;
@@ -63,7 +63,7 @@ private:
 	// private member
 	std::vector<DataStruct *> rowEntries;
 
-	static DataStruct *searchForRow(uint row, DataStruct *head);
+	static DataStruct *searchForRow(unsigned row, DataStruct *head);
 };
 }
 
