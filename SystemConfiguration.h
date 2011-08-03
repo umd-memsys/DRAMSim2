@@ -32,6 +32,10 @@
 #include <stdint.h>
 #include "PrintMacros.h"
 
+#ifdef __APPLE__
+#include <sys/types.h>
+#endif
+
 //SystemConfiguration.h
 //
 //Configuration values for the current system
