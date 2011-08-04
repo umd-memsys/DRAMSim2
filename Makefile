@@ -11,6 +11,7 @@ CXXFLAGS+=$(OPTFLAGS)
 
 EXE_NAME=DRAMSim
 LIB_NAME=libdramsim.so
+LIB_NAME_MACOS=libdramsim.dylib
 
 SRC = $(wildcard *.cpp)
 OBJ = $(addsuffix .o, $(basename $(SRC)))
