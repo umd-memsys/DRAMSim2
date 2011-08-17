@@ -175,8 +175,8 @@ void Rank::receiveFromBus(BusPacket *packet)
 		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + WRITE_AUTOPRE_DELAY);
 		for (size_t i=0;i<NUM_BANKS;i++)
 		{
-			bankStates[packet->bank].nextWrite = max(bankStates[packet->bank].nextWrite, currentClockCycle + max(tCCD, BL/2));
-			bankStates[packet->bank].nextRead = max(bankStates[packet->bank].nextRead, currentClockCycle + WRITE_TO_READ_DELAY_B);
+			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + max(tCCD, BL/2));
+			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + WRITE_TO_READ_DELAY_B);
 		}
 
 		//take note of where data is going when it arrives
