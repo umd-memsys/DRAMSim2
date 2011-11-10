@@ -57,7 +57,7 @@ int some_object::add_one_and_run()
 {
 	/* pick a DRAM part to simulate */
 #define MULTICHANNEL
-#if MULTICHANNEL
+#ifdef MULTICHANNEL
 	MultiChannelMemorySystem *mem = getMultiChannelMemorySystemInstance("ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 8192); 
 #else
 	MemorySystem *mem = new MemorySystem(0, "ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 2048); 
