@@ -1,25 +1,34 @@
-/****************************************************************************
-*	 DRAMSim2: A Cycle Accurate DRAM simulator 
-*	 
-*	 Copyright (C) 2010   	Elliott Cooper-Balis
-*									Paul Rosenfeld 
-*									Bruce Jacob
-*									University of Maryland
-*
-*	 This program is free software: you can redistribute it and/or modify
-*	 it under the terms of the GNU General Public License as published by
-*	 the Free Software Foundation, either version 3 of the License, or
-*	 (at your option) any later version.
-*
-*	 This program is distributed in the hope that it will be useful,
-*	 but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*	 GNU General Public License for more details.
-*
-*	 You should have received a copy of the GNU General Public License
-*	 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*****************************************************************************/
+/*********************************************************************************
+*  Copyright (c) 2010-2011, Elliott Cooper-Balis
+*                             Paul Rosenfeld
+*                             Bruce Jacob
+*                             University of Maryland 
+*                             dramninjas [at] umd [dot] edu
+*  All rights reserved.
+*  
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions are met:
+*  
+*     * Redistributions of source code must retain the above copyright notice,
+*        this list of conditions and the following disclaimer.
+*  
+*     * Redistributions in binary form must reproduce the above copyright notice,
+*        this list of conditions and the following disclaimer in the documentation
+*        and/or other materials provided with the distribution.
+*  
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+*  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+*  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+*  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+*  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+*  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+*  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+*  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+*  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************************/
+
+
 
 
 
@@ -34,64 +43,62 @@ using namespace std;
 // have global scope even though they are set by IniReader
 
 uint64_t TOTAL_STORAGE;
-uint NUM_BANKS;
-uint NUM_CHANS;
-uint NUM_ROWS;
-uint NUM_COLS;
-uint DEVICE_WIDTH;
+unsigned NUM_BANKS;
+unsigned NUM_CHANS;
+unsigned NUM_ROWS;
+unsigned NUM_COLS;
+unsigned DEVICE_WIDTH;
 
-uint REFRESH_PERIOD;
+unsigned REFRESH_PERIOD;
 float tCK;
 float Vdd;
-uint CL;
-uint AL;
-uint BL;
-uint tRAS;
-uint tRCD;
-uint tRRD;
-uint tRC;
-uint tRP;
-uint tCCD;
-uint tRTP;
-uint tWTR;
-uint tWR;
-uint tRTRS;
-uint tRFC;
-uint tFAW;
-uint tCKE;
-uint tXP;
-uint tCMD;
+unsigned CL;
+unsigned AL;
+unsigned BL;
+unsigned tRAS;
+unsigned tRCD;
+unsigned tRRD;
+unsigned tRC;
+unsigned tRP;
+unsigned tCCD;
+unsigned tRTP;
+unsigned tWTR;
+unsigned tWR;
+unsigned tRTRS;
+unsigned tRFC;
+unsigned tFAW;
+unsigned tCKE;
+unsigned tXP;
+unsigned tCMD;
 
-uint IDD0;
-uint IDD1;
-uint IDD2P;
-uint IDD2Q;
-uint IDD2N;
-uint IDD3Pf;
-uint IDD3Ps;
-uint IDD3N;
-uint IDD4W;
-uint IDD4R;
-uint IDD5;
-uint IDD6;
-uint IDD6L;
-uint IDD7;
+unsigned IDD0;
+unsigned IDD1;
+unsigned IDD2P;
+unsigned IDD2Q;
+unsigned IDD2N;
+unsigned IDD3Pf;
+unsigned IDD3Ps;
+unsigned IDD3N;
+unsigned IDD4W;
+unsigned IDD4R;
+unsigned IDD5;
+unsigned IDD6;
+unsigned IDD6L;
+unsigned IDD7;
 
 
 //in bytes
-uint CACHE_LINE_SIZE;
-
-uint JEDEC_DATA_BUS_WIDTH;
+unsigned JEDEC_DATA_BUS_BITS;
 
 //Memory Controller related parameters
-uint TRANS_QUEUE_DEPTH;
-uint CMD_QUEUE_DEPTH;
+unsigned TRANS_QUEUE_DEPTH;
+unsigned CMD_QUEUE_DEPTH;
 
 //cycles within an epoch
-uint EPOCH_COUNT;
+unsigned EPOCH_LENGTH;
 
 //row accesses allowed before closing (open page)
-uint TOTAL_ROW_ACCESSES;
+unsigned TOTAL_ROW_ACCESSES;
 
 // strings and their associated enums
 string ROW_BUFFER_POLICY;
@@ -166,14 +173,16 @@ static ConfigMap configMap[] =
 	DEFINE_FLOAT_PARAM(Vdd,DEV_PARAM),
 
 	DEFINE_UINT_PARAM(NUM_CHANS,SYS_PARAM),
-	DEFINE_UINT_PARAM(CACHE_LINE_SIZE,SYS_PARAM),
-	DEFINE_UINT_PARAM(JEDEC_DATA_BUS_WIDTH,SYS_PARAM),
+	DEFINE_UINT_PARAM(JEDEC_DATA_BUS_BITS,SYS_PARAM),
+
 	//Memory Controller related parameters
 	DEFINE_UINT_PARAM(TRANS_QUEUE_DEPTH,SYS_PARAM),
 	DEFINE_UINT_PARAM(CMD_QUEUE_DEPTH,SYS_PARAM),
+
+	DEFINE_UINT_PARAM(EPOCH_LENGTH,SYS_PARAM),
 	//Power
 	DEFINE_BOOL_PARAM(USE_LOW_POWER,SYS_PARAM),
-	DEFINE_UINT_PARAM(EPOCH_COUNT,SYS_PARAM),
+
 	DEFINE_UINT_PARAM(TOTAL_ROW_ACCESSES,SYS_PARAM),
 	DEFINE_STRING_PARAM(ROW_BUFFER_POLICY,SYS_PARAM),
 	DEFINE_STRING_PARAM(SCHEDULING_POLICY,SYS_PARAM),
@@ -192,81 +201,55 @@ static ConfigMap configMap[] =
 	{"", NULL, UINT, SYS_PARAM, false} // tracer value to signify end of list; if you delete it, epic fail will result
 };
 
+void IniReader::WriteParams(std::ofstream &visDataOut, paramType type)
+{
+	for (size_t i=0; configMap[i].variablePtr != NULL; i++)
+	{
+		if (configMap[i].parameterType == type)
+		{
+			visDataOut<<configMap[i].iniKey<<"=";
+			switch (configMap[i].variableType)
+			{
+				//parse and set each type of variable
+			case UINT:
+				visDataOut << *((unsigned *)configMap[i].variablePtr);
+				break;
+			case UINT64:
+				visDataOut << *((uint64_t *)configMap[i].variablePtr);
+				break;
+			case FLOAT:
+				visDataOut << *((float *)configMap[i].variablePtr);
+				break;
+			case STRING:
+				visDataOut << *((string *)configMap[i].variablePtr);
+				break;
+			case BOOL:
+				if (*((bool *)configMap[i].variablePtr))
+				{
+					visDataOut <<"true";
+				}
+				else
+				{
+					visDataOut <<"false";
+				}
+				break;
+			}
+			visDataOut << endl;
+		}
+	}
+	if (type == SYS_PARAM)
+	{
+		visDataOut<<"NUM_RANKS="<<NUM_RANKS <<"\n";
+	}
+}
 void IniReader::WriteValuesOut(std::ofstream &visDataOut)
 {
-	//DEBUG("WRITE CALLED");
 	visDataOut<<"!!SYSTEM_INI"<<endl;
-	for (size_t i=0; configMap[i].variablePtr != NULL; i++)
-	{
-		if (configMap[i].parameterType == SYS_PARAM)
-		{
-			visDataOut<<configMap[i].iniKey<<"=";
-			switch (configMap[i].variableType)
-			{
-				//parse and set each type of variable
-			case UINT:
-				visDataOut << *((uint *)configMap[i].variablePtr);
-				break;
-			case UINT64:
-				visDataOut << *((uint64_t *)configMap[i].variablePtr);
-				break;
-			case FLOAT:
-				visDataOut << *((float *)configMap[i].variablePtr);
-				break;
-			case STRING:
-				visDataOut << *((string *)configMap[i].variablePtr);
-				break;
-			case BOOL:
-				if (*((bool *)configMap[i].variablePtr))
-				{
-					visDataOut <<"true";
-				}
-				else
-				{
-					visDataOut <<"false";
-				}
-				break;
-			}
-			visDataOut << endl;
-		}
-	}
 
+	WriteParams(visDataOut, SYS_PARAM); 
 	visDataOut<<"!!DEVICE_INI"<<endl;
-	for (size_t i=0; configMap[i].variablePtr != NULL; i++)
-	{
-		if (configMap[i].parameterType == DEV_PARAM)
-		{
-			visDataOut<<configMap[i].iniKey<<"=";
-			switch (configMap[i].variableType)
-			{
-				//parse and set each type of variable
-			case UINT:
-				visDataOut << *((uint *)configMap[i].variablePtr);
-				break;
-			case UINT64:
-				visDataOut << *((uint64_t *)configMap[i].variablePtr);
-				break;
 
-			case FLOAT:
-				visDataOut << *((float *)configMap[i].variablePtr);
-				break;
-			case STRING:
-				visDataOut << *((string *)configMap[i].variablePtr);
-				break;
-			case BOOL:
-				if (*((bool *)configMap[i].variablePtr))
-				{
-					visDataOut <<"true";
-				}
-				else
-				{
-					visDataOut <<"false";
-				}
-				break;
-			}
-			visDataOut << endl;
-		}
-	}
+	WriteParams(visDataOut, DEV_PARAM); 
 	visDataOut<<"!!EPOCH_DATA"<<endl;
 
 }
@@ -274,7 +257,7 @@ void IniReader::WriteValuesOut(std::ofstream &visDataOut)
 void IniReader::SetKey(string key, string valueString, bool isSystemParam, size_t lineNumber)
 {
 	size_t i;
-	uint intValue;
+	unsigned intValue;
 	uint64_t int64Value;
 	float floatValue;
 
@@ -292,7 +275,7 @@ void IniReader::SetKey(string key, string valueString, bool isSystemParam, size_
 				{
 					ERROR("could not parse line "<<lineNumber<<" (non-numeric value '"<<valueString<<"')?");
 				}
-				*((uint *)configMap[i].variablePtr) = intValue;
+				*((unsigned *)configMap[i].variablePtr) = intValue;
 				if (DEBUG_INI_READER)
 				{
 					DEBUG("\t - SETTING "<<configMap[i].iniKey<<"="<<intValue);

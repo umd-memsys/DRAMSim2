@@ -1,25 +1,34 @@
-/****************************************************************************
-*	 DRAMSim2: A Cycle Accurate DRAM simulator 
-*	 
-*	 Copyright (C) 2010   	Elliott Cooper-Balis
-*									Paul Rosenfeld 
-*									Bruce Jacob
-*									University of Maryland
-*
-*	 This program is free software: you can redistribute it and/or modify
-*	 it under the terms of the GNU General Public License as published by
-*	 the Free Software Foundation, either version 3 of the License, or
-*	 (at your option) any later version.
-*
-*	 This program is distributed in the hope that it will be useful,
-*	 but WITHOUT ANY WARRANTY; without even the implied warranty of
-*	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*	 GNU General Public License for more details.
-*
-*	 You should have received a copy of the GNU General Public License
-*	 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-*****************************************************************************/
+/*********************************************************************************
+*  Copyright (c) 2010-2011, Elliott Cooper-Balis
+*                             Paul Rosenfeld
+*                             Bruce Jacob
+*                             University of Maryland 
+*                             dramninjas [at] umd [dot] edu
+*  All rights reserved.
+*  
+*  Redistribution and use in source and binary forms, with or without
+*  modification, are permitted provided that the following conditions are met:
+*  
+*     * Redistributions of source code must retain the above copyright notice,
+*        this list of conditions and the following disclaimer.
+*  
+*     * Redistributions in binary form must reproduce the above copyright notice,
+*        this list of conditions and the following disclaimer in the documentation
+*        and/or other materials provided with the distribution.
+*  
+*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+*  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+*  WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+*  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+*  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+*  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+*  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+*  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+*  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+*  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*********************************************************************************/
+
+
 
 //MemoryController.cpp
 //
@@ -42,7 +51,8 @@ MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile)
 		bankBitWidth (dramsim_log2(NUM_BANKS)),
 		rowBitWidth (dramsim_log2(NUM_ROWS)),
 		colBitWidth (dramsim_log2(NUM_COLS)),
-		byteOffsetWidth (dramsim_log2(CACHE_LINE_SIZE)),
+		// this forces the alignment to the width of a single burst (64 bits = 8 bytes = 3 address bits for DDR parts)
+		byteOffsetWidth (dramsim_log2((JEDEC_DATA_BUS_BITS/8))),
 		refreshRank(0)
 {
 	//get handle on parent
@@ -65,6 +75,7 @@ MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile)
 	transactionQueue.reserve(TRANS_QUEUE_DEPTH);
 	bankStates = vector< vector <BankState> >(NUM_RANKS, vector<BankState>(NUM_BANKS));
 	powerDown = vector<bool>(NUM_RANKS,false);
+	grandTotalBankAccesses = vector<uint64_t>(NUM_RANKS*NUM_BANKS,0);
 	totalReadsPerBank = vector<uint64_t>(NUM_RANKS*NUM_BANKS,0);
 	totalWritesPerBank = vector<uint64_t>(NUM_RANKS*NUM_BANKS,0);
 	totalReadsPerRank = vector<uint64_t>(NUM_RANKS,0);
@@ -275,221 +286,179 @@ void MemoryController::update()
 		//update each bank's state based on the command that was just popped out of the command queue
 		//
 		//for readability's sake
-		uint rank = poppedBusPacket->rank;
-		uint bank = poppedBusPacket->bank;
+		unsigned rank = poppedBusPacket->rank;
+		unsigned bank = poppedBusPacket->bank;
 		switch (poppedBusPacket->busPacketType)
 		{
-		case READ:
-			//add energy to account for total
-			if (DEBUG_POWER)
-			{
-				PRINT(" ++ Adding Read energy to total energy");
-			}
-			burstEnergy[rank] += (IDD4R - IDD3N) * BL/2 * NUM_DEVICES;
-
-			bankStates[rank][bank].nextPrecharge = max(currentClockCycle + READ_TO_PRE_DELAY,
-			                                       bankStates[rank][bank].nextPrecharge);
-			bankStates[rank][bank].lastCommand = READ;
-
-			for (size_t i=0;i<NUM_RANKS;i++)
-			{
-				for (size_t j=0;j<NUM_BANKS;j++)
+			case READ_P:
+			case READ:
+				//add energy to account for total
+				if (DEBUG_POWER)
 				{
-					if (i!=poppedBusPacket->rank)
+					PRINT(" ++ Adding Read energy to total energy");
+				}
+				burstEnergy[rank] += (IDD4R - IDD3N) * BL/2 * NUM_DEVICES;
+				if (poppedBusPacket->busPacketType == READ_P) 
+				{
+					//Don't bother setting next read or write times because the bank is no longer active
+					//bankStates[rank][bank].currentBankState = Idle;
+					bankStates[rank][bank].nextActivate = max(currentClockCycle + READ_AUTOPRE_DELAY,
+							bankStates[rank][bank].nextActivate);
+					bankStates[rank][bank].lastCommand = READ_P;
+					bankStates[rank][bank].stateChangeCountdown = READ_TO_PRE_DELAY;
+				}
+				else if (poppedBusPacket->busPacketType == READ)
+				{
+					bankStates[rank][bank].nextPrecharge = max(currentClockCycle + READ_TO_PRE_DELAY,
+							bankStates[rank][bank].nextPrecharge);
+					bankStates[rank][bank].lastCommand = READ;
+
+				}
+
+				for (size_t i=0;i<NUM_RANKS;i++)
+				{
+					for (size_t j=0;j<NUM_BANKS;j++)
 					{
-						//check to make sure it is active before trying to set (save's time?)
-						if (bankStates[i][j].currentBankState == RowActive)
+						if (i!=poppedBusPacket->rank)
 						{
-							bankStates[i][j].nextRead = max(currentClockCycle + BL/2 + tRTRS, bankStates[i][j].nextRead);
+							//check to make sure it is active before trying to set (save's time?)
+							if (bankStates[i][j].currentBankState == RowActive)
+							{
+								bankStates[i][j].nextRead = max(currentClockCycle + BL/2 + tRTRS, bankStates[i][j].nextRead);
+								bankStates[i][j].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY,
+										bankStates[i][j].nextWrite);
+							}
+						}
+						else
+						{
+							bankStates[i][j].nextRead = max(currentClockCycle + max(tCCD, BL/2), bankStates[i][j].nextRead);
 							bankStates[i][j].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY,
-							                                 bankStates[i][j].nextWrite);
+									bankStates[i][j].nextWrite);
 						}
 					}
-					else
-					{
-						bankStates[i][j].nextRead = max(currentClockCycle + max(tCCD, BL/2), bankStates[i][j].nextRead);
-						bankStates[i][j].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY,
-						                                 bankStates[i][j].nextWrite);
-					}
 				}
-			}
-			break;
-		case READ_P:
-			//add energy to account for total
-			if (DEBUG_POWER)
-			{
-				PRINT(" ++ Adding Read energy to total energy");
-			}
-			burstEnergy[rank] += (IDD4R - IDD3N) * BL/2 * NUM_DEVICES;
 
-			//Don't bother setting next read or write times because the bank is no longer active
-			//bankStates[rank][bank].currentBankState = Idle;
-			bankStates[rank][bank].nextActivate = max(currentClockCycle + READ_AUTOPRE_DELAY,
-			                                      bankStates[rank][bank].nextActivate);
-			bankStates[rank][bank].lastCommand = READ_P;
-			bankStates[rank][bank].stateChangeCountdown = READ_TO_PRE_DELAY;
-
-			for (size_t i=0;i<NUM_RANKS;i++)
-			{
-				for (size_t j=0;j<NUM_BANKS;j++)
+				if (poppedBusPacket->busPacketType == READ_P)
 				{
-					if (i!=poppedBusPacket->rank)
+					//set read and write to nextActivate so the state table will prevent a read or write
+					//  being issued (in cq.isIssuable())before the bank state has been changed because of the
+					//  auto-precharge associated with this command
+					bankStates[rank][bank].nextRead = bankStates[rank][bank].nextActivate;
+					bankStates[rank][bank].nextWrite = bankStates[rank][bank].nextActivate;
+				}
+
+				break;
+			case WRITE_P:
+			case WRITE:
+				if (poppedBusPacket->busPacketType == WRITE_P) 
+				{
+					bankStates[rank][bank].nextActivate = max(currentClockCycle + WRITE_AUTOPRE_DELAY,
+							bankStates[rank][bank].nextActivate);
+					bankStates[rank][bank].lastCommand = WRITE_P;
+					bankStates[rank][bank].stateChangeCountdown = WRITE_TO_PRE_DELAY;
+				}
+				else if (poppedBusPacket->busPacketType == WRITE)
+				{
+					bankStates[rank][bank].nextPrecharge = max(currentClockCycle + WRITE_TO_PRE_DELAY,
+							bankStates[rank][bank].nextPrecharge);
+					bankStates[rank][bank].lastCommand = WRITE;
+				}
+
+
+				//add energy to account for total
+				if (DEBUG_POWER)
+				{
+					PRINT(" ++ Adding Write energy to total energy");
+				}
+				burstEnergy[rank] += (IDD4W - IDD3N) * BL/2 * NUM_DEVICES;
+
+				for (size_t i=0;i<NUM_RANKS;i++)
+				{
+					for (size_t j=0;j<NUM_BANKS;j++)
 					{
-						//check to make sure it is active before trying to set (save's time?)
-						if (bankStates[i][j].currentBankState == RowActive)
+						if (i!=poppedBusPacket->rank)
 						{
-							bankStates[i][j].nextRead = max(currentClockCycle + BL/2 + tRTRS, bankStates[i][j].nextRead);
-							bankStates[i][j].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY,
-							                                 bankStates[i][j].nextWrite);
+							if (bankStates[i][j].currentBankState == RowActive)
+							{
+								bankStates[i][j].nextWrite = max(currentClockCycle + BL/2 + tRTRS, bankStates[i][j].nextWrite);
+								bankStates[i][j].nextRead = max(currentClockCycle + WRITE_TO_READ_DELAY_R,
+										bankStates[i][j].nextRead);
+							}
 						}
-					}
-					else
-					{
-						bankStates[i][j].nextRead = max(currentClockCycle + max(tCCD, BL/2), bankStates[i][j].nextRead);
-						bankStates[i][j].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY,
-						                                 bankStates[i][j].nextWrite);
-					}
-				}
-			}
-
-			//set read and write to nextActivate so the state table will prevent a read or write
-			//  being issued (in cq.isIssuable())before the bank state has been changed because of the
-			//  auto-precharge associated with this command
-			bankStates[rank][bank].nextRead = bankStates[rank][bank].nextActivate;
-			bankStates[rank][bank].nextWrite = bankStates[rank][bank].nextActivate;
-
-			break;
-		case WRITE:
-			//add energy to account for total
-			if (DEBUG_POWER)
-			{
-				PRINT(" ++ Adding Write energy to total energy");
-			}
-			burstEnergy[rank] += (IDD4W - IDD3N) * BL/2 * NUM_DEVICES;
-
-			bankStates[rank][bank].nextPrecharge = max(currentClockCycle + WRITE_TO_PRE_DELAY,
-			                                       bankStates[rank][bank].nextPrecharge);
-			bankStates[rank][bank].lastCommand = WRITE;
-
-			for (size_t i=0;i<NUM_RANKS;i++)
-			{
-				for (size_t j=0;j<NUM_BANKS;j++)
-				{
-					if (i!=poppedBusPacket->rank)
-					{
-						if (bankStates[i][j].currentBankState == RowActive)
+						else
 						{
-							bankStates[i][j].nextWrite = max(currentClockCycle + BL/2 + tRTRS, bankStates[i][j].nextWrite);
-							bankStates[i][j].nextRead = max(currentClockCycle + WRITE_TO_READ_DELAY_R,
-							                                bankStates[i][j].nextRead);
+							bankStates[i][j].nextWrite = max(currentClockCycle + max(BL/2, tCCD), bankStates[i][j].nextWrite);
+							bankStates[i][j].nextRead = max(currentClockCycle + WRITE_TO_READ_DELAY_B,
+									bankStates[i][j].nextRead);
 						}
 					}
-					else
-					{
-						bankStates[i][j].nextWrite = max(currentClockCycle + max(BL/2, tCCD), bankStates[i][j].nextWrite);
-						bankStates[i][j].nextRead = max(currentClockCycle + WRITE_TO_READ_DELAY_B,
-						                                bankStates[i][j].nextRead);
-					}
 				}
-			}
-			break;
-		case WRITE_P:
-			//add energy to account for total
-			if (DEBUG_POWER)
-			{
-				PRINT(" ++ Adding Write energy to total energy");
-			}
-			burstEnergy[rank] += (IDD4W - IDD3N) * BL/2 * NUM_DEVICES;
 
-			bankStates[rank][bank].nextActivate = max(currentClockCycle + WRITE_AUTOPRE_DELAY,
-			                                      bankStates[rank][bank].nextActivate);
-			bankStates[rank][bank].lastCommand = WRITE_P;
-			bankStates[rank][bank].stateChangeCountdown = WRITE_TO_PRE_DELAY;
-
-			for (size_t i=0;i<NUM_RANKS;i++)
-			{
-				for (size_t j=0;j<NUM_BANKS;j++)
+				//set read and write to nextActivate so the state table will prevent a read or write
+				//  being issued (in cq.isIssuable())before the bank state has been changed because of the
+				//  auto-precharge associated with this command
+				if (poppedBusPacket->busPacketType == WRITE_P)
 				{
-					if (i!=poppedBusPacket->rank)
-					{
-						if (bankStates[i][j].currentBankState == RowActive)
-						{
-							bankStates[i][j].nextWrite = max(currentClockCycle + BL/2 + tRTRS, bankStates[i][j].nextWrite);
-							bankStates[i][j].nextRead = max(currentClockCycle + WRITE_TO_READ_DELAY_R,
-							                                bankStates[i][j].nextRead);
-						}
-					}
-					else
-					{
-						bankStates[i][j].nextWrite = max(currentClockCycle + max(BL/2, tCCD), bankStates[i][j].nextWrite);
-						bankStates[i][j].nextRead = max(currentClockCycle + WRITE_TO_READ_DELAY_B,
-						                                bankStates[i][j].nextRead);
-					}
+					bankStates[rank][bank].nextRead = bankStates[rank][bank].nextActivate;
+					bankStates[rank][bank].nextWrite = bankStates[rank][bank].nextActivate;
 				}
-			}
 
-			//set read and write to nextActivate so the state table will prevent a read or write
-			//  being issued (in cq.isIssuable())before the bank state has been changed because of the
-			//  auto-precharge associated with this command
-			bankStates[rank][bank].nextRead = bankStates[rank][bank].nextActivate;
-			bankStates[rank][bank].nextWrite = bankStates[rank][bank].nextActivate;
-
-			break;
-		case ACTIVATE:
-			//add energy to account for total
-			if (DEBUG_POWER)
-			{
-				PRINT(" ++ Adding Activate and Precharge energy to total energy");
-			}
-			actpreEnergy[rank] += ((IDD0 * tRC) - ((IDD3N * tRAS) + (IDD2N * (tRC - tRAS)))) * NUM_DEVICES;
-
-			bankStates[rank][bank].currentBankState = RowActive;
-			bankStates[rank][bank].lastCommand = ACTIVATE;
-			bankStates[rank][bank].openRowAddress = poppedBusPacket->row;
-			bankStates[rank][bank].nextActivate = max(currentClockCycle + tRC, bankStates[rank][bank].nextActivate);
-			bankStates[rank][bank].nextPrecharge = max(currentClockCycle + tRAS, bankStates[rank][bank].nextPrecharge);
-
-			//if we are using posted-CAS, the next column access can be sooner than normal operation
-
-			bankStates[rank][bank].nextRead = max(currentClockCycle + (tRCD-AL), bankStates[rank][bank].nextRead);
-			bankStates[rank][bank].nextWrite = max(currentClockCycle + (tRCD-AL), bankStates[rank][bank].nextWrite);
-
-			for (size_t i=0;i<NUM_BANKS;i++)
-			{
-				if (i!=poppedBusPacket->bank)
+				break;
+			case ACTIVATE:
+				//add energy to account for total
+				if (DEBUG_POWER)
 				{
-					bankStates[rank][i].nextActivate = max(currentClockCycle + tRRD, bankStates[rank][i].nextActivate);
+					PRINT(" ++ Adding Activate and Precharge energy to total energy");
 				}
-			}
+				actpreEnergy[rank] += ((IDD0 * tRC) - ((IDD3N * tRAS) + (IDD2N * (tRC - tRAS)))) * NUM_DEVICES;
 
-			break;
-		case PRECHARGE:
-			bankStates[rank][bank].currentBankState = Precharging;
-			bankStates[rank][bank].lastCommand = PRECHARGE;
-			bankStates[rank][bank].stateChangeCountdown = tRP;
-			bankStates[rank][bank].nextActivate = max(currentClockCycle + tRP, bankStates[rank][bank].nextActivate);
+				bankStates[rank][bank].currentBankState = RowActive;
+				bankStates[rank][bank].lastCommand = ACTIVATE;
+				bankStates[rank][bank].openRowAddress = poppedBusPacket->row;
+				bankStates[rank][bank].nextActivate = max(currentClockCycle + tRC, bankStates[rank][bank].nextActivate);
+				bankStates[rank][bank].nextPrecharge = max(currentClockCycle + tRAS, bankStates[rank][bank].nextPrecharge);
 
-			break;
-		case REFRESH:
-			//add energy to account for total
-			if (DEBUG_POWER)
-			{
-				PRINT(" ++ Adding Refresh energy to total energy");
-			}
-			refreshEnergy[rank] += (IDD5 - IDD3N) * tRFC * NUM_DEVICES;
+				//if we are using posted-CAS, the next column access can be sooner than normal operation
 
-			for (size_t i=0;i<NUM_BANKS;i++)
-			{
-				bankStates[rank][i].nextActivate = currentClockCycle + tRFC;
-				bankStates[rank][i].currentBankState = Refreshing;
-				bankStates[rank][i].lastCommand = REFRESH;
-				bankStates[rank][i].stateChangeCountdown = tRFC;
-			}
+				bankStates[rank][bank].nextRead = max(currentClockCycle + (tRCD-AL), bankStates[rank][bank].nextRead);
+				bankStates[rank][bank].nextWrite = max(currentClockCycle + (tRCD-AL), bankStates[rank][bank].nextWrite);
 
-			break;
-		default:
-			ERROR("== Error - Popped a command we shouldn't have of type : " << poppedBusPacket->busPacketType);
-			exit(0);
+				for (size_t i=0;i<NUM_BANKS;i++)
+				{
+					if (i!=poppedBusPacket->bank)
+					{
+						bankStates[rank][i].nextActivate = max(currentClockCycle + tRRD, bankStates[rank][i].nextActivate);
+					}
+				}
+
+				break;
+			case PRECHARGE:
+				bankStates[rank][bank].currentBankState = Precharging;
+				bankStates[rank][bank].lastCommand = PRECHARGE;
+				bankStates[rank][bank].stateChangeCountdown = tRP;
+				bankStates[rank][bank].nextActivate = max(currentClockCycle + tRP, bankStates[rank][bank].nextActivate);
+
+				break;
+			case REFRESH:
+				//add energy to account for total
+				if (DEBUG_POWER)
+				{
+					PRINT(" ++ Adding Refresh energy to total energy");
+				}
+				refreshEnergy[rank] += (IDD5 - IDD3N) * tRFC * NUM_DEVICES;
+
+				for (size_t i=0;i<NUM_BANKS;i++)
+				{
+					bankStates[rank][i].nextActivate = currentClockCycle + tRFC;
+					bankStates[rank][i].currentBankState = Refreshing;
+					bankStates[rank][i].lastCommand = REFRESH;
+					bankStates[rank][i].stateChangeCountdown = tRFC;
+				}
+
+				break;
+			default:
+				ERROR("== Error - Popped a command we shouldn't have of type : " << poppedBusPacket->busPacketType);
+				exit(0);
 		}
 
 		//issue on bus and print debug
@@ -519,7 +488,7 @@ void MemoryController::update()
 		Transaction transaction = transactionQueue[i];
 
 		//map address to rank,bank,row,col
-		uint newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn;
+		unsigned newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn;
 
 		// pass these in as references so they get set by the addressMapping function
 		addressMapping(transaction.address, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn);
@@ -711,7 +680,7 @@ void MemoryController::update()
 				//		pendingReadTransactions[i].print();
 				//		exit(0);
 				//	}
-				uint rank,bank,row,col;
+				unsigned rank,bank,row,col;
 				addressMapping(returnTransaction[0].address,rank,bank,row,col);
 				insertHistogram(currentClockCycle-pendingReadTransactions[i].timeAdded,rank,bank);
 				//return latency
@@ -784,7 +753,7 @@ void MemoryController::update()
 	commandQueue.step();
 
 	//print stats if we're at the end of an epoch
-	if (currentClockCycle % EPOCH_COUNT == 0)
+	if (currentClockCycle % EPOCH_LENGTH == 0)
 	{
 		this->printStats();
 
@@ -793,6 +762,7 @@ void MemoryController::update()
 		{
 			for (size_t j=0; j<NUM_BANKS; j++)
 			{
+				grandTotalBankAccesses[SEQUENTIAL(i,j)] += totalReadsPerBank[SEQUENTIAL(i,j)] + totalWritesPerBank[SEQUENTIAL(i,j)];
 				totalReadsPerBank[SEQUENTIAL(i,j)] = 0;
 				totalWritesPerBank[SEQUENTIAL(i,j)] = 0;
 				totalEpochLatency[SEQUENTIAL(i,j)] = 0;
@@ -828,13 +798,49 @@ bool MemoryController::addTransaction(Transaction &trans)
 	}
 }
 
-//Breaks up the incoming transaction into commands
-void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransactionRank, uint &newTransactionBank, uint &newTransactionRow, uint &newTransactionColumn)
+void MemoryController::addressMapping(uint64_t physicalAddress, unsigned &newTransactionRank, unsigned &newTransactionBank, unsigned &newTransactionRow, unsigned &newTransactionColumn)
 {
 	uint64_t tempA, tempB;
+	unsigned transactionSize = (JEDEC_DATA_BUS_BITS/8)*BL; 
+	uint64_t transactionMask =  transactionSize - 1; //ex: (64 bit bus width) x (8 Burst Length) - 1 = 64 bytes - 1 = 63 = 0x3f mask
+	// Since we're assuming that a request is for BL*BUS_WIDTH, the bottom bits
+	// of this address *should* be all zeros if it's not, issue a warning
 
+	if ((physicalAddress & transactionMask) != 0)
+	{
+		DEBUG("WARNING: address 0x"<<std::hex<<physicalAddress<<std::dec<<" is not aligned to the request size of "<<transactionSize); 
+	}
 
-	physicalAddress = physicalAddress >> byteOffsetWidth;
+	// each burst will contain JEDEC_DATA_BUS_BITS/8 bytes of data, so the bottom bits (3 bits for a single channel DDR system) are
+	// 	thrown away before mapping the other bits
+	physicalAddress >>= byteOffsetWidth;
+
+	// The next thing we have to consider is that when a request is made for a
+	// we've taken into account the granulaity of a single burst by shifting 
+	// off the bottom 3 bits, but a transaction has to take into account the
+	// burst length (i.e. the requests will be aligned to cache line sizes which
+	// should be equal to transactionSize above). 
+	//
+	// Since the column address increments internally on bursts, the bottom n 
+	// bits of the column (colLow) have to be zero in order to account for the 
+	// total size of the transaction. These n bits should be shifted off the 
+	// address and also subtracted from the total column width. 
+	//
+	// I am having a hard time explaining the reasoning here, but it comes down
+	// this: for a 64 byte transaction, the bottom 6 bits of the address must be 
+	// zero. These zero bits must be made up of the byte offset (3 bits) and also
+	// from the bottom bits of the column 
+	// 
+	// For example: cowLowBits = log2(64bytes) - 3 bits = 3 bits 
+	unsigned colLowBitWidth = dramsim_log2(transactionSize) - byteOffsetWidth;
+
+	physicalAddress >>= colLowBitWidth;
+	unsigned colHighBitWidth = colBitWidth - colLowBitWidth; 
+
+#if 0
+	PRINT("Bit widths: ch:"<<channelBitWidth<<" r:"<<rankBitWidth<<" b:"<<bankBitWidth<<" row:"<<rowBitWidth<<" colLow:"<<colLowBitWidth<< " colHigh:"<<colHighBitWidth<<" off:"<<byteOffsetWidth << " Total:"<< (channelBitWidth + rankBitWidth + bankBitWidth + rowBitWidth + colLowBitWidth + colHighBitWidth + byteOffsetWidth));
+	exit(0)
+#endif
 
 	//perform various address mapping schemes
 	if (addressMappingScheme == Scheme1)
@@ -846,8 +852,8 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 		newTransactionBank = tempA ^ tempB;
 
 		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colBitWidth;
-		tempB = physicalAddress << colBitWidth;
+		physicalAddress = physicalAddress >> colHighBitWidth;
+		tempB = physicalAddress << colHighBitWidth;
 		newTransactionColumn = tempA ^ tempB;
 
 		tempA = physicalAddress;
@@ -874,8 +880,8 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 		newTransactionBank = tempA ^ tempB;
 
 		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colBitWidth;
-		tempB = physicalAddress << colBitWidth;
+		physicalAddress = physicalAddress >> colHighBitWidth;
+		tempB = physicalAddress << colHighBitWidth;
 		newTransactionColumn = tempA ^ tempB;
 
 		tempA = physicalAddress;
@@ -892,8 +898,8 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 		newTransactionRow = tempA ^ tempB;
 
 		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colBitWidth;
-		tempB = physicalAddress << colBitWidth;
+		physicalAddress = physicalAddress >> colHighBitWidth;
+		tempB = physicalAddress << colHighBitWidth;
 		newTransactionColumn = tempA ^ tempB;
 
 		tempA = physicalAddress;
@@ -910,8 +916,8 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 	{
 		//chan:rank:bank:row:col
 		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colBitWidth;
-		tempB = physicalAddress << colBitWidth;
+		physicalAddress = physicalAddress >> colHighBitWidth;
+		tempB = physicalAddress << colHighBitWidth;
 		newTransactionColumn = tempA ^ tempB;
 
 		tempA = physicalAddress;
@@ -944,8 +950,8 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 		newTransactionRank = tempA ^ tempB;
 
 		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colBitWidth;
-		tempB = physicalAddress << colBitWidth;
+		physicalAddress = physicalAddress >> colHighBitWidth;
+		tempB = physicalAddress << colHighBitWidth;
 		newTransactionColumn = tempA ^ tempB;
 
 		tempA = physicalAddress;
@@ -959,8 +965,8 @@ void MemoryController::addressMapping(uint64_t physicalAddress, uint &newTransac
 		//chan:row:bank:rank:col
 
 		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colBitWidth;
-		tempB = physicalAddress << colBitWidth;
+		physicalAddress = physicalAddress >> colHighBitWidth;
+		tempB = physicalAddress << colHighBitWidth;
 		newTransactionColumn = tempA ^ tempB;
 
 		tempA = physicalAddress;
@@ -996,8 +1002,8 @@ void MemoryController::printStats(bool finalStats)
 
 	//if we are not at the end of the epoch, make sure to adjust for the actual number of cycles elapsed
 
-	uint64_t cyclesElapsed = (currentClockCycle % EPOCH_COUNT == 0) ? EPOCH_COUNT : currentClockCycle % EPOCH_COUNT;
-	uint bytesPerTransaction = (64*BL)/8;
+	uint64_t cyclesElapsed = (currentClockCycle % EPOCH_LENGTH == 0) ? EPOCH_LENGTH : currentClockCycle % EPOCH_LENGTH;
+	unsigned bytesPerTransaction = (64*BL)/8;
 	uint64_t totalBytesTransferred = totalTransactions * bytesPerTransaction;
 	double secondsThisEpoch = (double)cyclesElapsed * tCK * 1E-9;
 
@@ -1102,7 +1108,7 @@ void MemoryController::printStats(bool finalStats)
 			(*visDataOut) << "!!HISTOGRAM_DATA"<<endl;
 		}
 
-		map<uint,uint>::iterator it; //
+		map<unsigned,unsigned>::iterator it; //
 		for (it=latencies.begin(); it!=latencies.end(); it++)
 		{
 			PRINT( "       ["<< it->first <<"-"<<it->first+(HISTOGRAM_BIN_SIZE-1)<<"] : "<< it->second );
@@ -1112,15 +1118,18 @@ void MemoryController::printStats(bool finalStats)
 			}
 		}
 
-		PRINT( " ---  Bank usage list");
+		PRINT( " --- Grand Total Bank usage list");
 		for (size_t i=0;i<NUM_RANKS;i++)
 		{
+			PRINT("Rank "<<i<<":"); 
 			for (size_t j=0;j<NUM_BANKS;j++)
 			{
-				PRINT( "["<<i<<","<<j<<"] : "<<totalReadsPerBank[i+j]+totalWritesPerBank[i+j]);
+				PRINT( "  b"<<j<<": "<<grandTotalBankAccesses[SEQUENTIAL(i,j)]);
 			}
 		}
+
 	}
+
 
 	PRINT(endl<< " == Pending Transactions : "<<pendingReadTransactions.size()<<" ("<<currentClockCycle<<")==");
 	/*
@@ -1139,7 +1148,7 @@ MemoryController::~MemoryController()
 	//abort();
 }
 //inserts a latency into the latency histogram
-void MemoryController::insertHistogram(uint latencyValue, uint rank, uint bank)
+void MemoryController::insertHistogram(unsigned latencyValue, unsigned rank, unsigned bank)
 {
 	totalEpochLatency[SEQUENTIAL(rank,bank)] += latencyValue;
 	//poor man's way to bin things.
