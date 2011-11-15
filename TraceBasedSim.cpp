@@ -44,6 +44,7 @@
 
 #include "SystemConfiguration.h"
 #include "MemorySystem.h"
+#include "MultiChannelMemorySystem.h"
 #include "Transaction.h"
 
 
@@ -156,7 +157,7 @@ void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &tra
 	uint64_t *dataBuffer = NULL;
 	string addressStr="", cmdStr="", dataStr="", ccStr="";
 #ifndef _SIM_
-	bool useClockCycle = false;
+	bool useClockCycle = true;
 #else
 	bool useClockCycle = true;
 #endif
@@ -472,7 +473,8 @@ int main(int argc, char **argv)
 	string line;
 
 
-	MemorySystem *memorySystem = new MemorySystem(0, deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory);
+	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory);
+
 
 #ifdef RETURN_TRANSACTIONS
 	TransactionReceiver transactionReceiver; 
@@ -560,7 +562,7 @@ int main(int argc, char **argv)
 	}
 
 	traceFile.close();
-	(*memorySystem).printStats(true);
+	(*memorySystem).printStats();
 	// make valgrind happy
 	delete(memorySystem);
 }

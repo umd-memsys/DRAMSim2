@@ -58,9 +58,9 @@ int some_object::add_one_and_run()
 	/* pick a DRAM part to simulate */
 #define MULTICHANNEL
 #ifdef MULTICHANNEL
-	MultiChannelMemorySystem *mem = getMultiChannelMemorySystemInstance("ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 8192); 
+	MultiChannelMemorySystem *mem = getMultiChannelMemorySystemInstance("ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 16384); 
 #else
-	MemorySystem *mem = new MemorySystem(0, "ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 2048); 
+	MemorySystem *mem = new MemorySystem(0, "ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 8192); 
 #endif
 	TransactionCompleteCB *read_cb = new Callback<some_object, void, unsigned, uint64_t, uint64_t>(this, &some_object::read_complete);
 	TransactionCompleteCB *write_cb = new Callback<some_object, void, unsigned, uint64_t, uint64_t>(this, &some_object::write_complete);
@@ -68,22 +68,28 @@ int some_object::add_one_and_run()
 	mem->RegisterCallbacks(read_cb, write_cb, power_callback);
 
 	/* create a transaction and add it */
-	uint64_t addr = 0x50000; 
+	uint64_t addr = 0x500000; 
 	bool isWrite = false; 
 	mem->addTransaction(isWrite, addr);
 
-	/* do a bunch of updates (i.e. clocks) -- at some point the callback will fire */
+	// send a read to channel 1 on the same cycle 
+	addr = 1LL<<33 | addr; 
+	mem->addTransaction(isWrite, addr);
+
 	for (int i=0; i<5; i++)
 	{
 		mem->update();
 	}
 
 	/* add another some time in the future */
-	isWrite = true; 
+
+	// send a write to channel 0 
 	addr = 0x900012; 
-
+	isWrite = true; 
 	mem->addTransaction(isWrite, addr);
+	
 
+	/* do a bunch of updates (i.e. clocks) -- at some point the callback will fire */
 	for (int i=0; i<45; i++)
 	{
 		mem->update();

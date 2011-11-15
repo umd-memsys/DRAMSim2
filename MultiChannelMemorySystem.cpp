@@ -79,6 +79,12 @@ void MultiChannelMemorySystem::update()
 }
 unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 {
+	// Single channel case is a trivial shortcut case 
+	if (NUM_CHANS == 1)
+	{
+		return 0; 
+	}
+
 	if (NUM_CHANS % 2 != 0)
 	{
 		ERROR("Odd number of channels not supported"); 
@@ -94,6 +100,8 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 		ERROR("Got channel index "<<channelNumber<<" but only "<<NUM_CHANS<<" exist"); 
 		abort();
 	}
+	//DEBUG("Channel idx = "<<channelNumber<<" totalbits="<<totalBits<<" channelbits="<<channelBits); 
+
 	return channelNumber;
 
 }
@@ -114,7 +122,9 @@ bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr)
 void MultiChannelMemorySystem::printStats() {
 	for (size_t i=0; i<NUM_CHANS; i++)
 	{
+		PRINT("==== Channel ["<<i<<"] ====");
 		channels[i]->printStats(); 
+		PRINT("//// Channel ["<<i<<"] ////");
 	}
 }
 void MultiChannelMemorySystem::RegisterCallbacks( 
