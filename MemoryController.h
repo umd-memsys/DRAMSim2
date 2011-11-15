@@ -53,7 +53,6 @@
 #include <map>
 
 using namespace std;
-using namespace DRAMSim;
 
 namespace DRAMSim
 {
@@ -80,7 +79,6 @@ public:
 	vector< vector <BankState> > bankStates;
 private:
 	//functions
-	void addressMapping(uint64_t physicalAddress, unsigned &rank, unsigned &bank, unsigned &row, unsigned &col);
 	void insertHistogram(unsigned latencyValue, unsigned rank, unsigned bank);
 
 	//fields

@@ -1,4 +1,5 @@
 #include "MultiChannelMemorySystem.h"
+#include "AddressMapping.h"
 #include "IniReader.h"
 
 
@@ -90,11 +91,10 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 		ERROR("Odd number of channels not supported"); 
 		abort(); 
 	}
-	// TODO: call the address mapping here? 
-	size_t channelBits = dramsim_log2(NUM_CHANS);
-	size_t totalBits = dramsim_log2(megsOfMemory) + 20; 
-	// all our address mapping schemes so far assume top bits for the channel
-	unsigned channelNumber = (addr >> (totalBits-channelBits)) & ((1<<channelBits)-1);
+
+	// only chan is used from this set 
+	unsigned channelNumber,rank,bank,row,col;
+	addressMapping(addr, channelNumber, rank, bank, row, col); 
 	if (channelNumber >= NUM_CHANS)
 	{
 		ERROR("Got channel index "<<channelNumber<<" but only "<<NUM_CHANS<<" exist"); 

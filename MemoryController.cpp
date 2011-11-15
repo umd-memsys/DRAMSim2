@@ -37,6 +37,7 @@
 
 #include "MemoryController.h"
 #include "MemorySystem.h"
+#include "AddressMapping.h"
 
 #define SEQUENTIAL(rank,bank) (rank*NUM_BANKS)+bank
 
@@ -46,13 +47,6 @@ MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile)
 		commandQueue (CommandQueue(bankStates)),
 		poppedBusPacket(NULL),
 		totalTransactions(0),
-		channelBitWidth (dramsim_log2(NUM_CHANS)),
-		rankBitWidth (dramsim_log2(NUM_RANKS)),
-		bankBitWidth (dramsim_log2(NUM_BANKS)),
-		rowBitWidth (dramsim_log2(NUM_ROWS)),
-		colBitWidth (dramsim_log2(NUM_COLS)),
-		// this forces the alignment to the width of a single burst (64 bits = 8 bytes = 3 address bits for DDR parts)
-		byteOffsetWidth (dramsim_log2((JEDEC_DATA_BUS_BITS/8))),
 		refreshRank(0)
 {
 	//get handle on parent
@@ -488,10 +482,10 @@ void MemoryController::update()
 		Transaction transaction = transactionQueue[i];
 
 		//map address to rank,bank,row,col
-		unsigned newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn;
+		unsigned newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn;
 
 		// pass these in as references so they get set by the addressMapping function
-		addressMapping(transaction.address, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn);
+		addressMapping(transaction.address, newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn);
 
 		//if we have room, break up the transaction into the appropriate commands
 		//and add them to the command queue
@@ -680,8 +674,8 @@ void MemoryController::update()
 				//		pendingReadTransactions[i].print();
 				//		exit(0);
 				//	}
-				unsigned rank,bank,row,col;
-				addressMapping(returnTransaction[0].address,rank,bank,row,col);
+				unsigned chan,rank,bank,row,col;
+				addressMapping(returnTransaction[0].address,chan,rank,bank,row,col);
 				insertHistogram(currentClockCycle-pendingReadTransactions[i].timeAdded,rank,bank);
 				//return latency
 				returnReadData(pendingReadTransactions[i]);
@@ -798,200 +792,6 @@ bool MemoryController::addTransaction(Transaction &trans)
 	}
 }
 
-void MemoryController::addressMapping(uint64_t physicalAddress, unsigned &newTransactionRank, unsigned &newTransactionBank, unsigned &newTransactionRow, unsigned &newTransactionColumn)
-{
-	uint64_t tempA, tempB;
-	unsigned transactionSize = (JEDEC_DATA_BUS_BITS/8)*BL; 
-	uint64_t transactionMask =  transactionSize - 1; //ex: (64 bit bus width) x (8 Burst Length) - 1 = 64 bytes - 1 = 63 = 0x3f mask
-	// Since we're assuming that a request is for BL*BUS_WIDTH, the bottom bits
-	// of this address *should* be all zeros if it's not, issue a warning
-
-	if ((physicalAddress & transactionMask) != 0)
-	{
-		DEBUG("WARNING: address 0x"<<std::hex<<physicalAddress<<std::dec<<" is not aligned to the request size of "<<transactionSize); 
-	}
-
-	// each burst will contain JEDEC_DATA_BUS_BITS/8 bytes of data, so the bottom bits (3 bits for a single channel DDR system) are
-	// 	thrown away before mapping the other bits
-	physicalAddress >>= byteOffsetWidth;
-
-	// The next thing we have to consider is that when a request is made for a
-	// we've taken into account the granulaity of a single burst by shifting 
-	// off the bottom 3 bits, but a transaction has to take into account the
-	// burst length (i.e. the requests will be aligned to cache line sizes which
-	// should be equal to transactionSize above). 
-	//
-	// Since the column address increments internally on bursts, the bottom n 
-	// bits of the column (colLow) have to be zero in order to account for the 
-	// total size of the transaction. These n bits should be shifted off the 
-	// address and also subtracted from the total column width. 
-	//
-	// I am having a hard time explaining the reasoning here, but it comes down
-	// this: for a 64 byte transaction, the bottom 6 bits of the address must be 
-	// zero. These zero bits must be made up of the byte offset (3 bits) and also
-	// from the bottom bits of the column 
-	// 
-	// For example: cowLowBits = log2(64bytes) - 3 bits = 3 bits 
-	unsigned colLowBitWidth = dramsim_log2(transactionSize) - byteOffsetWidth;
-
-	physicalAddress >>= colLowBitWidth;
-	unsigned colHighBitWidth = colBitWidth - colLowBitWidth; 
-
-#if 0
-	PRINT("Bit widths: ch:"<<channelBitWidth<<" r:"<<rankBitWidth<<" b:"<<bankBitWidth<<" row:"<<rowBitWidth<<" colLow:"<<colLowBitWidth<< " colHigh:"<<colHighBitWidth<<" off:"<<byteOffsetWidth << " Total:"<< (channelBitWidth + rankBitWidth + bankBitWidth + rowBitWidth + colLowBitWidth + colHighBitWidth + byteOffsetWidth));
-	exit(0)
-#endif
-
-	//perform various address mapping schemes
-	if (addressMappingScheme == Scheme1)
-	{
-		//chan:rank:row:col:bank
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-	}
-	else if (addressMappingScheme == Scheme2)
-	{
-		//chan:row:col:bank:rank
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-	}
-	else if (addressMappingScheme == Scheme3)
-	{
-		//chan:rank:bank:col:row
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-	}
-	else if (addressMappingScheme == Scheme4)
-	{
-		//chan:rank:bank:row:col
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-	}
-	else if (addressMappingScheme == Scheme5)
-	{
-		//chan:row:col:rank:bank
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-
-	}
-	else if (addressMappingScheme == Scheme6)
-	{
-		//chan:row:bank:rank:col
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-
-	}
-	else
-	{
-		ERROR("== Error - Unknown Address Mapping Scheme");
-		exit(-1);
-	}
-
-}
 
 //prints statistics at the end of an epoch or  simulation
 void MemoryController::printStats(bool finalStats)

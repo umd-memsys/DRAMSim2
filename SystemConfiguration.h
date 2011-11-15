@@ -160,7 +160,8 @@ enum AddressMappingScheme
 	Scheme3,
 	Scheme4,
 	Scheme5,
-	Scheme6
+	Scheme6,
+	Scheme7
 };
 
 // used in MemoryController and CommandQueue
