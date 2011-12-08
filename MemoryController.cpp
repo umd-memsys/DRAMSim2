@@ -1003,7 +1003,7 @@ void MemoryController::printStats(bool finalStats)
 	//if we are not at the end of the epoch, make sure to adjust for the actual number of cycles elapsed
 
 	uint64_t cyclesElapsed = (currentClockCycle % EPOCH_LENGTH == 0) ? EPOCH_LENGTH : currentClockCycle % EPOCH_LENGTH;
-	unsigned bytesPerTransaction = (64*BL)/8;
+	unsigned bytesPerTransaction = (JEDEC_DATA_BUS_BITS*BL)/8;
 	uint64_t totalBytesTransferred = totalTransactions * bytesPerTransaction;
 	double secondsThisEpoch = (double)cyclesElapsed * tCK * 1E-9;
 
