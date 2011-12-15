@@ -115,11 +115,6 @@ private:
 	vector<uint64_t> totalReadsPerRank;
 	vector<uint64_t> totalWritesPerRank;
 
-	// energy values are per rank
-	vector< uint64_t > backgroundEnergy;
-	vector< uint64_t > burstEnergy;
-	vector< uint64_t > actpreEnergy;
-	vector< uint64_t > refreshEnergy;
 
 	vector< uint64_t > totalEpochLatency;
 
@@ -132,6 +127,13 @@ private:
 
 
 	unsigned refreshRank;
+	
+public:
+	// energy values are per rank -- SST uses these directly, so make these public 
+	vector< uint64_t > backgroundEnergy;
+	vector< uint64_t > burstEnergy;
+	vector< uint64_t > actpreEnergy;
+	vector< uint64_t > refreshEnergy;
 
 };
 }
