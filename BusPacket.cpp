@@ -45,7 +45,7 @@
 using namespace DRAMSim;
 using namespace std;
 
-BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, void *dat)
+BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, DataPacket *dat)
 {
 	physicalAddress = physicalAddr;
 	busPacketType = packtype;
@@ -55,8 +55,6 @@ BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col
 	column = col;
 	row = rw;
 }
-
-BusPacket::BusPacket() {}
 void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
 {
 	if (this == NULL)

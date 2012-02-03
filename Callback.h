@@ -33,6 +33,8 @@
 #ifndef CALLBACK_H
 #define CALLBACK_H
 
+#include <stdint.h>
+
 namespace DRAMSim
 {
 
@@ -79,6 +81,7 @@ private:
 };
 
 typedef CallbackBase <void, unsigned, uint64_t, uint64_t> TransactionCompleteCB;
+typedef CallbackBase <void, uint64_t, void *, size_t> ReadDataCB;
 } // namespace DRAMSim
 
 #endif

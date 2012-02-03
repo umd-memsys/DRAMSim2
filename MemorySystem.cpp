@@ -410,7 +410,20 @@ bool MemorySystem::WillAcceptTransaction()
 	return true;
 //	return memoryController->WillAcceptTransaction();
 }
+bool MemorySystem::addTransaction(bool isWrite, uint64_t addr, void *data, size_t dataNumBytes)
+{
+	if (!memoryController->WillAcceptTransaction())
+	{
+		return false; 
+	}
 
+	// Build the datapacket first
+	DataPacket *dp = new DataPacket((byte*)data, dataNumBytes, addr); 
+
+	TransactionType type = isWrite ? DATA_WRITE : DATA_READ;
+	Transaction trans(type, addr, dp); 
+	return addTransaction(trans); // will always be true
+}
 bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
 {
 	TransactionType type = isWrite ? DATA_WRITE : DATA_READ;
@@ -494,7 +507,7 @@ void MemorySystem::update()
 	//PRINT("\n"); // two new lines
 }
 
-void MemorySystem::RegisterCallbacks( Callback_t* readCB, Callback_t* writeCB,
+void MemorySystem::RegisterCallbacks( ReadDataCB* readCB, TransactionCompleteCB* writeCB,
                                       void (*reportPower)(double bgpower, double burstpower,
                                                           double refreshpower, double actprepower))
 {

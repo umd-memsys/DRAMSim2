@@ -47,17 +47,14 @@
 #include "SimulatorObject.h"
 #include "BankState.h"
 #include "BusPacket.h"
+#include <map>
+
+using std::map; 
 
 namespace DRAMSim
 {
 class Bank
 {
-	typedef struct _DataStruct
-	{
-		unsigned row;
-		void *data;
-		struct _DataStruct *next;
-	} DataStruct;
 
 public:
 	//functions
@@ -69,10 +66,10 @@ public:
 	BankState currentState;
 
 private:
+	unsigned getByteOffsetInRow(const BusPacket *busPacket);
 	// private member
-	std::vector<DataStruct *> rowEntries;
-
-	static DataStruct *searchForRow(unsigned row, DataStruct *head);
+	typedef map<uint64_t, byte *> row_map_t;
+	row_map_t rowEntries;
 };
 }
 

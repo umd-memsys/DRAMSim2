@@ -33,13 +33,21 @@
 
 
 #include "dramsim_test.h"
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 using namespace DRAMSim;
 
 /* callback functors */
-void some_object::read_complete(unsigned id, uint64_t address, uint64_t clock_cycle)
+void some_object::read_complete(uint64_t address, void *data, size_t bufsize)
 {
-	printf("[Callback] read complete: %d 0x%lx cycle=%lu\n", id, address, clock_cycle);
+	printf("[Callback] read complete: 0x%lx data='", address);
+	for (size_t i=0; i<bufsize; i++)
+	{
+		printf("%02x ",((unsigned char*)data)[i]);
+	}
+	printf("'\n"); 
 }
 
 void some_object::write_complete(unsigned id, uint64_t address, uint64_t clock_cycle)
@@ -56,26 +64,44 @@ void power_callback(double a, double b, double c, double d)
 int some_object::add_one_and_run()
 {
 	/* pick a DRAM part to simulate */
-	MemorySystem *mem = new MemorySystem(0, "ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 2048); 
+	MemorySystem *mem = getMemorySystemInstance(0, "ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 2048); 
 
 	/* create and register our callback functions */
-	Callback_t *read_cb = new Callback<some_object, void, unsigned, uint64_t, uint64_t>(this, &some_object::read_complete);
-	Callback_t *write_cb = new Callback<some_object, void, unsigned, uint64_t, uint64_t>(this, &some_object::write_complete);
+	ReadDataCB *read_cb = 
+		new Callback<some_object, void, uint64_t, void *, size_t>(this, &some_object::read_complete);
+	TransactionCompleteCB *write_cb = 
+		new Callback<some_object, void, unsigned, uint64_t, uint64_t>(this, &some_object::write_complete);
 	mem->RegisterCallbacks(read_cb, write_cb, power_callback);
 
-	/* create a transaction and add it */
-	Transaction tr = Transaction(DATA_READ, 0x50000, NULL);
-	mem->addTransaction(tr);
 
-	/* do a bunch of updates (i.e. clocks) -- at some point the callback will fire */
+	void *write_buf = malloc(32);
+	memset(write_buf, 1, 32); 
+	mem->addTransaction(true, 0x9000, write_buf, 32);
+
 	for (int i=0; i<5; i++)
 	{
 		mem->update();
 	}
 
-	/* add another some time in the future */
-	Transaction tw = Transaction(DATA_WRITE, 0x90012, NULL);
-	mem->addTransaction(tw);
+	// read back the data that was just written
+	mem->addTransaction(false, 0x9000, NULL, 0);
+
+	for (int i=0; i<5; i++)
+	{
+		mem->update();
+	}
+
+	write_buf = malloc(8);
+	memset(write_buf, 0xa5, 8);
+	mem->addTransaction(true, 0x9010, write_buf, 8);
+
+	for (int i=0; i<5; i++)
+	{
+		mem->update();
+	}
+
+
+	mem->addTransaction(false, 0x9000, NULL, 0);
 
 	for (int i=0; i<45; i++)
 	{

@@ -35,7 +35,7 @@
 //
 //Header file for transaction object
 
-#include "SystemConfiguration.h"
+#include "DataPacket.h"
 
 using namespace std;
 
@@ -54,14 +54,14 @@ public:
 	//fields
 	TransactionType transactionType;
 	uint64_t address;
-	void *data;
+	DataPacket *data;
 	uint64_t timeAdded;
 	uint64_t timeReturned;
 
 
 	//functions
-	Transaction(TransactionType transType, uint64_t addr, void *data);
 	Transaction();
+	Transaction(TransactionType transType, uint64_t addr, DataPacket *dat);
 
 	void print();
 };

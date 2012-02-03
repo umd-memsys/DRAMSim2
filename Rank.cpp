@@ -41,13 +41,14 @@ Rank::Rank() :
 		// store the rank #, mostly for convenience and printing
 		id(-1),
 		isPowerDown(false),
+		memoryController(NULL),
+		outgoingDataPacket(NULL),
+		dataCyclesLeft(0),
 		refreshWaiting(false),
 		readReturnCountdown(0)
+		
 {
 
-	memoryController = NULL;
-	outgoingDataPacket = NULL;
-	dataCyclesLeft = 0;
 	bankStates = vector<BankState>(NUM_BANKS, BankState());
 	currentClockCycle = 0;
 
@@ -72,8 +73,6 @@ void Rank::attachMemoryController(MemoryController *memoryController)
 
 void Rank::receiveFromBus(BusPacket *packet)
 {
-	BusPacket returnPacket;
-
 	if (DEBUG_BUS)
 	{
 		PRINTN(" -- R" << this->id << " Receiving On Bus    : ");
@@ -109,6 +108,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 #ifndef NO_STORAGE
 		banks[packet->bank].read(packet);
 #else
+		packet->data = new DataPacket(); 
 		packet->busPacketType = DATA;
 #endif
 		readReturnPacket.push_back(packet);
@@ -138,6 +138,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 #ifndef NO_STORAGE
 		banks[packet->bank].read(packet);
 #else
+		packet->data = new DataPacket(); 
 		packet->busPacketType = DATA;
 #endif
 
@@ -272,9 +273,9 @@ void Rank::receiveFromBus(BusPacket *packet)
 		*/
 #ifndef NO_STORAGE
 		banks[packet->bank].write(packet);
-#else
-		// end of the line for the write packet
 #endif
+		// end of the line for the write packet
+		delete(packet->data); 
 		delete(packet);
 		break;
 	default:

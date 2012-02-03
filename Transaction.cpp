@@ -49,12 +49,11 @@ using namespace std;
 
 Transaction::Transaction() {}
 
-Transaction::Transaction(TransactionType transType, uint64_t addr, void *dat)
-{
-	transactionType = transType;
-	address = addr;
-	data = dat;
-}
+Transaction::Transaction(TransactionType transType, uint64_t addr, DataPacket *dat) :
+	transactionType(transType), 
+	address(addr),
+	data(dat)
+{ }
 
 void Transaction::print()
 {

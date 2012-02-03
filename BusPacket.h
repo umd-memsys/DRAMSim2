@@ -43,6 +43,7 @@
 //
 
 #include "SystemConfiguration.h"
+#include "DataPacket.h"
 
 namespace DRAMSim
 {
@@ -68,15 +69,18 @@ public:
 	unsigned bank;
 	unsigned rank;
 	uint64_t physicalAddress;
-	void *data;
+	DataPacket *data;
 
 	//Functions
-	BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, void *dat);
-	BusPacket();
+	BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, DataPacket *dat);
 
 	void print();
 	void print(uint64_t currentClockCycle, bool dataStart);
 	static void printData(const void *data);
+
+	private:
+	//disable default bus packets 
+		BusPacket();
 };
 }
 

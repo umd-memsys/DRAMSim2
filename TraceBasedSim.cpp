@@ -45,6 +45,7 @@
 #include "SystemConfiguration.h"
 #include "MemorySystem.h"
 #include "Transaction.h"
+#include "DataPacket.h"
 
 
 using namespace DRAMSim;
@@ -149,11 +150,12 @@ void usage()
 }
 #endif
 
-void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &transType, uint64_t &clockCycle, TraceType type)
+DataPacket *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &transType, uint64_t &clockCycle, TraceType type)
 {
 	size_t previousIndex=0;
 	size_t spaceIndex=0;
-	uint64_t *dataBuffer = NULL;
+	byte *dataBuffer = NULL;
+	DataPacket *dataPacket = new DataPacket(); 
 	string addressStr="", cmdStr="", dataStr="", ccStr="";
 #ifndef _SIM_
 	bool useClockCycle = false;
@@ -297,30 +299,42 @@ void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &tra
 #ifndef NO_STORAGE
 		if (dataStr.size() > 0 && transType == DATA_WRITE)
 		{
-			// 32 bytes of data per transaction
-			dataBuffer = (uint64_t *)calloc(sizeof(uint64_t),4);
-			size_t strlen = dataStr.size();
-			for (int i=0; i < 4; i++)
+			// two hex characters = 1 byte
+			if (dataStr.size() % 2 != 0)
 			{
-				size_t startIndex = i*16;
-				if (startIndex > strlen)
-				{
-					break;
-				}
-				size_t charsLeft = min(((size_t)16), strlen - startIndex + 1);
-				string piece = dataStr.substr(i*16,charsLeft);
-				istringstream iss(piece);
-				iss >> hex >> dataBuffer[i];
+				ERROR("Could you please give me the data in whole bytes?");
+				exit(-1); 
 			}
-			PRINTN("\tDATA=");
-			BusPacket::printData(dataBuffer);
-		}
 
-		PRINT("");
+			size_t stringBytes = dataStr.size()/2;
+
+			// if we have more bytes than the size of a transaction, there's a problem 
+			if (stringBytes > ((JEDEC_DATA_BUS_BITS/8) * BL))
+			{
+				ERROR("Can't put "<<stringBytes<<" bytes into a single transaction"); 
+				exit(-1); 
+			}
+			unsigned chr; 
+			dataBuffer = (byte *)calloc(sizeof(byte),stringBytes);
+			for (size_t i=0; i < stringBytes; i++)
+			{
+				string piece = dataStr.substr(i*2,2); 
+				PRINT("now on piece ("<<i<<") "<<piece); 
+				istringstream iss(piece);
+				// because of the way isstringstream works I can't directly insert
+				// into a char, I have to go through an unsigned and then cast
+				iss >> hex >> chr;
+				dataBuffer[i] = (byte) chr;
+			}
+			dataPacket = new DataPacket(dataBuffer, stringBytes, addr);
+			PRINT("ds="<<dataStr <<", bytes="<<stringBytes<<"\ndp="<<*dataPacket); 
+		}
+#else
 #endif
+
 		break;
 	}
-	return dataBuffer;
+	return dataPacket;
 }
 
 #ifndef _SIM_
@@ -487,7 +501,7 @@ int main(int argc, char **argv)
 	uint64_t clockCycle=0;
 	enum TransactionType transType;
 
-	void *data = NULL;
+	DataPacket *data = NULL;
 	int lineNumber = 0;
 	Transaction trans;
 	bool pendingTrans = false;

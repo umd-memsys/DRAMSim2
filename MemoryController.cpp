@@ -129,7 +129,8 @@ void MemoryController::returnReadData(const Transaction &trans)
 {
 	if (parentMemorySystem->ReturnReadData!=NULL)
 	{
-		(*parentMemorySystem->ReturnReadData)(parentMemorySystem->systemID, trans.address, currentClockCycle);
+		DEBUG("[M-DPKT]: MC adding to return " << *(trans.data) << " ("<<trans.data->getNumBytes()<<")"); 
+		(*parentMemorySystem->ReturnReadData)(trans.address, trans.data->getData(), trans.data->getNumBytes());
 	}
 }
 
@@ -682,8 +683,11 @@ void MemoryController::update()
 				//	}
 				unsigned rank,bank,row,col;
 				addressMapping(returnTransaction[0].address,rank,bank,row,col);
-				insertHistogram(currentClockCycle-pendingReadTransactions[i].timeAdded,rank,bank);
 				//return latency
+				insertHistogram(currentClockCycle-pendingReadTransactions[i].timeAdded,rank,bank);
+
+				// FIXME: oh lord, why is this so convoluted .... 
+				pendingReadTransactions[i].data = returnTransaction[0].data;
 				returnReadData(pendingReadTransactions[i]);
 
 				pendingReadTransactions.erase(pendingReadTransactions.begin()+i);

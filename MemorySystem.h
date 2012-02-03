@@ -48,7 +48,6 @@
 
 namespace DRAMSim
 {
-typedef CallbackBase<void,unsigned,uint64_t,uint64_t> Callback_t;
 class MemorySystem : public SimulatorObject
 {
 public:
@@ -58,13 +57,14 @@ public:
 	void update();
 	bool addTransaction(Transaction &trans);
 	bool addTransaction(bool isWrite, uint64_t addr);
+	bool addTransaction(bool isWrite, uint64_t addr, void *data, size_t dataNumBytes); 
 	void printStats();
 	void printStats(bool unused);
 	bool WillAcceptTransaction();
 	string SetOutputFileName(string tracefilename);
 	void RegisterCallbacks(
-	    Callback_t *readDone,
-	    Callback_t *writeDone,
+	    ReadDataCB *readDone,
+	    TransactionCompleteCB *writeDone,
 	    void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
 
 
@@ -84,8 +84,9 @@ public:
 	std::ofstream visDataOut;
 
 	//function pointers
-	Callback_t* ReturnReadData;
-	Callback_t* WriteDataDone;
+	ReadDataCB *ReturnReadData;
+	TransactionCompleteCB *WriteDataDone;
+
 	//TODO: make this a functor as well?
 	static powerCallBack_t ReportPower;
 
