@@ -28,13 +28,6 @@
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
 
-
-
-
-
-
-
-
 #ifndef TRANSACTION_H
 #define TRANSACTION_H
 
