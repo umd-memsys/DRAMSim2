@@ -49,11 +49,13 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 
 	physicalAddress >>= colLowBitWidth;
 	unsigned colHighBitWidth = colBitWidth - colLowBitWidth; 
-
-#if 0
-	PRINT("Bit widths: ch:"<<channelBitWidth<<" r:"<<rankBitWidth<<" b:"<<bankBitWidth<<" row:"<<rowBitWidth<<" colLow:"<<colLowBitWidth<< " colHigh:"<<colHighBitWidth<<" off:"<<byteOffsetWidth << " Total:"<< (channelBitWidth + rankBitWidth + bankBitWidth + rowBitWidth + colLowBitWidth + colHighBitWidth + byteOffsetWidth));
-	exit(0)
-#endif
+	if (DEBUG_ADDR_MAP)
+	{
+		DEBUG("Bit widths: ch:"<<channelBitWidth<<" r:"<<rankBitWidth<<" b:"<<bankBitWidth
+				<<" row:"<<rowBitWidth<<" colLow:"<<colLowBitWidth
+				<< " colHigh:"<<colHighBitWidth<<" off:"<<byteOffsetWidth 
+				<< " Total:"<< (channelBitWidth + rankBitWidth + bankBitWidth + rowBitWidth + colLowBitWidth + colHighBitWidth + byteOffsetWidth));
+	}
 
 	//perform various address mapping schemes
 	if (addressMappingScheme == Scheme1)
@@ -78,6 +80,12 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		physicalAddress = physicalAddress >> rankBitWidth;
 		tempB = physicalAddress << rankBitWidth;
 		newTransactionRank = tempA ^ tempB;
+
+		tempA = physicalAddress;
+		physicalAddress = physicalAddress >> channelBitWidth;
+		tempB = physicalAddress << channelBitWidth;
+		newTransactionChan = tempA ^ tempB;
+
 	}
 	else if (addressMappingScheme == Scheme2)
 	{
@@ -101,6 +109,12 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		physicalAddress = physicalAddress >> rowBitWidth;
 		tempB = physicalAddress << rowBitWidth;
 		newTransactionRow = tempA ^ tempB;
+
+		tempA = physicalAddress;
+		physicalAddress = physicalAddress >> channelBitWidth;
+		tempB = physicalAddress << channelBitWidth;
+		newTransactionChan = tempA ^ tempB;
+
 	}
 	else if (addressMappingScheme == Scheme3)
 	{
@@ -124,6 +138,12 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		physicalAddress = physicalAddress >> rankBitWidth;
 		tempB = physicalAddress << rankBitWidth;
 		newTransactionRank = tempA ^ tempB;
+
+		tempA = physicalAddress;
+		physicalAddress = physicalAddress >> channelBitWidth;
+		tempB = physicalAddress << channelBitWidth;
+		newTransactionChan = tempA ^ tempB;
+
 	}
 	else if (addressMappingScheme == Scheme4)
 	{
@@ -147,6 +167,12 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		physicalAddress = physicalAddress >> rankBitWidth;
 		tempB = physicalAddress << rankBitWidth;
 		newTransactionRank = tempA ^ tempB;
+
+		tempA = physicalAddress;
+		physicalAddress = physicalAddress >> channelBitWidth;
+		tempB = physicalAddress << channelBitWidth;
+		newTransactionChan = tempA ^ tempB;
+
 	}
 	else if (addressMappingScheme == Scheme5)
 	{
@@ -172,6 +198,12 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		tempB = physicalAddress << rowBitWidth;
 		newTransactionRow = tempA ^ tempB;
 
+		tempA = physicalAddress;
+		physicalAddress = physicalAddress >> channelBitWidth;
+		tempB = physicalAddress << channelBitWidth;
+		newTransactionChan = tempA ^ tempB;
+
+
 	}
 	else if (addressMappingScheme == Scheme6)
 	{
@@ -196,6 +228,12 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		physicalAddress = physicalAddress >> rowBitWidth;
 		tempB = physicalAddress << rowBitWidth;
 		newTransactionRow = tempA ^ tempB;
+
+		tempA = physicalAddress;
+		physicalAddress = physicalAddress >> channelBitWidth;
+		tempB = physicalAddress << channelBitWidth;
+		newTransactionChan = tempA ^ tempB;
+
 
 	}
 	// clone of scheme 5, but channel moved to lower bits
@@ -233,6 +271,12 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 	{
 		ERROR("== Error - Unknown Address Mapping Scheme");
 		exit(-1);
+	}
+	if (DEBUG_ADDR_MAP)
+	{
+		DEBUG("Mapped Ch="<<newTransactionChan<<" Rank="<<newTransactionRank
+				<<" Bank="<<newTransactionBank<<" Row="<<newTransactionRow
+				<<" Col="<<newTransactionColumn<<"\n"); 
 	}
 
 }

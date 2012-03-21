@@ -88,7 +88,7 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 
 	if (NUM_CHANS % 2 != 0)
 	{
-		ERROR("Odd number of channels not supported"); 
+		ERROR("Odd number of logically independent channels not supported"); 
 		abort(); 
 	}
 

@@ -138,7 +138,7 @@ class TransactionReceiver
 void usage()
 {
 	cout << "DRAMSim2 Usage: " << endl;
-	cout << "DRAMSim -t tracefile -s system.ini -d ini/device.ini [-c #] [-p pwd] -q" <<endl;
+	cout << "DRAMSim -t tracefile -s system.ini -d ini/device.ini [-c #] [-p pwd] [-q] [-S 2048M] [-T] [-o OPTION_A=1234]" <<endl;
 	cout << "\t-t, --tracefile=FILENAME \tspecify a tracefile to run  "<<endl;
 	cout << "\t-s, --systemini=FILENAME \tspecify an ini file that describes the memory system parameters  "<<endl;
 	cout << "\t-d, --deviceini=FILENAME \tspecify an ini file that describes the device-level parameters"<<endl;
@@ -146,21 +146,17 @@ void usage()
 	cout << "\t-q, --quiet \t\t\tflag to suppress simulation output (except final stats) [default=no]"<<endl;
 	cout << "\t-o, --option=OPTION_A=234\t\t\toverwrite any ini file option from the command line"<<endl;
 	cout << "\t-p, --pwd=DIRECTORY\t\tSet the working directory (i.e. usually DRAMSim directory where ini/ and results/ are)"<<endl;
-	cout << "\t-S, --size=# \t\t\tSize of the memory system in megabytes"<<endl;
+	cout << "\t-S, --size=# \t\t\tSize of the memory system in megabytes [default=2048M]"<<endl;
+	cout << "\t-n, --notiming \t\t\tDo not use the clock cycle information in the trace file"<<endl;
 }
 #endif
 
-void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &transType, uint64_t &clockCycle, TraceType type)
+void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &transType, uint64_t &clockCycle, TraceType type, bool useClockCycle)
 {
 	size_t previousIndex=0;
 	size_t spaceIndex=0;
 	uint64_t *dataBuffer = NULL;
 	string addressStr="", cmdStr="", dataStr="", ccStr="";
-#ifndef _SIM_
-	bool useClockCycle = true;
-#else
-	bool useClockCycle = true;
-#endif
 
 	switch (type)
 	{
@@ -344,6 +340,7 @@ int main(int argc, char **argv)
 	string deviceIniFilename = "";
 	string pwdString = "";
 	unsigned megsOfMemory=2048;
+	bool useClockCycle=true;
 
 	bool overrideOpt = false;
 	string overrideKey = "";
@@ -369,7 +366,7 @@ int main(int argc, char **argv)
 			{0, 0, 0, 0}
 		};
 		int option_index=0; //for getopt
-		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:bkq", long_options, &option_index);
+		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:qT", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -413,6 +410,9 @@ int main(int argc, char **argv)
 			break;
 		case 'q':
 			SHOW_SIM_OUTPUT=false;
+			break;
+		case 'T':
+			useClockCycle=false;
 			break;
 		case 'o':
 			tmp = string(optarg);
@@ -512,7 +512,7 @@ int main(int argc, char **argv)
 
 				if (line.size() > 0)
 				{
-					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType);
+					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType,useClockCycle);
 					trans = Transaction(transType, addr, data);
 					alignTransactionAddress(trans); 
 
