@@ -138,7 +138,7 @@ class TransactionReceiver
 void usage()
 {
 	cout << "DRAMSim2 Usage: " << endl;
-	cout << "DRAMSim -t tracefile -s system.ini -d ini/device.ini [-c #] [-p pwd] [-q] [-S 2048M] [-T] [-o OPTION_A=1234]" <<endl;
+	cout << "DRAMSim -t tracefile -s system.ini -d ini/device.ini [-c #] [-p pwd] [-q] [-S 2048] [-n] [-o OPTION_A=1234]" <<endl;
 	cout << "\t-t, --tracefile=FILENAME \tspecify a tracefile to run  "<<endl;
 	cout << "\t-s, --systemini=FILENAME \tspecify an ini file that describes the memory system parameters  "<<endl;
 	cout << "\t-d, --deviceini=FILENAME \tspecify an ini file that describes the device-level parameters"<<endl;
@@ -366,7 +366,7 @@ int main(int argc, char **argv)
 			{0, 0, 0, 0}
 		};
 		int option_index=0; //for getopt
-		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:qT", long_options, &option_index);
+		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:qn", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -411,7 +411,7 @@ int main(int argc, char **argv)
 		case 'q':
 			SHOW_SIM_OUTPUT=false;
 			break;
-		case 'T':
+		case 'n':
 			useClockCycle=false;
 			break;
 		case 'o':
