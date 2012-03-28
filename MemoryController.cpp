@@ -1049,7 +1049,7 @@ void MemoryController::printStats(bool finalStats)
 	{
 		csvOut << "ms" <<currentClockCycle * tCK * 1E-6; 
 	}
-	
+	double totalAggregateBandwidth = 0.0;	
 	for (size_t r=0;r<NUM_RANKS;r++)
 	{
 
@@ -1089,15 +1089,22 @@ void MemoryController::printStats(bool finalStats)
 			csvOut << nameForArrayIndex("ACT_PRE_Power",r) << actprePower[r];
 			csvOut << nameForArrayIndex("Burst_Power",r) << burstPower[r];
 			csvOut << nameForArrayIndex("Refresh_Power",r) << refreshPower[r];
+			double totalRankBandwidth=0.0;
 			for (size_t b=0; b<NUM_BANKS; b++)
 			{
 				csvOut << nameForArrayIndex("Bandwidth",SEQUENTIAL(r,b)) << bandwidth[SEQUENTIAL(r,b)];
+				totalRankBandwidth += bandwidth[SEQUENTIAL(r,b)];
+				totalAggregateBandwidth += bandwidth[SEQUENTIAL(r,b)];
 				csvOut << nameForArrayIndex("Average_Latency",SEQUENTIAL(r,b)) << averageLatency[SEQUENTIAL(r,b)];
 			}
+			csvOut << nameForArrayIndex("Rank_Aggregate_Bandwidth",r) << totalRankBandwidth; 
+			csvOut << nameForArrayIndex("Rank_Average_Bandwidth",r) << totalRankBandwidth/NUM_RANKS; 
 		}
 	}
 	if (VIS_FILE_OUTPUT)
 	{
+		csvOut << "Aggregate_Bandwidth" << totalAggregateBandwidth;
+		csvOut << "Average_Bandwidth" << totalAggregateBandwidth / (NUM_RANKS*NUM_BANKS);
 		csvOut.finalize(); 
 	}
 

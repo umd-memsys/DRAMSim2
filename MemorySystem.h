@@ -61,7 +61,7 @@ public:
 	void printStats();
 	void printStats(bool unused);
 	bool WillAcceptTransaction();
-	string SetOutputFileName(string tracefilename);
+	string InitOutputFiles(string tracefilename);
 	void RegisterCallbacks(
 	    Callback_t *readDone,
 	    Callback_t *writeDone,
