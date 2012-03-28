@@ -2,8 +2,8 @@
 
 NUM_CHANS=1								; we haven't tested a whole lot with CHANS>1 so use at your own peril 
 JEDEC_DATA_BUS_BITS=64 					; will never change for DDR parts
-TRANS_QUEUE_DEPTH=512					; transaction queue ex: READ 0xbeef
-CMD_QUEUE_DEPTH=512						; command queue ex: RAS 4
+TRANS_QUEUE_DEPTH=32					; transaction queue, i.e., CPU-level commands such as:  READ 0xbeef
+CMD_QUEUE_DEPTH=32						; command queue, i.e., DRAM-level commands such as: CAS 544, RAS 4
 EPOCH_LENGTH=100000						; length of an epoch in cycles (granularity of simulation)
 ROW_BUFFER_POLICY=open_page 		; close_page or open_page
 ADDRESS_MAPPING_SCHEME=scheme2	;valid schemes 1-6; 
