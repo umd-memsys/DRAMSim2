@@ -40,19 +40,48 @@ using std::ostream;
  * 	2.5,25
  *
  */
+#define MAX_TMP_STR 64
+// length of a two digit subscript: [xx]
+#define SINGLE_INDEX_LEN 4 
+
 
 namespace DRAMSim {
-	//XXX: this isn't C++-y , but it's safe and quick
-	static char *nameForArrayIndex(const char *baseName, unsigned index)
+	// Single index
+	static char *indexStr(const char *baseName, unsigned channel)
 	{
-		#define MAX_TMP_STR 64
-		if (strlen(baseName)+4 > MAX_TMP_STR)
+		if (strlen(baseName)+SINGLE_INDEX_LEN > MAX_TMP_STR)
+		{
+			ERROR("Your string is too long for the stats, increase MAX_TMP_STR"); 
+			abort(); 
+		}
+		char tmp_str[MAX_TMP_STR]; 
+		snprintf(tmp_str, MAX_TMP_STR,"%s[%u]", baseName, channel); 
+		return strndup(tmp_str, MAX_TMP_STR); 
+	}
+
+	// two indices 
+	static char *indexStr(const char *baseName, unsigned channel, unsigned rank)
+	{
+		if (strlen(baseName)+(2*SINGLE_INDEX_LEN) > MAX_TMP_STR)
+		{
+			ERROR("Your string is too long for the stats, increase MAX_TMP_STR"); 
+			abort(); 
+		}
+		char tmp_str[MAX_TMP_STR]; 
+		snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u]", baseName, channel, rank); 
+		return strndup(tmp_str, MAX_TMP_STR); 
+	}
+
+	// three indices	
+	static char *indexStr(const char *baseName, unsigned channel, unsigned rank, unsigned bank)
+	{
+		if (strlen(baseName)+(3*SINGLE_INDEX_LEN) > MAX_TMP_STR)
 		{
 			ERROR("Your string is too long for the stats, increase MAX_TMP_STR"); 
 			exit(-1); 
 		}
 		char tmp_str[MAX_TMP_STR]; 
-		snprintf(tmp_str, MAX_TMP_STR,"%s[%u]", baseName, index); 
+		snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u][%u]", baseName, channel, rank, bank); 
 		return strndup(tmp_str, MAX_TMP_STR); 
 	}
 

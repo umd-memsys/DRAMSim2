@@ -998,6 +998,7 @@ void MemoryController::addressMapping(uint64_t physicalAddress, unsigned &newTra
 //prints statistics at the end of an epoch or  simulation
 void MemoryController::printStats(bool finalStats)
 {
+	unsigned myChannel = parentMemorySystem->systemID;
 	//skip the print on the first cycle, it's pretty useless
 	if (currentClockCycle == 0)
 		return;
@@ -1045,7 +1046,8 @@ void MemoryController::printStats(bool finalStats)
 	PRINTN( "   Total Return Transactions : " << totalTransactions );
 	PRINT( " ("<<totalBytesTransferred <<" bytes) aggregate average bandwidth "<<totalBandwidth<<"GB/s");
 
-	if (VIS_FILE_OUTPUT)
+	// only the first memory channel should print the timestamp
+	if (VIS_FILE_OUTPUT && myChannel == 0)
 	{
 		csvOut << "ms" <<currentClockCycle * tCK * 1E-6; 
 	}
@@ -1084,27 +1086,26 @@ void MemoryController::printStats(bool finalStats)
 		if (VIS_FILE_OUTPUT)
 		{
 			// write the vis file output
-			csvOut << nameForArrayIndex("Background_Power",r) <<backgroundPower[r];
-			csvOut << nameForArrayIndex("Background_Power",r) <<backgroundPower[r];
-			csvOut << nameForArrayIndex("ACT_PRE_Power",r) << actprePower[r];
-			csvOut << nameForArrayIndex("Burst_Power",r) << burstPower[r];
-			csvOut << nameForArrayIndex("Refresh_Power",r) << refreshPower[r];
+			csvOut << indexStr("Background_Power",myChannel,r) <<backgroundPower[r];
+			csvOut << indexStr("ACT_PRE_Power",myChannel,r) << actprePower[r];
+			csvOut << indexStr("Burst_Power",myChannel,r) << burstPower[r];
+			csvOut << indexStr("Refresh_Power",myChannel,r) << refreshPower[r];
 			double totalRankBandwidth=0.0;
 			for (size_t b=0; b<NUM_BANKS; b++)
 			{
-				csvOut << nameForArrayIndex("Bandwidth",SEQUENTIAL(r,b)) << bandwidth[SEQUENTIAL(r,b)];
+				csvOut << indexStr("Bandwidth",myChannel,r,b) << bandwidth[SEQUENTIAL(r,b)];
 				totalRankBandwidth += bandwidth[SEQUENTIAL(r,b)];
 				totalAggregateBandwidth += bandwidth[SEQUENTIAL(r,b)];
-				csvOut << nameForArrayIndex("Average_Latency",SEQUENTIAL(r,b)) << averageLatency[SEQUENTIAL(r,b)];
+				csvOut << indexStr("Average_Latency",myChannel,r,b) << averageLatency[SEQUENTIAL(r,b)];
 			}
-			csvOut << nameForArrayIndex("Rank_Aggregate_Bandwidth",r) << totalRankBandwidth; 
-			csvOut << nameForArrayIndex("Rank_Average_Bandwidth",r) << totalRankBandwidth/NUM_RANKS; 
+			csvOut << indexStr("Rank_Aggregate_Bandwidth",myChannel,r) << totalRankBandwidth; 
+			csvOut << indexStr("Rank_Average_Bandwidth",myChannel,r) << totalRankBandwidth/NUM_RANKS; 
 		}
 	}
 	if (VIS_FILE_OUTPUT)
 	{
-		csvOut << "Aggregate_Bandwidth" << totalAggregateBandwidth;
-		csvOut << "Average_Bandwidth" << totalAggregateBandwidth / (NUM_RANKS*NUM_BANKS);
+		csvOut << indexStr("Aggregate_Bandwidth",myChannel) << totalAggregateBandwidth;
+		csvOut << indexStr("Average_Bandwidth",myChannel) << totalAggregateBandwidth / (NUM_RANKS*NUM_BANKS);
 		csvOut.finalize(); 
 	}
 
