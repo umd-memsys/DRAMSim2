@@ -236,7 +236,7 @@ string MemorySystem::InitOutputFiles(string traceFilename)
 
 #ifdef LOG_OUTPUT
 	// create a .log filename and open it as the stream 'dramsim_log' 
-	dramsimLogFilename = "dramsim"; 
+	string dramsimLogFilename("dramsim"); 
 	if (sim_description != NULL)
 	{
 		sim_description_str = string(sim_description);
