@@ -217,7 +217,15 @@ bool fileExists(string path)
 	return true;
 }
 
-string MemorySystem::SetOutputFileName(string traceFilename)
+/**
+ * This function creates up to 3 output files: 
+ * 	- The .log file if LOG_OUTPUT is set
+ * 	- the .csv file where data for each epoch will go
+ * 	- the .tmp file if verification output is enabled
+ * The results directory is setup to be in PWD/TRACEFILENAME.[SIM_DESC]/DRAM_PARTNAME/PARAMS.csv
+ * The environment variable SIM_DESC is also appended to output files/directories
+ **/
+string MemorySystem::InitOutputFiles(string traceFilename)
 {
 	size_t lastSlash;
 	size_t deviceIniFilenameLength = deviceIniFilename.length();
@@ -226,7 +234,26 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 	
 	char *sim_description = getenv("SIM_DESC");
 
-	// create a properly named verification output file if need be
+#ifdef LOG_OUTPUT
+	// create a .log filename and open it as the stream 'dramsim_log' 
+	dramsimLogFilename = "dramsim"; 
+	if (sim_description != NULL)
+	{
+		sim_description_str = string(sim_description);
+		dramsimLogFilename += "."+sim_description_str; 
+	}
+	dramsimLogFilename += ".log";
+
+	dramsim_log.open(dramsimLogFilename.c_str(), ios_base::out | ios_base::trunc );
+	if (!dramsim_log) 
+	{
+		ERROR("Cannot open "<< dramsimLogFilename);
+		exit(-1); 
+	}
+#endif
+
+	// create a properly named verification output file if need be and open it
+	// as the stream 'cmd_verify_out'
 	if (VERIFICATION_OUTPUT)
 	{
 		string basefilename = deviceIniFilename.substr(deviceIniFilename.find_last_of("/")+1);
@@ -240,10 +267,11 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 		if (!cmd_verify_out)
 		{
 			ERROR("Cannot open "<< verify_filename);
-			exit(-1);
+			abort(); 
 		}
 	}
-	// TODO: move this to its own function or something? 
+	// This sets up the csv file output along with the creating the result
+	// directory structure if it doesn't exist
 	if (VIS_FILE_OUTPUT)
 	{
 		// chop off the .ini if it's there
@@ -252,8 +280,6 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 			deviceName = deviceIniFilename.substr(0,deviceIniFilenameLength-4);
 			deviceIniFilenameLength -= 4;
 		}
-
-		cout << deviceName << endl;
 
 		// chop off everything past the last / (i.e. leave filename only)
 		if ((lastSlash = deviceName.find_last_of("/")) != string::npos)
@@ -307,18 +333,18 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 			out << "." << sim_description;
 		}
 
-		//filename so far, without .vis extension, see if it exists already
+		//filename so far, without extension, see if it exists already
 		filename = out.str();
 		for (int i=0; i<100; i++)
 		{
-			if (fileExists(path+filename+tmpNum.str()+".vis"))
+			if (fileExists(path+filename+tmpNum.str()+".csv"))
 			{
 				tmpNum.seekp(0);
 				tmpNum << "." << i;
 			}
 			else 
 			{
-				filename = filename+tmpNum.str()+".vis";
+				filename = filename+tmpNum.str()+".csv";
 				break;
 			}
 		}
@@ -337,12 +363,14 @@ string MemorySystem::SetOutputFileName(string traceFilename)
 void MemorySystem::mkdirIfNotExist(string path)
 {
 	struct stat stat_buf;
-	// dwxr-xr-x on the results directories
-	if (stat(path.c_str(), &stat_buf) != 0)
+	// check if the directory exists
+	if (stat(path.c_str(), &stat_buf) != 0) // nonzero return value on error, check errno
 	{
-		if (errno == ENOENT)
+		if (errno == ENOENT) 
 		{
 			DEBUG("\t directory doesn't exist, trying to create ...");
+
+			// set permissions dwxr-xr-x on the results directories
 			mode_t mode = (S_IXOTH | S_IXGRP | S_IXUSR | S_IROTH | S_IRGRP | S_IRUSR | S_IWUSR) ;
 			if (mkdir(path.c_str(), mode) != 0)
 			{
@@ -351,8 +379,13 @@ void MemorySystem::mkdirIfNotExist(string path)
 				abort();
 			}
 		}
+		else
+		{
+			perror("Something else when wrong: "); 
+			abort();
+		}
 	}
-	else
+	else // directory already exists
 	{
 		if (!S_ISDIR(stat_buf.st_mode))
 		{
@@ -364,8 +397,7 @@ void MemorySystem::mkdirIfNotExist(string path)
 
 bool MemorySystem::WillAcceptTransaction()
 {
-	return true;
-//	return memoryController->WillAcceptTransaction();
+	return memoryController->WillAcceptTransaction();
 }
 
 bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
@@ -377,7 +409,7 @@ bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
 
 	if (memoryController->WillAcceptTransaction()) 
 	{
-		return memoryController->addTransaction(trans); // will be true
+		return memoryController->addTransaction(trans);
 	}
 	else
 	{
@@ -408,7 +440,7 @@ void MemorySystem::update()
 {
 	if (currentClockCycle == 0)
 	{
-		string visOutputFilename = SetOutputFileName(traceFilename);
+		string visOutputFilename = InitOutputFiles(traceFilename);
 		if (VIS_FILE_OUTPUT)
 		{
 			cerr << "writing vis file to " <<visOutputFilename<<endl;

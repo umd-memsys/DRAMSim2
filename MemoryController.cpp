@@ -46,15 +46,17 @@ using namespace DRAMSim;
 MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile) :
 		commandQueue (CommandQueue(bankStates)),
 		poppedBusPacket(NULL),
+		csvOut(*outfile),
 		totalTransactions(0),
 		refreshRank(0)
 {
 	//get handle on parent
 	parentMemorySystem = parent;
-	if (VIS_FILE_OUTPUT) 
+	if (VIS_FILE_OUTPUT)
 	{
-		visDataOut = outfile;
+		visDataOut = outfile; 
 	}
+
 
 	//bus related fields
 	outgoingCmdPacket = NULL;
@@ -796,6 +798,7 @@ bool MemoryController::addTransaction(Transaction &trans)
 //prints statistics at the end of an epoch or  simulation
 void MemoryController::printStats(bool finalStats)
 {
+	unsigned myChannel = parentMemorySystem->systemID;
 	//skip the print on the first cycle, it's pretty useless
 	if (currentClockCycle == 0)
 		return;
@@ -843,59 +846,67 @@ void MemoryController::printStats(bool finalStats)
 	PRINTN( "   Total Return Transactions : " << totalTransactions );
 	PRINT( " ("<<totalBytesTransferred <<" bytes) aggregate average bandwidth "<<totalBandwidth<<"GB/s");
 
-	if (VIS_FILE_OUTPUT)
+	// only the first memory channel should print the timestamp
+	if (VIS_FILE_OUTPUT && myChannel == 0)
 	{
-		(*visDataOut) << currentClockCycle * tCK * 1E-6<< ":";
+		csvOut << "ms" <<currentClockCycle * tCK * 1E-6; 
 	}
-
-	for (size_t i=0;i<NUM_RANKS;i++)
+	double totalAggregateBandwidth = 0.0;	
+	for (size_t r=0;r<NUM_RANKS;r++)
 	{
 
-		PRINT( "      -Rank   "<<i<<" : ");
-		PRINTN( "        -Reads  : " << totalReadsPerRank[i]);
-		PRINT( " ("<<totalReadsPerRank[i] * bytesPerTransaction<<" bytes)");
-		PRINTN( "        -Writes : " << totalWritesPerRank[i]);
-		PRINT( " ("<<totalWritesPerRank[i] * bytesPerTransaction<<" bytes)");
+		PRINT( "      -Rank   "<<r<<" : ");
+		PRINTN( "        -Reads  : " << totalReadsPerRank[r]);
+		PRINT( " ("<<totalReadsPerRank[r] * bytesPerTransaction<<" bytes)");
+		PRINTN( "        -Writes : " << totalWritesPerRank[r]);
+		PRINT( " ("<<totalWritesPerRank[r] * bytesPerTransaction<<" bytes)");
 		for (size_t j=0;j<NUM_BANKS;j++)
 		{
-			PRINT( "        -Bandwidth / Latency  (Bank " <<j<<"): " <<bandwidth[SEQUENTIAL(i,j)] << " GB/s\t\t" <<averageLatency[SEQUENTIAL(i,j)] << " ns");
+			PRINT( "        -Bandwidth / Latency  (Bank " <<j<<"): " <<bandwidth[SEQUENTIAL(r,j)] << " GB/s\t\t" <<averageLatency[SEQUENTIAL(r,j)] << " ns");
 		}
 
 		// factor of 1000 at the end is to account for the fact that totalEnergy is accumulated in mJ since IDD values are given in mA
-		backgroundPower[i] = ((double)backgroundEnergy[i] / (double)(cyclesElapsed)) * Vdd / 1000.0;
-		burstPower[i] = ((double)burstEnergy[i] / (double)(cyclesElapsed)) * Vdd / 1000.0;
-		refreshPower[i] = ((double) refreshEnergy[i] / (double)(cyclesElapsed)) * Vdd / 1000.0;
-		actprePower[i] = ((double)actpreEnergy[i] / (double)(cyclesElapsed)) * Vdd / 1000.0;
-		averagePower[i] = ((backgroundEnergy[i] + burstEnergy[i] + refreshEnergy[i] + actpreEnergy[i]) / (double)cyclesElapsed) * Vdd / 1000.0;
+		backgroundPower[r] = ((double)backgroundEnergy[r] / (double)(cyclesElapsed)) * Vdd / 1000.0;
+		burstPower[r] = ((double)burstEnergy[r] / (double)(cyclesElapsed)) * Vdd / 1000.0;
+		refreshPower[r] = ((double) refreshEnergy[r] / (double)(cyclesElapsed)) * Vdd / 1000.0;
+		actprePower[r] = ((double)actpreEnergy[r] / (double)(cyclesElapsed)) * Vdd / 1000.0;
+		averagePower[r] = ((backgroundEnergy[r] + burstEnergy[r] + refreshEnergy[r] + actpreEnergy[r]) / (double)cyclesElapsed) * Vdd / 1000.0;
 
 		if ((*parentMemorySystem->ReportPower)!=NULL)
 		{
-			(*parentMemorySystem->ReportPower)(backgroundPower[i],burstPower[i],refreshPower[i],actprePower[i]);
+			(*parentMemorySystem->ReportPower)(backgroundPower[r],burstPower[r],refreshPower[r],actprePower[r]);
 		}
 
-		PRINT( " == Power Data for Rank        " << i );
-		PRINT( "   Average Power (watts)     : " << averagePower[i] );
-		PRINT( "     -Background (watts)     : " << backgroundPower[i] );
-		PRINT( "     -Act/Pre    (watts)     : " << actprePower[i] );
-		PRINT( "     -Burst      (watts)     : " << burstPower[i]);
-		PRINT( "     -Refresh    (watts)     : " << refreshPower[i] );
+		PRINT( " == Power Data for Rank        " << r );
+		PRINT( "   Average Power (watts)     : " << averagePower[r] );
+		PRINT( "     -Background (watts)     : " << backgroundPower[r] );
+		PRINT( "     -Act/Pre    (watts)     : " << actprePower[r] );
+		PRINT( "     -Burst      (watts)     : " << burstPower[r]);
+		PRINT( "     -Refresh    (watts)     : " << refreshPower[r] );
 		if (VIS_FILE_OUTPUT)
 		{
 			// write the vis file output
-			(*visDataOut) << "bgp_"<<i<<"="<<backgroundPower[i]<<",";
-			(*visDataOut) << "ap_"<<i<<"="<<actprePower[i]<<",";
-			(*visDataOut) << "bp_"<<i<<"="<<burstPower[i]<<",";
-			(*visDataOut) << "rp_"<<i<<"="<<refreshPower[i]<<",";
-			for (size_t j=0; j<NUM_BANKS; j++)
+			csvOut << indexStr("Background_Power",myChannel,r) <<backgroundPower[r];
+			csvOut << indexStr("ACT_PRE_Power",myChannel,r) << actprePower[r];
+			csvOut << indexStr("Burst_Power",myChannel,r) << burstPower[r];
+			csvOut << indexStr("Refresh_Power",myChannel,r) << refreshPower[r];
+			double totalRankBandwidth=0.0;
+			for (size_t b=0; b<NUM_BANKS; b++)
 			{
-				(*visDataOut) << "b_" <<i<<"_"<<j<<"="<<bandwidth[SEQUENTIAL(i,j)]<<",";
-				(*visDataOut) << "l_" <<i<<"_"<<j<<"="<<averageLatency[SEQUENTIAL(i,j)]<<",";
+				csvOut << indexStr("Bandwidth",myChannel,r,b) << bandwidth[SEQUENTIAL(r,b)];
+				totalRankBandwidth += bandwidth[SEQUENTIAL(r,b)];
+				totalAggregateBandwidth += bandwidth[SEQUENTIAL(r,b)];
+				csvOut << indexStr("Average_Latency",myChannel,r,b) << averageLatency[SEQUENTIAL(r,b)];
 			}
+			csvOut << indexStr("Rank_Aggregate_Bandwidth",myChannel,r) << totalRankBandwidth; 
+			csvOut << indexStr("Rank_Average_Bandwidth",myChannel,r) << totalRankBandwidth/NUM_RANKS; 
 		}
 	}
 	if (VIS_FILE_OUTPUT)
 	{
-		(*visDataOut) <<endl;
+		csvOut << indexStr("Aggregate_Bandwidth",myChannel) << totalAggregateBandwidth;
+		csvOut << indexStr("Average_Bandwidth",myChannel) << totalAggregateBandwidth / (NUM_RANKS*NUM_BANKS);
+		csvOut.finalize(); 
 	}
 
 	// only print the latency histogram at the end of the simulation since it clogs the output too much to print every epoch

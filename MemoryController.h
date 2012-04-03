@@ -29,12 +29,6 @@
 *********************************************************************************/
 
 
-
-
-
-
-
-
 #ifndef MEMORYCONTROLLER_H
 #define MEMORYCONTROLLER_H
 
@@ -50,6 +44,7 @@
 #include "BusPacket.h"
 #include "BankState.h"
 #include "Rank.h"
+#include "CSVWriter.h"
 #include <map>
 
 using namespace std;
@@ -98,6 +93,7 @@ private:
 
 	//output file
 	std::ofstream *visDataOut;
+	CSVWriter csvOut; 
 
 	// these packets are counting down waiting to be transmitted on the "bus"
 	BusPacket *outgoingCmdPacket;
