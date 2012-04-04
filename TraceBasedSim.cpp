@@ -334,11 +334,11 @@ void alignTransactionAddress(Transaction &trans)
 int main(int argc, char **argv)
 {
 	int c;
-	string traceFileName = "";
 	TraceType traceType;
-	string systemIniFilename = "system.ini";
-	string deviceIniFilename = "";
-	string pwdString = "";
+	string traceFileName;
+	string systemIniFilename("system.ini");
+	string deviceIniFilename;
+	string pwdString;
 	unsigned megsOfMemory=2048;
 	bool useClockCycle=true;
 

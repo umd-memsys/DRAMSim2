@@ -38,12 +38,7 @@
 
 #include "MemorySystem.h"
 #include "IniReader.h"
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
-#include <errno.h> 
-#include <sstream> //stringstream
-#include <stdlib.h> // getenv()
 
 using namespace std;
 
@@ -60,19 +55,13 @@ ofstream dramsim_log;
 
 powerCallBack_t MemorySystem::ReportPower = NULL;
 
-MemorySystem::MemorySystem(unsigned id, string deviceIniFilename, string systemIniFilename, string pwd,
-                           string traceFilename, unsigned int megsOfMemory) :
+MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, ofstream &visDataOut_) :
 		ReturnReadData(NULL),
 		WriteDataDone(NULL),
-		systemID(0),
-		deviceIniFilename(deviceIniFilename),
-		systemIniFilename(systemIniFilename),
-		traceFilename(traceFilename),
-		pwd(pwd)
+		visDataOut(visDataOut_),
+		systemID(id)
 {
 	currentClockCycle = 0;
-	//set ID
-	systemID = id;
 
 	DEBUG("===== MemorySystem "<<systemID<<" =====");
 
@@ -138,13 +127,8 @@ MemorySystem::MemorySystem(unsigned id, string deviceIniFilename, string systemI
 	NUM_DEVICES = JEDEC_DATA_BUS_BITS/DEVICE_WIDTH;
 	TOTAL_STORAGE = (NUM_RANKS * megsOfStoragePerRank); 
 
-	DEBUG("TOTAL_STORAGE : "<< TOTAL_STORAGE << "MB | "<<NUM_RANKS<<" Ranks | "<< NUM_DEVICES <<" Devices per rank");
+	DEBUG("CH. " <<systemID<<" TOTAL_STORAGE : "<< TOTAL_STORAGE << "MB | "<<NUM_RANKS<<" Ranks | "<< NUM_DEVICES <<" Devices per rank");
 
-	IniReader::InitEnumsFromStrings();
-	if (!IniReader::CheckIfAllSet())
-	{
-		exit(-1);
-	}
 
 	memoryController = new MemoryController(this, &visDataOut);
 
@@ -165,23 +149,6 @@ MemorySystem::MemorySystem(unsigned id, string deviceIniFilename, string systemI
 }
 
 
-void MemorySystem::overrideSystemParam(string key, string value)
-{
-	cerr << "Override key " <<key<<"="<<value<<endl;
-	IniReader::SetKey(key, value, true);
-}
-
-void MemorySystem::overrideSystemParam(string keyValuePair)
-{
-	size_t equalsign=-1;
-	string overrideKey, overrideVal;
-	//FIXME: could use some error checks on the string
-	if ((equalsign = keyValuePair.find_first_of('=')) != string::npos) {
-		overrideKey = keyValuePair.substr(0,equalsign);
-		overrideVal = keyValuePair.substr(equalsign+1);
-		overrideSystemParam(overrideKey, overrideVal);
-	}
-}
 
 MemorySystem::~MemorySystem()
 {
@@ -192,11 +159,7 @@ MemorySystem::~MemorySystem()
 	delete(memoryController);
 	ranks->clear();
 	delete(ranks);
-	if (VIS_FILE_OUTPUT) 
-	{	
-		visDataOut.flush();
-		visDataOut.close();
-	}
+
 	if (VERIFICATION_OUTPUT)
 	{
 		cmd_verify_out.flush();
@@ -204,196 +167,9 @@ MemorySystem::~MemorySystem()
 	}
 }
 
-bool fileExists(string path)
-{
-	struct stat stat_buf;
-	if (stat(path.c_str(), &stat_buf) != 0) 
-	{
-		if (errno == ENOENT)
-		{
-			return false; 
-		}
-	}
-	return true;
-}
 
-/**
- * This function creates up to 3 output files: 
- * 	- The .log file if LOG_OUTPUT is set
- * 	- the .csv file where data for each epoch will go
- * 	- the .tmp file if verification output is enabled
- * The results directory is setup to be in PWD/TRACEFILENAME.[SIM_DESC]/DRAM_PARTNAME/PARAMS.csv
- * The environment variable SIM_DESC is also appended to output files/directories
- **/
-string MemorySystem::InitOutputFiles(string traceFilename)
-{
-	size_t lastSlash;
-	size_t deviceIniFilenameLength = deviceIniFilename.length();
-	string sim_description_str;
-	string deviceName;
-	
-	char *sim_description = getenv("SIM_DESC");
 
-#ifdef LOG_OUTPUT
-	// create a .log filename and open it as the stream 'dramsim_log' 
-	string dramsimLogFilename("dramsim"); 
-	if (sim_description != NULL)
-	{
-		sim_description_str = string(sim_description);
-		dramsimLogFilename += "."+sim_description_str; 
-	}
-	dramsimLogFilename += ".log";
 
-	dramsim_log.open(dramsimLogFilename.c_str(), ios_base::out | ios_base::trunc );
-	if (!dramsim_log) 
-	{
-		ERROR("Cannot open "<< dramsimLogFilename);
-		exit(-1); 
-	}
-#endif
-
-	// create a properly named verification output file if need be and open it
-	// as the stream 'cmd_verify_out'
-	if (VERIFICATION_OUTPUT)
-	{
-		string basefilename = deviceIniFilename.substr(deviceIniFilename.find_last_of("/")+1);
-		string verify_filename =  "sim_out_"+basefilename;
-		if (sim_description != NULL)
-		{
-			verify_filename += "."+sim_description_str;
-		}
-		verify_filename += ".tmp";
-		cmd_verify_out.open(verify_filename.c_str());
-		if (!cmd_verify_out)
-		{
-			ERROR("Cannot open "<< verify_filename);
-			abort(); 
-		}
-	}
-	// This sets up the csv file output along with the creating the result
-	// directory structure if it doesn't exist
-	if (VIS_FILE_OUTPUT)
-	{
-		// chop off the .ini if it's there
-		if (deviceIniFilename.substr(deviceIniFilenameLength-4) == ".ini")
-		{
-			deviceName = deviceIniFilename.substr(0,deviceIniFilenameLength-4);
-			deviceIniFilenameLength -= 4;
-		}
-
-		// chop off everything past the last / (i.e. leave filename only)
-		if ((lastSlash = deviceName.find_last_of("/")) != string::npos)
-		{
-			deviceName = deviceName.substr(lastSlash+1,deviceIniFilenameLength-lastSlash-1);
-		}
-
-		// working backwards, chop off the next piece of the directory
-		if ((lastSlash = traceFilename.find_last_of("/")) != string::npos)
-		{
-			traceFilename = traceFilename.substr(lastSlash+1,traceFilename.length()-lastSlash-1);
-		}
-		if (sim_description != NULL)
-		{
-			traceFilename += "."+sim_description_str;
-		}
-
-		string rest;
-		stringstream out,tmpNum,tmpSystemID;
-
-		string path = "results/";
-		string filename;
-		if (pwd.length() > 0)
-		{
-			path = pwd + "/" + path;
-		}
-
-		// create the directories if they don't exist 
-		mkdirIfNotExist(path);
-		path = path + traceFilename + "/";
-		mkdirIfNotExist(path);
-		path = path + deviceName + "/";
-		mkdirIfNotExist(path);
-
-		// finally, figure out the filename
-		string sched = "BtR";
-		string queue = "pRank";
-		if (schedulingPolicy == RankThenBankRoundRobin)
-		{
-			sched = "RtB";
-		}
-		if (queuingStructure == PerRankPerBank)
-		{
-			queue = "pRankpBank";
-		}
-
-		/* I really don't see how "the C++ way" is better than snprintf()  */
-		out << (TOTAL_STORAGE>>10) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue;
-		if (sim_description)
-		{
-			out << "." << sim_description;
-		}
-
-		//filename so far, without extension, see if it exists already
-		filename = out.str();
-		for (int i=0; i<100; i++)
-		{
-			if (fileExists(path+filename+tmpNum.str()+".csv"))
-			{
-				tmpNum.seekp(0);
-				tmpNum << "." << i;
-			}
-			else 
-			{
-				filename = filename+tmpNum.str()+".csv";
-				break;
-			}
-		}
-
-		if (systemID!=0)
-		{
-			tmpSystemID<<"."<<systemID;
-		}
-		path.append(filename+tmpSystemID.str());
-
-		return path;
-	}
-	return string("");
-}
-
-void MemorySystem::mkdirIfNotExist(string path)
-{
-	struct stat stat_buf;
-	// check if the directory exists
-	if (stat(path.c_str(), &stat_buf) != 0) // nonzero return value on error, check errno
-	{
-		if (errno == ENOENT) 
-		{
-			DEBUG("\t directory doesn't exist, trying to create ...");
-
-			// set permissions dwxr-xr-x on the results directories
-			mode_t mode = (S_IXOTH | S_IXGRP | S_IXUSR | S_IROTH | S_IRGRP | S_IRUSR | S_IWUSR) ;
-			if (mkdir(path.c_str(), mode) != 0)
-			{
-				perror("Error Has occurred while trying to make directory: ");
-				cerr << path << endl;
-				abort();
-			}
-		}
-		else
-		{
-			perror("Something else when wrong: "); 
-			abort();
-		}
-	}
-	else // directory already exists
-	{
-		if (!S_ISDIR(stat_buf.st_mode))
-		{
-			ERROR(path << "is not a directory");
-			abort();
-		}
-	}
-}
 
 bool MemorySystem::WillAcceptTransaction()
 {
@@ -438,23 +214,7 @@ void MemorySystem::printStats(bool)
 //update the memory systems state
 void MemorySystem::update()
 {
-	if (currentClockCycle == 0)
-	{
-		string visOutputFilename = InitOutputFiles(traceFilename);
-		if (VIS_FILE_OUTPUT)
-		{
-			cerr << "writing vis file to " <<visOutputFilename<<endl;
 
-			visDataOut.open(visOutputFilename.c_str());
-			if (!visDataOut)
-			{
-				ERROR("Cannot open '"<<visOutputFilename<<"'");
-				exit(-1);
-			}
-			//write out the ini config values for the visualizer tool
-			IniReader::WriteValuesOut(visDataOut);
-		}	
-	}
 	//PRINT(" ----------------- Memory System Update ------------------");
 
 	//updates the state of each of the objects
@@ -490,12 +250,6 @@ void MemorySystem::RegisterCallbacks( Callback_t* readCB, Callback_t* writeCB,
 	ReturnReadData = readCB;
 	WriteDataDone = writeCB;
 	ReportPower = reportPower;
-}
-
-// static allocator for the library interface 
-MemorySystem *getMemorySystemInstance(unsigned id, string dev, string sys, string pwd, string trc, unsigned megsOfMemory)
-{
-	return new MemorySystem(id, dev, sys, pwd, trc, megsOfMemory);
 }
 
 } /*namespace DRAMSim */

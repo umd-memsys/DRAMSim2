@@ -1,6 +1,6 @@
 ; COPY THIS FILE AND MODIFY IT TO SUIT YOUR NEEDS
 
-NUM_CHANS=1								; we haven't tested a whole lot with CHANS>1 so use at your own peril 
+NUM_CHANS=2								; we haven't tested a whole lot with CHANS>1 so use at your own peril 
 JEDEC_DATA_BUS_BITS=64 					; will never change for DDR parts
 TRANS_QUEUE_DEPTH=32					; transaction queue, i.e., CPU-level commands such as:  READ 0xbeef
 CMD_QUEUE_DEPTH=32						; command queue, i.e., DRAM-level commands such as: CAS 544, RAS 4

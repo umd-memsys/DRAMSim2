@@ -53,7 +53,7 @@ class MemorySystem : public SimulatorObject
 {
 public:
 	//functions
-	MemorySystem(unsigned id, string dev, string sys, string pwd, string trc, unsigned megsOfMemory);
+	MemorySystem(unsigned id, unsigned megsOfMemory, ofstream &visDataOut);
 	virtual ~MemorySystem();
 	void update();
 	bool addTransaction(Transaction &trans);
@@ -61,27 +61,16 @@ public:
 	void printStats();
 	void printStats(bool unused);
 	bool WillAcceptTransaction();
-	string InitOutputFiles(string tracefilename);
 	void RegisterCallbacks(
 	    Callback_t *readDone,
 	    Callback_t *writeDone,
 	    void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
 
-
-	// mostly for other simulators
-	void overrideSystemParam(string key, string value);
-	void overrideSystemParam(string kvpair);
-
-
-
 	//fields
-	// unfortunately, this is the easiest to keep C++ from initializing my members by default
 	MemoryController *memoryController;
 	vector<Rank> *ranks;
 	deque<Transaction> pendingTransactions; 
 
-	//output file
-	std::ofstream visDataOut;
 
 	//function pointers
 	Callback_t* ReturnReadData;
@@ -90,13 +79,8 @@ public:
 	static powerCallBack_t ReportPower;
 
 	unsigned systemID;
-
 private:
-	static void mkdirIfNotExist(string path);
-	string deviceIniFilename;
-	string systemIniFilename;
-	string traceFilename;
-	string pwd;
+	ofstream &visDataOut; 
 };
 }
 
