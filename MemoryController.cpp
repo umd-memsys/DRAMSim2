@@ -499,7 +499,6 @@ void MemoryController::update()
 		//and add them to the command queue
 		if (commandQueue.hasRoomFor(2, newTransactionRank, newTransactionBank))
 		{
-
 			if (DEBUG_ADDR_MAP) 
 			{
 				PRINTN("== New Transaction - Mapping Address [0x" << hex << transaction.address << dec << "]");
@@ -517,58 +516,37 @@ void MemoryController::update()
 				PRINT("  Col  : " << newTransactionColumn);
 			}
 
+			// If we have a read, save the transaction so when the data comes back
+			// in a bus packet, we can staple it back into a transaction and return it
 			if (transaction.transactionType == DATA_READ)
 			{
 				pendingReadTransactions.push_back(transaction);
 			}
-			//now that we know there is room, we can remove from the transaction queue
+
+			//now that we know there is room in the command queue, we can remove from the transaction queue
 			transactionQueue.erase(transactionQueue.begin()+i);
 
 			//create activate command to the row we just translated
-			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction.address, newTransactionColumn, newTransactionRow,
-			                                 newTransactionRank, newTransactionBank, 0);
-			commandQueue.enqueue(ACTcommand);
+			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction.address,
+					newTransactionColumn, newTransactionRow, newTransactionRank,
+					newTransactionBank, 0);
 
 			//create read or write command and enqueue it
-			if (transaction.transactionType == DATA_READ)
-			{
-				BusPacket *READcommand;
-				if (rowBufferPolicy == OpenPage)
-				{
-					READcommand = new BusPacket(READ, transaction.address, newTransactionColumn, newTransactionRow,
-					                        newTransactionRank, newTransactionBank,0);
-					commandQueue.enqueue(READcommand);
-				}
-				else if (rowBufferPolicy == ClosePage)
-				{
-					READcommand = new BusPacket(READ_P, transaction.address, newTransactionColumn, newTransactionRow,
-					                        newTransactionRank, newTransactionBank,0);
-					commandQueue.enqueue(READcommand);
-				}
-			}
-			else if (transaction.transactionType == DATA_WRITE)
-			{
-				BusPacket *WRITEcommand;
-				if (rowBufferPolicy == OpenPage)
-				{
-					WRITEcommand = new BusPacket(WRITE, transaction.address, newTransactionColumn, newTransactionRow,
-					                         newTransactionRank, newTransactionBank, transaction.data);
-					commandQueue.enqueue(WRITEcommand);
-				}
-				else if (rowBufferPolicy == ClosePage)
-				{
-					WRITEcommand = new BusPacket(WRITE_P, transaction.address, newTransactionColumn, newTransactionRow,
-					                         newTransactionRank, newTransactionBank, transaction.data);
-					commandQueue.enqueue(WRITEcommand);
-				}
-			}
-			else
-			{
-				ERROR("== Error -	 Unknown transaction type");
-				exit(0);
-			}
+			BusPacketType bpType = transaction.getBusPacketType();
+			BusPacket *command = new BusPacket(bpType, transaction.address,
+					newTransactionColumn, newTransactionRow, newTransactionRank,
+					newTransactionBank, transaction.data);
+
+			/* only allow one transaction to be scheduled per cycle -- this should
+			 * be a reasonable assumption considering how much logic would be
+			 * required to schedule multiple entries per cycle (parallel data
+			 * lines, switching logic, decision logic)
+			 */
+			commandQueue.enqueue(ACTcommand);
+			commandQueue.enqueue(command);
+			break;
 		}
-		else
+		else // no room, do nothing this cycle
 		{
 			//PRINT( "== Warning - No room in command queue" << endl;
 		}
@@ -591,6 +569,7 @@ void MemoryController::update()
 					if (bankStates[i][j].currentBankState != Idle)
 					{
 						allIdle = false;
+						break;
 					}
 				}
 
