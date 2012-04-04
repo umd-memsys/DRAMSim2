@@ -28,13 +28,6 @@
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
 
-
-
-
-
-
-
-
 #ifndef BUSPACKET_H
 #define BUSPACKET_H
 //BusPacket.h
@@ -77,6 +70,7 @@ public:
 	void print();
 	void print(uint64_t currentClockCycle, bool dataStart);
 	static void printData(const void *data);
+
 };
 }
 

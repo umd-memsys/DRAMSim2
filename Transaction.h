@@ -36,6 +36,7 @@
 //Header file for transaction object
 
 #include "SystemConfiguration.h"
+#include "BusPacket.h"
 
 using namespace std;
 
@@ -64,6 +65,46 @@ public:
 	Transaction();
 
 	void print();
+
+	BusPacketType getBusPacketType()
+	{
+		switch (transactionType)
+		{
+			case DATA_READ:
+			if (rowBufferPolicy == ClosePage)
+			{
+				return READ_P;
+			}
+			else if (rowBufferPolicy == OpenPage)
+			{
+				return READ; 
+			}
+			else
+			{
+				ERROR("Unknown row buffer policy");
+				abort();
+			}
+			break;
+		case DATA_WRITE:
+			if (rowBufferPolicy == ClosePage)
+			{
+				return WRITE_P;
+			}
+			else if (rowBufferPolicy == OpenPage)
+			{
+				return WRITE; 
+			}
+			else
+			{
+				ERROR("Unknown row buffer policy");
+				abort();
+			}
+			break;
+		default:
+			ERROR("This transaction type doesn't have a corresponding bus packet type");
+			abort();
+		}
+	}
 };
 }
 
