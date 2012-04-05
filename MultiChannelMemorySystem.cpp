@@ -325,15 +325,13 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 bool MultiChannelMemorySystem::addTransaction(Transaction &trans)
 {
 	unsigned channelNumber = findChannelNumber(trans.address); 
-	channels[channelNumber]->addTransaction(trans); 
-	return true;
+	return channels[channelNumber]->addTransaction(trans); 
 }
 
 bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr)
 {
 	unsigned channelNumber = findChannelNumber(addr); 
-	channels[channelNumber]->addTransaction(isWrite, addr); 
-	return true;
+	return channels[channelNumber]->addTransaction(isWrite, addr); 
 }
 
 void MultiChannelMemorySystem::printStats() {
