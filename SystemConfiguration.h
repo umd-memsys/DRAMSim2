@@ -214,6 +214,11 @@ unsigned inline dramsim_log2(unsigned value)
 	if ((unsigned)1<<logbase2<orig)logbase2++;
 	return logbase2;
 }
+inline bool isPowerOfTwo(unsigned long x)
+{
+	return (1UL<<dramsim_log2(x)) == x;
+}
+
 
 };
 

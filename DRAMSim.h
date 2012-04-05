@@ -44,7 +44,6 @@ namespace DRAMSim
 
 	class MultiChannelMemorySystem {
 		public: 
-	MultiChannelMemorySystem(const string &dev, const string &sys, const string &pwd, const &string trc, unsigned megsOfMemory);
 			bool addTransaction(bool isWrite, uint64_t addr);
 			void update();
 			void printStats();
@@ -53,8 +52,7 @@ namespace DRAMSim
 				TransactionCompleteCB *writeDone,
 				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
 	};
-	MultiChannelMemorySystem *getMemorySystemInstance(string dev, string sys, string pwd, string trc, unsigned megsOfMemory);
+	MultiChannelMemorySystem *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory);
 }
-
 
 #endif

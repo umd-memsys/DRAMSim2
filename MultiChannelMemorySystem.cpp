@@ -46,6 +46,12 @@ using namespace DRAMSim;
 MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilename_, const string &systemIniFilename_, const string &pwd_, const string &traceFilename_, unsigned megsOfMemory_)
 	:megsOfMemory(megsOfMemory_), deviceIniFilename(deviceIniFilename_), systemIniFilename(systemIniFilename_), traceFilename(traceFilename_), pwd(pwd_)
 {
+	if (!isPowerOfTwo(megsOfMemory))
+	{
+		ERROR("Please specify a power of 2 memory size"); 
+		abort(); 
+	}
+
 	if (pwd.length() > 0)
 	{
 		//ignore the pwd argument if the argument is an absolute path
@@ -82,34 +88,18 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilena
 		MemorySystem *channel = new MemorySystem(i, megsOfMemory/NUM_CHANS, visDataOut);
 		channels.push_back(channel);
 	}
-#ifdef LOG_OUTPUT
-	char *sim_description = getenv("SIM_DESC");
-	string sim_description_str;
-	string dramsimLogFilename("dramsim");
-	if (sim_description != NULL)
-	{
-		sim_description_str = string(sim_description);
-		dramsimLogFilename += "."+sim_description_str; 
-	}
-	dramsimLogFilename += ".log";
-
-	dramsim_log.open(dramsimLogFilename.c_str(), ios_base::out | ios_base::trunc );
-
-	if (!dramsim_log) 
-	{
-// ERROR("Cannot open "<< dramsimLogFilename);
-	//	exit(-1); 
-	}
-#endif
 
 }
 /**
  * This function creates up to 3 output files: 
  * 	- The .log file if LOG_OUTPUT is set
- * 	- the .vis file where data for each epoch will go
+ * 	- the .vis file where csv data for each epoch will go
  * 	- the .tmp file if verification output is enabled
  * The results directory is setup to be in PWD/TRACEFILENAME.[SIM_DESC]/DRAM_PARTNAME/PARAMS.vis
  * The environment variable SIM_DESC is also appended to output files/directories
+ *
+ * TODO: verification info needs to be generated per channel so it has to be
+ * moved back to MemorySystem
  **/
 void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 {
@@ -231,6 +221,24 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 		IniReader::WriteValuesOut(visDataOut);
 
 	}
+#ifdef LOG_OUTPUT
+	string dramsimLogFilename("dramsim");
+	if (sim_description != NULL)
+	{
+		sim_description_str = string(sim_description);
+		dramsimLogFilename += "."+sim_description_str; 
+	}
+	dramsimLogFilename += ".log";
+
+	dramsim_log.open(dramsimLogFilename.c_str(), ios_base::out | ios_base::trunc );
+
+	if (!dramsim_log) 
+	{
+	ERROR("Cannot open "<< dramsimLogFilename);
+	//	exit(-1); 
+	}
+#endif
+
 }
 
 bool MultiChannelMemorySystem::fileExists(string path)
@@ -254,7 +262,7 @@ void MultiChannelMemorySystem::mkdirIfNotExist(string path)
 	{
 		if (errno == ENOENT) 
 		{
-			DEBUG("\t directory doesn't exist, trying to create ...");
+//			DEBUG("\t directory doesn't exist, trying to create ...");
 
 			// set permissions dwxr-xr-x on the results directories
 			mode_t mode = (S_IXOTH | S_IXGRP | S_IXUSR | S_IROTH | S_IRGRP | S_IRUSR | S_IWUSR) ;
@@ -301,6 +309,8 @@ void MultiChannelMemorySystem::overrideSystemParam(string keyValuePair)
 
 MultiChannelMemorySystem::~MultiChannelMemorySystem()
 {
+// Should only ever be called on exit, so don't bother to delete stuff, just
+// flush our streams and close em up
 #ifdef LOG_OUTPUT
 	dramsim_log.flush();
 	dramsim_log.close();
@@ -332,9 +342,10 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 		return 0; 
 	}
 
-	if (NUM_CHANS % 2 != 0)
+	if (!isPowerOfTwo(NUM_CHANS))
 	{
-		ERROR("Odd number of logically independent channels not supported"); 
+		ERROR("We can only support power of two # of channels.\n" <<
+				"I don't know what Intel was thinking, but trying to address map half a bit is a neat trick that we're not sure how to do"); 
 		abort(); 
 	}
 
@@ -382,7 +393,7 @@ void MultiChannelMemorySystem::RegisterCallbacks(
 	}
 }
 namespace DRAMSim {
-MultiChannelMemorySystem *getMultiChannelMemorySystemInstance(string dev, string sys, string pwd, string trc, unsigned megsOfMemory) 
+MultiChannelMemorySystem *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory) 
 {
 	return new MultiChannelMemorySystem(dev, sys, pwd, trc, megsOfMemory);
 }

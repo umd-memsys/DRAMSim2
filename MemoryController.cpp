@@ -737,6 +737,7 @@ void MemoryController::update()
 		{
 			for (size_t j=0; j<NUM_BANKS; j++)
 			{
+				//XXX: this means the bank list won't be printed for partial epochs
 				grandTotalBankAccesses[SEQUENTIAL(i,j)] += totalReadsPerBank[SEQUENTIAL(i,j)] + totalWritesPerBank[SEQUENTIAL(i,j)];
 				totalReadsPerBank[SEQUENTIAL(i,j)] = 0;
 				totalWritesPerBank[SEQUENTIAL(i,j)] = 0;
@@ -907,14 +908,16 @@ void MemoryController::printStats(bool finalStats)
 				(*visDataOut) << it->first <<"="<< it->second << endl;
 			}
 		}
-
-		PRINT( " --- Grand Total Bank usage list");
-		for (size_t i=0;i<NUM_RANKS;i++)
+		if (currentClockCycle % EPOCH_LENGTH == 0)
 		{
-			PRINT("Rank "<<i<<":"); 
-			for (size_t j=0;j<NUM_BANKS;j++)
+			PRINT( " --- Grand Total Bank usage list");
+			for (size_t i=0;i<NUM_RANKS;i++)
 			{
-				PRINT( "  b"<<j<<": "<<grandTotalBankAccesses[SEQUENTIAL(i,j)]);
+				PRINT("Rank "<<i<<":"); 
+				for (size_t j=0;j<NUM_BANKS;j++)
+				{
+					PRINT( "  b"<<j<<": "<<grandTotalBankAccesses[SEQUENTIAL(i,j)]);
+				}
 			}
 		}
 

@@ -56,12 +56,8 @@ void power_callback(double a, double b, double c, double d)
 int some_object::add_one_and_run()
 {
 	/* pick a DRAM part to simulate */
-#define MULTICHANNEL
-#ifdef MULTICHANNEL
-	MultiChannelMemorySystem *mem = getMultiChannelMemorySystemInstance("ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 16384); 
-#else
-	MemorySystem *mem = new MemorySystem(0, "ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "resultsfilename", 8192); 
-#endif
+	MultiChannelMemorySystem *mem = getMemorySystemInstance("ini/DDR2_micron_16M_8b_x8_sg3E.ini", "system.ini", "..", "example_app", 16384); 
+
 	TransactionCompleteCB *read_cb = new Callback<some_object, void, unsigned, uint64_t, uint64_t>(this, &some_object::read_complete);
 	TransactionCompleteCB *write_cb = new Callback<some_object, void, unsigned, uint64_t, uint64_t>(this, &some_object::write_complete);
 
