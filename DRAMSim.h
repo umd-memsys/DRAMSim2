@@ -3,7 +3,7 @@
 *                             Paul Rosenfeld
 *                             Bruce Jacob
 *                             University of Maryland 
-*                             dramninjas [at] umd [dot] edu
+*                             dramninjas [at] gmail [dot] com
 *  All rights reserved.
 *  
 *  Redistribution and use in source and binary forms, with or without
