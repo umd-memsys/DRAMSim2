@@ -77,8 +77,8 @@ public:
 	Callback_t* WriteDataDone;
 	//TODO: make this a functor as well?
 	static powerCallBack_t ReportPower;
-
 	unsigned systemID;
+
 private:
 	ofstream &visDataOut; 
 };

@@ -34,10 +34,13 @@
 #include <stdlib.h>
 #include <iostream>
 #include <vector>
+#include <string>
+
 #include <string.h>
 
 using std::vector; 
 using std::ostream;
+using std::string; 
 /*
  * CSVWriter: Writes CSV data with headers to an underlying ofstream 
  * 	This wrapper is meant to look like an ofstream, but it captures 
@@ -75,46 +78,51 @@ using std::ostream;
 
 
 namespace DRAMSim {
-	// Single index
-	static char *indexStr(const char *baseName, unsigned channel)
-	{
-		if (strlen(baseName)+SINGLE_INDEX_LEN > MAX_TMP_STR)
-		{
-			ERROR("Your string is too long for the stats, increase MAX_TMP_STR"); 
-			abort(); 
-		}
-		char tmp_str[MAX_TMP_STR]; 
-		snprintf(tmp_str, MAX_TMP_STR,"%s[%u]", baseName, channel); 
-		return strndup(tmp_str, MAX_TMP_STR); 
-	}
-
-	// two indices 
-	static char *indexStr(const char *baseName, unsigned channel, unsigned rank)
-	{
-		if (strlen(baseName)+(2*SINGLE_INDEX_LEN) > MAX_TMP_STR)
-		{
-			ERROR("Your string is too long for the stats, increase MAX_TMP_STR"); 
-			abort(); 
-		}
-		char tmp_str[MAX_TMP_STR]; 
-		snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u]", baseName, channel, rank); 
-		return strndup(tmp_str, MAX_TMP_STR); 
-	}
-
-	// three indices	
-	static char *indexStr(const char *baseName, unsigned channel, unsigned rank, unsigned bank)
-	{
-		if (strlen(baseName)+(3*SINGLE_INDEX_LEN) > MAX_TMP_STR)
-		{
-			ERROR("Your string is too long for the stats, increase MAX_TMP_STR"); 
-			exit(-1); 
-		}
-		char tmp_str[MAX_TMP_STR]; 
-		snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u][%u]", baseName, channel, rank, bank); 
-		return strndup(tmp_str, MAX_TMP_STR); 
-	}
 
 	class CSVWriter {
+		public :
+		struct IndexedName {
+			char *str; 
+			IndexedName(const char *baseName, unsigned channel)
+			{
+				if (strlen(baseName)+(1*SINGLE_INDEX_LEN) > MAX_TMP_STR)
+				{
+					ERROR("Your string is too long for the stats, increase MAX_TMP_STR"); 
+					exit(-1); 
+				}
+				char tmp_str[MAX_TMP_STR]; 
+				snprintf(tmp_str, MAX_TMP_STR,"%s[%u]", baseName, channel); 
+				str = strndup(tmp_str, MAX_TMP_STR); 
+			}
+			IndexedName(const char *baseName, unsigned channel, unsigned rank)
+			{
+				if (strlen(baseName)+(2*SINGLE_INDEX_LEN) > MAX_TMP_STR)
+				{
+					ERROR("Your string is too long for the stats, increase MAX_TMP_STR"); 
+					exit(-1); 
+				}
+				char tmp_str[MAX_TMP_STR]; 
+				snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u]", baseName, channel, rank); 
+				str = strndup(tmp_str, MAX_TMP_STR); 
+			}
+			IndexedName(const char *baseName, unsigned channel, unsigned rank, unsigned bank)
+			{
+				if (strlen(baseName)+(3*SINGLE_INDEX_LEN) > MAX_TMP_STR)
+				{
+					ERROR("Your string is too long for the stats, increase MAX_TMP_STR"); 
+					exit(-1); 
+				}
+				char tmp_str[MAX_TMP_STR]; 
+				snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u][%u]", baseName, channel, rank, bank); 
+				str = strndup(tmp_str, MAX_TMP_STR); 
+			}
+
+			virtual ~IndexedName()
+			{
+				delete str; 
+			}
+
+		};
 		// where the output will eventually go 
 		ostream &output; 
 		vector<string> fieldNames; 
@@ -168,8 +176,17 @@ namespace DRAMSim {
 			}
 			return *this; 
 		}
+		
+		CSVWriter &operator<<(const IndexedName &indexedName)
+		{
+			if (!finalized)
+			{
+				fieldNames.push_back(string(indexedName.str));
+			}
+			return *this; 
+		}
 
-		// Insertion operators for types 
+		// Insertion operators for value types 
 		// All of the other types just need to pass through to the underlying
 		// ofstream, so just write this small wrapper function to make the
 		// whole thing less verbose
@@ -190,7 +207,6 @@ namespace DRAMSim {
 	ADD_TYPE(uint64_t);
 	ADD_TYPE(float);
 	ADD_TYPE(double);
-
 	}; // class CSVWriter
 
 

@@ -58,8 +58,8 @@ powerCallBack_t MemorySystem::ReportPower = NULL;
 MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, ofstream &visDataOut_) :
 		ReturnReadData(NULL),
 		WriteDataDone(NULL),
-		visDataOut(visDataOut_),
-		systemID(id)
+		systemID(id),
+		visDataOut(visDataOut_)
 {
 	currentClockCycle = 0;
 
@@ -166,10 +166,6 @@ MemorySystem::~MemorySystem()
 		cmd_verify_out.close();
 	}
 }
-
-
-
-
 
 bool MemorySystem::WillAcceptTransaction()
 {
