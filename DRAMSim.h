@@ -47,6 +47,9 @@ namespace DRAMSim
 			bool addTransaction(bool isWrite, uint64_t addr);
 			void update();
 			void printStats();
+			bool willAcceptTransaction(); 
+			bool willAcceptTransaction(uint64_t addr); 
+
 			void RegisterCallbacks( 
 				TransactionCompleteCB *readDone,
 				TransactionCompleteCB *writeDone,

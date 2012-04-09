@@ -109,6 +109,10 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 	string deviceName;
 	
 	char *sim_description = getenv("SIM_DESC");
+	if (sim_description)
+	{
+			sim_description_str = string(sim_description);
+	}
 
 
 	// create a properly named verification output file if need be and open it
@@ -225,7 +229,6 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 	string dramsimLogFilename("dramsim");
 	if (sim_description != NULL)
 	{
-		sim_description_str = string(sim_description);
 		dramsimLogFilename += "."+sim_description_str; 
 	}
 	dramsimLogFilename += ".log";
@@ -373,6 +376,35 @@ bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr)
 	unsigned channelNumber = findChannelNumber(addr); 
 	return channels[channelNumber]->addTransaction(isWrite, addr); 
 }
+
+/*
+	This function has two flavors: one with and without the address. 
+	If the simulator won't give us an address and we have multiple channels, 
+	we have to assume the worst and return false if any channel won't accept. 
+
+	However, if the address is given, we can just map the channel and check just
+	that memory controller
+*/
+
+bool MultiChannelMemorySystem::willAcceptTransaction(uint64_t addr)
+{
+	unsigned chan, rank,bank,row,col; 
+	addressMapping(addr, chan, rank, bank, row, col); 
+	return channels[chan]->WillAcceptTransaction(); 
+}
+
+bool MultiChannelMemorySystem::willAcceptTransaction()
+{
+	for (size_t c=0; c<NUM_CHANS; c++) {
+		if (!channels[c]->WillAcceptTransaction())
+		{
+			return false; 
+		}
+	}
+	return true; 
+}
+
+
 
 void MultiChannelMemorySystem::printStats() {
 	for (size_t i=0; i<NUM_CHANS; i++)
