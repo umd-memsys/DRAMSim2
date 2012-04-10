@@ -503,6 +503,8 @@ int main(int argc, char **argv)
 
 	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory);
 	memorySystem->overrideParams(paramOverrides);
+	// don't need this anymore 
+	delete paramOverrides;
 
 
 #ifdef RETURN_TRANSACTIONS
