@@ -419,16 +419,19 @@ void IniReader::ReadIniFile(string filename, bool isSystemFile)
 	}
 }
 
-void IniReader::OverrideKeys(vector<string> keys, vector<string>values)
+void IniReader::OverrideKeys(const OverrideMap *map)
 {
-	if (keys.size() != values.size())
+	if (!map)
+		return; 
+
+	OverrideIterator it = map->begin();
+	DEBUG("Key overrides from command line:"); 
+	for (it=map->begin(); it != map->end(); it++)
 	{
-		ERROR("-o option is messed up");
-		exit(-1);
-	}
-	for (size_t i=0; i<keys.size(); i++)
-	{
-		IniReader::SetKey(keys[i], values[i]);
+		string key = it->first; 
+		string value = it->second; 
+		DEBUG("\t'"<< key <<"'->'"<< value<< "'"); 
+		IniReader::SetKey(key,value);
 	}
 }
 

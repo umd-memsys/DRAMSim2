@@ -31,6 +31,7 @@
 #include "Transaction.h"
 #include "SystemConfiguration.h"
 #include "MemorySystem.h"
+#include "IniReader.h"
 
 
 namespace DRAMSim {
@@ -56,8 +57,8 @@ class MultiChannelMemorySystem : public SimulatorObject
 	void InitOutputFiles(string tracefilename);
 
 	// mostly for other simulators
-	void overrideSystemParam(string key, string value);
-	void overrideSystemParam(string kvpair);
+	void overrideParams(const IniReader::OverrideMap *map); 
+	void overrideParam(string key, string value);
 
 	//output file
 	std::ofstream visDataOut;

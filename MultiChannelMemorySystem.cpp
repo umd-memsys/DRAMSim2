@@ -292,23 +292,32 @@ void MultiChannelMemorySystem::mkdirIfNotExist(string path)
 	}
 }
 
-void MultiChannelMemorySystem::overrideSystemParam(string key, string value)
+void MultiChannelMemorySystem::overrideParams(const IniReader::OverrideMap *map)
 {
-	cerr << "Override key " <<key<<"="<<value<<endl;
+	if (!map)
+		return; 
+
+	if (map->find("NUM_CHANS") != map->end())
+	{
+		//FIXME: override for NUM_CHANS
+		ERROR("Currently no support for overriding the number of channels; if you need this, send me an email and I can implement it. "); 
+		abort(); 
+	}
+
+	IniReader::OverrideKeys(map); 
+}
+
+void MultiChannelMemorySystem::overrideParam(string key, string value)
+{
+	if (key == "NUM_CHANS")
+	{
+		//FIXME: override for NUM_CHANS
+		ERROR("Currently no support for overriding the number of channels; if you need this, send me an email and I can implement it. "); 
+		abort(); 
+	}
 	IniReader::SetKey(key, value, true);
 }
 
-void MultiChannelMemorySystem::overrideSystemParam(string keyValuePair)
-{
-	size_t equalsign=-1;
-	string overrideKey, overrideVal;
-	//FIXME: could use some error checks on the string
-	if ((equalsign = keyValuePair.find_first_of('=')) != string::npos) {
-		overrideKey = keyValuePair.substr(0,equalsign);
-		overrideVal = keyValuePair.substr(equalsign+1);
-		overrideSystemParam(overrideKey, overrideVal);
-	}
-}
 
 MultiChannelMemorySystem::~MultiChannelMemorySystem()
 {

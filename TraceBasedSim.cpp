@@ -46,6 +46,7 @@
 #include "MemorySystem.h"
 #include "MultiChannelMemorySystem.h"
 #include "Transaction.h"
+#include "IniReader.h"
 
 
 using namespace DRAMSim;
@@ -138,13 +139,13 @@ class TransactionReceiver
 void usage()
 {
 	cout << "DRAMSim2 Usage: " << endl;
-	cout << "DRAMSim -t tracefile -s system.ini -d ini/device.ini [-c #] [-p pwd] [-q] [-S 2048] [-n] [-o OPTION_A=1234]" <<endl;
+	cout << "DRAMSim -t tracefile -s system.ini -d ini/device.ini [-c #] [-p pwd] [-q] [-S 2048] [-n] [-o OPTION_A=1234,tRC=14,tFAW=19]" <<endl;
 	cout << "\t-t, --tracefile=FILENAME \tspecify a tracefile to run  "<<endl;
 	cout << "\t-s, --systemini=FILENAME \tspecify an ini file that describes the memory system parameters  "<<endl;
 	cout << "\t-d, --deviceini=FILENAME \tspecify an ini file that describes the device-level parameters"<<endl;
 	cout << "\t-c, --numcycles=# \t\tspecify number of cycles to run the simulation for [default=30] "<<endl;
 	cout << "\t-q, --quiet \t\t\tflag to suppress simulation output (except final stats) [default=no]"<<endl;
-	cout << "\t-o, --option=OPTION_A=234\t\t\toverwrite any ini file option from the command line"<<endl;
+	cout << "\t-o, --option=OPTION_A=234,tFAW=14\t\t\toverwrite any ini file option from the command line"<<endl;
 	cout << "\t-p, --pwd=DIRECTORY\t\tSet the working directory (i.e. usually DRAMSim directory where ini/ and results/ are)"<<endl;
 	cout << "\t-S, --size=# \t\t\tSize of the memory system in megabytes [default=2048M]"<<endl;
 	cout << "\t-n, --notiming \t\t\tDo not use the clock cycle information in the trace file"<<endl;
@@ -331,6 +332,40 @@ void alignTransactionAddress(Transaction &trans)
 	trans.address >>= throwAwayBits;
 	trans.address <<= throwAwayBits;
 }
+
+/** 
+ * Override options can be specified on the command line as -o key1=value1,key2=value2
+ * this method should parse the key-value pairs and put them into a map 
+ **/ 
+IniReader::OverrideMap *parseParamOverrides(const string &kv_str)
+{
+	IniReader::OverrideMap *kv_map = new IniReader::OverrideMap(); 
+	size_t start = 0, comma=0, equal_sign=0;
+	// split the commas if they are there
+	while (1)
+	{
+		equal_sign = kv_str.find('=', start); 
+		if (equal_sign == string::npos)
+		{
+			break;
+		}
+
+		comma = kv_str.find(',', equal_sign);
+		if (comma == string::npos)
+		{
+			comma = kv_str.length();
+		}
+
+		string key = kv_str.substr(start, equal_sign-start);
+		string value = kv_str.substr(equal_sign+1, comma-equal_sign-1); 
+
+		(*kv_map)[key] = value; 
+		start = comma+1;
+
+	}
+	return kv_map; 
+}
+
 int main(int argc, char **argv)
 {
 	int c;
@@ -341,12 +376,8 @@ int main(int argc, char **argv)
 	string pwdString;
 	unsigned megsOfMemory=2048;
 	bool useClockCycle=true;
-
-	bool overrideOpt = false;
-	string overrideKey = "";
-	string overrideVal = "";
-	string tmp = "";
-	size_t equalsign;
+	
+	IniReader::OverrideMap *paramOverrides = NULL; 
 
 	unsigned numCycles=1000;
 	//getopt stuff
@@ -357,6 +388,7 @@ int main(int argc, char **argv)
 			{"deviceini", required_argument, 0, 'd'},
 			{"tracefile", required_argument, 0, 't'},
 			{"systemini", required_argument, 0, 's'},
+
 			{"pwd", required_argument, 0, 'p'},
 			{"numcycles",  required_argument,	0, 'c'},
 			{"option",  required_argument,	0, 'o'},
@@ -415,11 +447,7 @@ int main(int argc, char **argv)
 			useClockCycle=false;
 			break;
 		case 'o':
-			tmp = string(optarg);
-			equalsign = tmp.find_first_of('=');
-			overrideKey = tmp.substr(0,equalsign);
-			overrideVal = tmp.substr(equalsign+1,tmp.size()-equalsign+1);
-			overrideOpt = true;
+			paramOverrides = parseParamOverrides(string(optarg)); 
 			break;
 		case '?':
 			usage();
@@ -474,6 +502,7 @@ int main(int argc, char **argv)
 
 
 	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory);
+	memorySystem->overrideParams(paramOverrides);
 
 
 #ifdef RETURN_TRANSACTIONS
