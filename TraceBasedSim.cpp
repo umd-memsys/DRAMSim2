@@ -149,6 +149,7 @@ void usage()
 	cout << "\t-p, --pwd=DIRECTORY\t\tSet the working directory (i.e. usually DRAMSim directory where ini/ and results/ are)"<<endl;
 	cout << "\t-S, --size=# \t\t\tSize of the memory system in megabytes [default=2048M]"<<endl;
 	cout << "\t-n, --notiming \t\t\tDo not use the clock cycle information in the trace file"<<endl;
+	cout << "\t-v, --visfile \t\t\tVis output filename"<<endl;
 }
 #endif
 
@@ -374,6 +375,7 @@ int main(int argc, char **argv)
 	string systemIniFilename("system.ini");
 	string deviceIniFilename;
 	string pwdString;
+	string *visFilename = NULL;
 	unsigned megsOfMemory=2048;
 	bool useClockCycle=true;
 	
@@ -395,10 +397,11 @@ int main(int argc, char **argv)
 			{"quiet",  no_argument, &SHOW_SIM_OUTPUT, 'q'},
 			{"help", no_argument, 0, 'h'},
 			{"size", required_argument, 0, 'S'},
+			{"visfile", required_argument, 0, 'v'},
 			{0, 0, 0, 0}
 		};
 		int option_index=0; //for getopt
-		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:qn", long_options, &option_index);
+		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:v:qn", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -448,6 +451,9 @@ int main(int argc, char **argv)
 			break;
 		case 'o':
 			paramOverrides = parseParamOverrides(string(optarg)); 
+			break;
+		case 'v':
+			visFilename = new string(optarg);
 			break;
 		case '?':
 			usage();
@@ -501,7 +507,7 @@ int main(int argc, char **argv)
 	string line;
 
 
-	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory);
+	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory, visFilename);
 	memorySystem->overrideParams(paramOverrides);
 	// don't need this anymore 
 	delete paramOverrides;

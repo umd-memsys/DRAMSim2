@@ -43,9 +43,12 @@
 using namespace DRAMSim; 
 
 
-MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilename_, const string &systemIniFilename_, const string &pwd_, const string &traceFilename_, unsigned megsOfMemory_)
-	:megsOfMemory(megsOfMemory_), deviceIniFilename(deviceIniFilename_), systemIniFilename(systemIniFilename_), traceFilename(traceFilename_), pwd(pwd_)
+MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilename_, const string &systemIniFilename_, const string &pwd_, const string &traceFilename_, unsigned megsOfMemory_, string *visFilename_)
+	:megsOfMemory(megsOfMemory_), deviceIniFilename(deviceIniFilename_), systemIniFilename(systemIniFilename_), traceFilename(traceFilename_), pwd(pwd_), visFilename(visFilename_)
 {
+	if (visFilename)
+		printf("CC VISFILENAME=%s\n",visFilename->c_str());
+
 	if (!isPowerOfTwo(megsOfMemory))
 	{
 		ERROR("Please specify a power of 2 memory size"); 
@@ -137,60 +140,69 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 	// directory structure if it doesn't exist
 	if (VIS_FILE_OUTPUT)
 	{
-		// chop off the .ini if it's there
-		if (deviceIniFilename.substr(deviceIniFilenameLength-4) == ".ini")
-		{
-			deviceName = deviceIniFilename.substr(0,deviceIniFilenameLength-4);
-			deviceIniFilenameLength -= 4;
-		}
-
-		// chop off everything past the last / (i.e. leave filename only)
-		if ((lastSlash = deviceName.find_last_of("/")) != string::npos)
-		{
-			deviceName = deviceName.substr(lastSlash+1,deviceIniFilenameLength-lastSlash-1);
-		}
-
-		// working backwards, chop off the next piece of the directory
-		if ((lastSlash = traceFilename.find_last_of("/")) != string::npos)
-		{
-			traceFilename = traceFilename.substr(lastSlash+1,traceFilename.length()-lastSlash-1);
-		}
-		if (sim_description != NULL)
-		{
-			traceFilename += "."+sim_description_str;
-		}
-
-		string rest;
 		stringstream out,tmpNum;
-
-		string path = "results/";
+		string path;
 		string filename;
-		if (pwd.length() > 0)
-		{
-			path = pwd + "/" + path;
-		}
 
-		// create the directories if they don't exist 
-		mkdirIfNotExist(path);
-		path = path + traceFilename + "/";
-		mkdirIfNotExist(path);
-		path = path + deviceName + "/";
-		mkdirIfNotExist(path);
-
-		// finally, figure out the filename
-		string sched = "BtR";
-		string queue = "pRank";
-		if (schedulingPolicy == RankThenBankRoundRobin)
+		if (!visFilename)
 		{
-			sched = "RtB";
-		}
-		if (queuingStructure == PerRankPerBank)
-		{
-			queue = "pRankpBank";
-		}
+			path = "results/";
+			// chop off the .ini if it's there
+			if (deviceIniFilename.substr(deviceIniFilenameLength-4) == ".ini")
+			{
+				deviceName = deviceIniFilename.substr(0,deviceIniFilenameLength-4);
+				deviceIniFilenameLength -= 4;
+			}
 
-		/* I really don't see how "the C++ way" is better than snprintf()  */
-		out << (TOTAL_STORAGE>>10) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue;
+			// chop off everything past the last / (i.e. leave filename only)
+			if ((lastSlash = deviceName.find_last_of("/")) != string::npos)
+			{
+				deviceName = deviceName.substr(lastSlash+1,deviceIniFilenameLength-lastSlash-1);
+			}
+
+			// working backwards, chop off the next piece of the directory
+			if ((lastSlash = traceFilename.find_last_of("/")) != string::npos)
+			{
+				traceFilename = traceFilename.substr(lastSlash+1,traceFilename.length()-lastSlash-1);
+			}
+			if (sim_description != NULL)
+			{
+				traceFilename += "."+sim_description_str;
+			}
+
+			string rest;
+
+			if (pwd.length() > 0)
+			{
+				path = pwd + "/" + path;
+			}
+
+			// create the directories if they don't exist 
+			mkdirIfNotExist(path);
+			path = path + traceFilename + "/";
+			mkdirIfNotExist(path);
+			path = path + deviceName + "/";
+			mkdirIfNotExist(path);
+
+			// finally, figure out the filename
+			string sched = "BtR";
+			string queue = "pRank";
+			if (schedulingPolicy == RankThenBankRoundRobin)
+			{
+				sched = "RtB";
+			}
+			if (queuingStructure == PerRankPerBank)
+			{
+				queue = "pRankpBank";
+			}
+
+			/* I really don't see how "the C++ way" is better than snprintf()  */
+			out << (TOTAL_STORAGE>>10) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue;
+		}
+		else //visFilename given
+		{
+			out << *visFilename;
+		}
 		if (sim_description)
 		{
 			out << "." << sim_description;
@@ -224,6 +236,10 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 		//write out the ini config values for the visualizer tool
 		IniReader::WriteValuesOut(visDataOut);
 
+	}
+	else
+	{
+		cerr << "vis file output disabled\n";
 	}
 #ifdef LOG_OUTPUT
 	string dramsimLogFilename("dramsim");
