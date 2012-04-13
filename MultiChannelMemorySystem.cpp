@@ -43,7 +43,7 @@
 using namespace DRAMSim; 
 
 
-MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilename_, const string &systemIniFilename_, const string &pwd_, const string &traceFilename_, unsigned megsOfMemory_, string *visFilename_)
+MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilename_, const string &systemIniFilename_, const string &pwd_, const string &traceFilename_, unsigned megsOfMemory_, string *visFilename_, const IniReader::OverrideMap *paramOverrides)
 	:megsOfMemory(megsOfMemory_), deviceIniFilename(deviceIniFilename_), systemIniFilename(systemIniFilename_), traceFilename(traceFilename_), pwd(pwd_), visFilename(visFilename_)
 {
 	if (visFilename)
@@ -73,6 +73,10 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilena
 	IniReader::ReadIniFile(deviceIniFilename, false);
 	DEBUG("== Loading system model file '"<<systemIniFilename<<"' == ");
 	IniReader::ReadIniFile(systemIniFilename, true);
+
+	// If we have any overrides, set them now before creating all of the memory objects
+	if (paramOverrides)
+		IniReader::OverrideKeys(paramOverrides);
 
 	IniReader::InitEnumsFromStrings();
 	if (!IniReader::CheckIfAllSet())
@@ -306,32 +310,6 @@ void MultiChannelMemorySystem::mkdirIfNotExist(string path)
 			abort();
 		}
 	}
-}
-
-void MultiChannelMemorySystem::overrideParams(const IniReader::OverrideMap *map)
-{
-	if (!map)
-		return; 
-
-	if (map->find("NUM_CHANS") != map->end())
-	{
-		//FIXME: override for NUM_CHANS
-		ERROR("Currently no support for overriding the number of channels; if you need this, send me an email and I can implement it. "); 
-		abort(); 
-	}
-
-	IniReader::OverrideKeys(map); 
-}
-
-void MultiChannelMemorySystem::overrideParam(string key, string value)
-{
-	if (key == "NUM_CHANS")
-	{
-		//FIXME: override for NUM_CHANS
-		ERROR("Currently no support for overriding the number of channels; if you need this, send me an email and I can implement it. "); 
-		abort(); 
-	}
-	IniReader::SetKey(key, value, true);
 }
 
 

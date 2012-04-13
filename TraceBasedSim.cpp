@@ -507,8 +507,7 @@ int main(int argc, char **argv)
 	string line;
 
 
-	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory, visFilename);
-	memorySystem->overrideParams(paramOverrides);
+	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory, visFilename, paramOverrides);
 	// don't need this anymore 
 	delete paramOverrides;
 
