@@ -489,12 +489,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 				bool sendingPRE = false;
 				unsigned startingRank = nextRankPRE;
 				unsigned startingBank = nextBankPRE;
-				// TODO: REMOVE 
-				if (queuingStructure == PerRankPerBank)
-				{
-					startingRank = !!startingRank;
-					startingBank = !!startingBank;
-				}
+
 				do // round robin over all ranks and banks
 				{
 					vector <BusPacket *> &queue = getCommandQueue(nextRankPRE, nextBankPRE);
