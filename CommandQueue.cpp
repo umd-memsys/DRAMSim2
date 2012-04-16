@@ -546,39 +546,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 	else
 	{
 		sendAct = true;
-		//Using rank-then-bank round-robin policy, determine which queue we will pull from next
-		if (schedulingPolicy == RankThenBankRoundRobin)
-		{
-			nextRank++;
-			if (nextRank == NUM_RANKS)
-			{
-				nextRank = 0;
-				nextBank++;
-				if (nextBank == NUM_BANKS)
-				{
-					nextBank = 0;
-				}
-			}
-		}
-		//bank-then-rank round robin
-		else if (schedulingPolicy == BankThenRankRoundRobin)
-		{
-			nextBank++;
-			if (nextBank == NUM_BANKS)
-			{
-				nextBank = 0;
-				nextRank++;
-				if (nextRank == NUM_RANKS)
-				{
-					nextRank = 0;
-				}
-			}
-		}
-		else
-		{
-			ERROR("== Error - Unknown scheduling policy");
-			exit(0);
-		}
+		nextRankAndBank(nextRank, nextBank);
 	}
 
 	//if its an activate, add a tfaw counter
@@ -593,24 +561,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
 //check if a rank/bank queue has room for a certain number of bus packets
 bool CommandQueue::hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned bank)
 {
-	if (queuingStructure == PerRank)
-	{
-		if (CMD_QUEUE_DEPTH - queues[rank][0].size() >= numberToEnqueue)
-		{
-			return true;
-		}
-		else return false;
-	}
-	else if (queuingStructure == PerRankPerBank)
-	{
-		if (CMD_QUEUE_DEPTH - queues[rank][bank].size() >= numberToEnqueue)
-		{
-			return true;
-		}
-		else return false;
-	}
-
-	return false;
+	vector<BusPacket *> &queue = getCommandQueue(rank, bank); 
+	return (CMD_QUEUE_DEPTH - queue.size() >= numberToEnqueue);
 }
 
 //prints the contents of the command queue
@@ -653,7 +605,7 @@ void CommandQueue::print()
 /** 
  * return a reference to the queue for a given rank, bank. Since we
  * don't always have a per bank queuing structure, sometimes the bank
- * argument is ignored
+ * argument is ignored (and the 0th index is returned 
  */
 vector<BusPacket *> &CommandQueue::getCommandQueue(unsigned rank, unsigned bank)
 {
