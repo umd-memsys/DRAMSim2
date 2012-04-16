@@ -703,8 +703,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
 				if (!foundIssuable)
 				{
 					bool sendingPRE = false;
-					bool startingRank = nextRankPRE;
-					bool startingBank = nextBankPRE;
+					unsigned startingRank = nextRankPRE;
+					unsigned startingBank = nextBankPRE;
 					do
 					{
 						bool found = false;
