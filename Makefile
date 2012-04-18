@@ -1,14 +1,13 @@
 CXXFLAGS=-DNO_STORAGE -Wall -DDEBUG_BUILD 
 OPTFLAGS=-O3 
 
-
 ifdef DEBUG
 ifeq ($(DEBUG), 1)
 OPTFLAGS= -O0 -g
 endif
 endif
-CXXFLAGS+=$(OPTFLAGS)
 
+TEST_RUNNER=gtest_DRAMSim
 EXE_NAME=DRAMSim
 LIB_NAME=libdramsim.so
 LIB_NAME_MACOS=libdramsim.dylib
@@ -16,16 +15,39 @@ LIB_NAME_MACOS=libdramsim.dylib
 SRC = $(wildcard *.cpp)
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
+ifdef TEST
+ifeq ($(TEST), 1)
+TEST_SRC = $(wildcard tests/*.cpp)
+TEST_OBJ = $(addsuffix .o, $(basename $(TEST_SRC)))
+OBJ+=$(TEST_OBJ)
+
+CXXFLAGS+=-I/home/prosenf1/bin/include -DRUN_GTEST_ONLY
+LINKFLAGS+=-L/home/prosenf1/bin/lib/ -lgtest -Wl,-rpath=/home/prosenf1/bin/lib/ -lpthread $(TEST_OBJ)
+EXE_NAME=$(TEST_RUNNER)
+endif
+endif
+
+CXXFLAGS+=$(OPTFLAGS)
+
+
+
+
 #build portable objects (i.e. with -fPIC)
 POBJ = $(addsuffix .po, $(basename $(SRC)))
 
-REBUILDABLES=$(OBJ) ${POBJ} $(EXE_NAME) $(LIB_NAME) 
+REBUILDABLES=$(OBJ) ${POBJ} $(EXE_NAME) $(LIB_NAME) $(TEST_RUNNER)
 
 all: ${EXE_NAME}
+$(TEST_OBJ):
+	make -C tests/
+
+$(EXE_NAME): $(OBJ)
+	$(CXX) $(LINKFLAGS) -o $@ $^ 
+	@echo "Built $@ successfully" 
 
 #   $@ target name, $^ target deps, $< matched pattern
 $(EXE_NAME): $(OBJ)
-	$(CXX) $(CXXFLAGS) -o $@ $^ 
+	$(CXX) $(LINKFLAGS) -o $@ $^ 
 	@echo "Built $@ successfully" 
 
 $(LIB_NAME): $(POBJ)

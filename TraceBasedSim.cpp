@@ -367,8 +367,17 @@ IniReader::OverrideMap *parseParamOverrides(const string &kv_str)
 	return kv_map; 
 }
 
+#ifdef RUN_GTEST_ONLY
+#include <gtest/gtest.h>
+#endif
 int main(int argc, char **argv)
 {
+
+#ifdef RUN_GTEST_ONLY
+   ::testing::InitGoogleTest(&argc, argv);
+	return RUN_ALL_TESTS();
+#endif
+
 	int c;
 	TraceType traceType;
 	string traceFileName;

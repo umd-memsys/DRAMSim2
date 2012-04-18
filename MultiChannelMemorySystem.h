@@ -59,9 +59,10 @@ class MultiChannelMemorySystem : public SimulatorObject
 	//output file
 	std::ofstream visDataOut;
 
-	private:
 		unsigned findChannelNumber(uint64_t addr);
 		vector<MemorySystem*> channels; 
+
+	private:
 		unsigned megsOfMemory; 
 		string deviceIniFilename;
 		string systemIniFilename;

@@ -72,6 +72,7 @@ public:
 	//fields
 	vector<Transaction> transactionQueue;
 	vector< vector <BankState> > bankStates;
+	CommandQueue commandQueue;
 private:
 	//functions
 	void insertHistogram(unsigned latencyValue, unsigned rank, unsigned bank);
@@ -79,7 +80,6 @@ private:
 	//fields
 	MemorySystem *parentMemorySystem;
 
-	CommandQueue commandQueue;
 	BusPacket *poppedBusPacket;
 	vector<unsigned>refreshCountdown;
 	vector<BusPacket *> writeDataToSend;
