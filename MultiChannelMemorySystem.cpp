@@ -209,7 +209,6 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 			}
 
 		string rest;
-		stringstream out;
 			// working backwards, chop off the next piece of the directory
 			if ((lastSlash = traceFilename.find_last_of("/")) != string::npos)
 			{
@@ -219,8 +218,6 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 			{
 				traceFilename += "."+sim_description_str;
 			}
-
-			string rest;
 
 			if (pwd.length() > 0)
 			{
