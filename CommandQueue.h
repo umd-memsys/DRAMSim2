@@ -72,6 +72,7 @@ public:
 	void needRefresh(unsigned rank);
 	void print();
 	void update(); //SimulatorObject requirement
+	vector<BusPacket *> &getCommandQueue(unsigned rank, unsigned bank);
 
 	//fields
 	

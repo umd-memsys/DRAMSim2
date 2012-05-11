@@ -41,7 +41,7 @@ class MultiChannelMemorySystem : public SimulatorObject
 {
 	public: 
 
-	MultiChannelMemorySystem(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory);
+	MultiChannelMemorySystem(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, string *visFilename=NULL, const IniReader::OverrideMap *paramOverrides=NULL);
 		virtual ~MultiChannelMemorySystem();
 			bool addTransaction(Transaction &trans);
 			bool addTransaction(bool isWrite, uint64_t addr);
@@ -56,10 +56,6 @@ class MultiChannelMemorySystem : public SimulatorObject
 
 	void InitOutputFiles(string tracefilename);
 
-	// mostly for other simulators
-	void overrideParams(const IniReader::OverrideMap *map); 
-	void overrideParam(string key, string value);
-
 	//output file
 	std::ofstream visDataOut;
 
@@ -71,6 +67,7 @@ class MultiChannelMemorySystem : public SimulatorObject
 		string systemIniFilename;
 		string traceFilename;
 		string pwd;
+		string *visFilename;
 		static void mkdirIfNotExist(string path);
 		static bool fileExists(string path); 
 
