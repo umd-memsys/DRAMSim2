@@ -90,6 +90,50 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilena
 	}
 
 }
+
+bool fileExists(string &path)
+{
+	struct stat stat_buf;
+	if (stat(path.c_str(), &stat_buf) != 0) 
+	{
+		if (errno == ENOENT)
+		{
+			return false; 
+		}
+		ERROR("Warning: some other kind of error happened with stat(), should probably check that"); 
+	}
+	return true;
+}
+
+string FilenameWithNumberSuffix(const string &filename, const string &extension, unsigned maxNumber=100)
+{
+	string currentFilename = filename+extension;
+	if (!fileExists(currentFilename))
+	{
+		return currentFilename;
+	}
+
+	// otherwise, add the suffixes and test them out until we find one that works
+	stringstream tmpNum; 
+	tmpNum<<"."<<1; 
+	for (unsigned i=1; i<maxNumber; i++)
+	{
+		currentFilename = filename+tmpNum.str()+extension;
+		if (fileExists(currentFilename))
+		{
+			currentFilename = filename; 
+			tmpNum.seekp(0);
+			tmpNum << "." << i;
+		}
+		else 
+		{
+			return currentFilename;
+		}
+	}
+	// if we can't find one, just give up and return whatever is the current filename
+	ERROR("Warning: Couldn't find a suitable suffix for "<<filename); 
+	return currentFilename; 
+}
 /**
  * This function creates up to 3 output files: 
  * 	- The .log file if LOG_OUTPUT is set
@@ -161,7 +205,7 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 		}
 
 		string rest;
-		stringstream out,tmpNum;
+		stringstream out;
 
 		string path = "results/";
 		string filename;
@@ -198,19 +242,7 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 
 		//filename so far, without extension, see if it exists already
 		filename = out.str();
-		for (int i=0; i<100; i++)
-		{
-			if (fileExists(path+filename+tmpNum.str()+".vis"))
-			{
-				tmpNum.seekp(0);
-				tmpNum << "." << i;
-			}
-			else 
-			{
-				filename = filename+tmpNum.str()+".vis";
-				break;
-			}
-		}
+
 
 		path.append(filename);
 		cerr << "writing vis file to " <<path<<endl;
@@ -231,7 +263,8 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 	{
 		dramsimLogFilename += "."+sim_description_str; 
 	}
-	dramsimLogFilename += ".log";
+	
+	dramsimLogFilename = FilenameWithNumberSuffix(dramsimLogFilename, ".log"); 
 
 	dramsim_log.open(dramsimLogFilename.c_str(), ios_base::out | ios_base::trunc );
 
@@ -244,18 +277,6 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 
 }
 
-bool MultiChannelMemorySystem::fileExists(string path)
-{
-	struct stat stat_buf;
-	if (stat(path.c_str(), &stat_buf) != 0) 
-	{
-		if (errno == ENOENT)
-		{
-			return false; 
-		}
-	}
-	return true;
-}
 
 void MultiChannelMemorySystem::mkdirIfNotExist(string path)
 {
