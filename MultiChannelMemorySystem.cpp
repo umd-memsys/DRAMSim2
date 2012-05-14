@@ -295,10 +295,6 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 	ERROR("Cannot open "<< dramsimLogFilename);
 	//	exit(-1); 
 	}
-	else
-	{
-		std::cerr << "Opened log file "<<dramsimLogFilename<<endl;
-	}
 #endif
 
 }
@@ -358,7 +354,6 @@ void MultiChannelMemorySystem::update()
 {
 	if (currentClockCycle == 0)
 	{
-cerr<<"INIT OUTPUT CALLED"<<endl;
 		InitOutputFiles(traceFilename);
 	}
 
@@ -402,14 +397,12 @@ ostream &MultiChannelMemorySystem::getLogFile()
 }
 bool MultiChannelMemorySystem::addTransaction(Transaction *trans)
 {
-	cerr<<"Got transaction on cycle"<<currentClockCycle<<endl; 
 	unsigned channelNumber = findChannelNumber(trans->address); 
 	return channels[channelNumber]->addTransaction(trans); 
 }
 
 bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr)
 {
-	cerr<<"Got transaction on cycle"<<currentClockCycle<<endl; 
 	unsigned channelNumber = findChannelNumber(addr); 
 	return channels[channelNumber]->addTransaction(isWrite, addr); 
 }
