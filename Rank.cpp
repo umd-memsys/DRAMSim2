@@ -37,7 +37,10 @@
 using namespace std;
 using namespace DRAMSim;
 
-Rank::Rank() :
+Rank::Rank(ostream &dramsim_log_) :
+	dramsim_log(dramsim_log_),
+	banks(NUM_BANKS, Bank(dramsim_log_)),
+	bankStates(NUM_BANKS, BankState(dramsim_log_)),
 		// store the rank #, mostly for convenience and printing
 		id(-1),
 		isPowerDown(false),
@@ -48,11 +51,9 @@ Rank::Rank() :
 	memoryController = NULL;
 	outgoingDataPacket = NULL;
 	dataCyclesLeft = 0;
-	bankStates = vector<BankState>(NUM_BANKS, BankState());
 	currentClockCycle = 0;
 
 #ifndef NO_STORAGE
-	banks = vector<Bank>(NUM_BANKS, Bank());
 #endif
 
 }
@@ -72,8 +73,6 @@ void Rank::attachMemoryController(MemoryController *memoryController)
 
 void Rank::receiveFromBus(BusPacket *packet)
 {
-	BusPacket returnPacket;
-
 	if (DEBUG_BUS)
 	{
 		PRINTN(" -- R" << this->id << " Receiving On Bus    : ");

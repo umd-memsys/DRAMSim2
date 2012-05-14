@@ -51,6 +51,8 @@ enum TransactionType
 
 class Transaction
 {
+	ostream &dramsim_log; 
+	Transaction();
 public:
 	//fields
 	TransactionType transactionType;
@@ -61,8 +63,7 @@ public:
 
 
 	//functions
-	Transaction(TransactionType transType, uint64_t addr, void *data);
-	Transaction();
+	Transaction(TransactionType transType, uint64_t addr, void *data, ostream &dramsim_log_);
 
 	void print();
 

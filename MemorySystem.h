@@ -51,12 +51,13 @@ namespace DRAMSim
 typedef CallbackBase<void,unsigned,uint64_t,uint64_t> Callback_t;
 class MemorySystem : public SimulatorObject
 {
+	ostream &dramsim_log;
 public:
 	//functions
-	MemorySystem(unsigned id, unsigned megsOfMemory, ofstream &visDataOut);
+	MemorySystem(unsigned id, unsigned megsOfMemory, ofstream &visDataOut, ostream &dramsim_log_);
 	virtual ~MemorySystem();
 	void update();
-	bool addTransaction(Transaction &trans);
+	bool addTransaction(Transaction *trans);
 	bool addTransaction(bool isWrite, uint64_t addr);
 	void printStats();
 	void printStats(bool unused);
@@ -68,8 +69,8 @@ public:
 
 	//fields
 	MemoryController *memoryController;
-	vector<Rank> *ranks;
-	deque<Transaction> pendingTransactions; 
+	vector<Rank *> *ranks;
+	deque<Transaction *> pendingTransactions; 
 
 
 	//function pointers

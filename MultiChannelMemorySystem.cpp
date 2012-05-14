@@ -46,6 +46,7 @@ using namespace DRAMSim;
 MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilename_, const string &systemIniFilename_, const string &pwd_, const string &traceFilename_, unsigned megsOfMemory_, string *visFilename_, const IniReader::OverrideMap *paramOverrides)
 	:megsOfMemory(megsOfMemory_), deviceIniFilename(deviceIniFilename_), systemIniFilename(systemIniFilename_), traceFilename(traceFilename_), pwd(pwd_), visFilename(visFilename_)
 {
+	currentClockCycle=0; 
 	if (visFilename)
 		printf("CC VISFILENAME=%s\n",visFilename->c_str());
 
@@ -92,7 +93,7 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilena
 
 	for (size_t i=0; i<NUM_CHANS; i++)
 	{
-		MemorySystem *channel = new MemorySystem(i, megsOfMemory/NUM_CHANS, visDataOut);
+		MemorySystem *channel = new MemorySystem(i, megsOfMemory/NUM_CHANS, visDataOut, dramsim_log);
 		channels.push_back(channel);
 	}
 
@@ -259,8 +260,10 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 		filename = out.str();
 
 
+		filename = FilenameWithNumberSuffix(filename, ".vis"); 
 		path.append(filename);
 		cerr << "writing vis file to " <<path<<endl;
+
 
 		visDataOut.open(path.c_str());
 		if (!visDataOut)
@@ -274,7 +277,7 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 	}
 	else
 	{
-		cerr << "vis file output disabled\n";
+		// cerr << "vis file output disabled\n";
 	}
 #ifdef LOG_OUTPUT
 	string dramsimLogFilename("dramsim");
@@ -291,6 +294,10 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 	{
 	ERROR("Cannot open "<< dramsimLogFilename);
 	//	exit(-1); 
+	}
+	else
+	{
+		std::cerr << "Opened log file "<<dramsimLogFilename<<endl;
 	}
 #endif
 
@@ -351,6 +358,7 @@ void MultiChannelMemorySystem::update()
 {
 	if (currentClockCycle == 0)
 	{
+cerr<<"INIT OUTPUT CALLED"<<endl;
 		InitOutputFiles(traceFilename);
 	}
 
@@ -388,14 +396,20 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 	return channelNumber;
 
 }
-bool MultiChannelMemorySystem::addTransaction(Transaction &trans)
+ostream &MultiChannelMemorySystem::getLogFile()
 {
-	unsigned channelNumber = findChannelNumber(trans.address); 
+	return dramsim_log; 
+}
+bool MultiChannelMemorySystem::addTransaction(Transaction *trans)
+{
+	cerr<<"Got transaction on cycle"<<currentClockCycle<<endl; 
+	unsigned channelNumber = findChannelNumber(trans->address); 
 	return channels[channelNumber]->addTransaction(trans); 
 }
 
 bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr)
 {
+	cerr<<"Got transaction on cycle"<<currentClockCycle<<endl; 
 	unsigned channelNumber = findChannelNumber(addr); 
 	return channels[channelNumber]->addTransaction(isWrite, addr); 
 }

@@ -28,13 +28,6 @@
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
 
-
-
-
-
-
-
-
 //Transaction.cpp
 //
 //Class file for transaction object
@@ -47,14 +40,12 @@
 using namespace DRAMSim;
 using namespace std;
 
-Transaction::Transaction() {}
-
-Transaction::Transaction(TransactionType transType, uint64_t addr, void *dat)
-{
-	transactionType = transType;
-	address = addr;
-	data = dat;
-}
+Transaction::Transaction(TransactionType transType, uint64_t addr, void *dat, ostream &dramsim_log_) :
+	dramsim_log(dramsim_log_),
+	transactionType(transType),
+	address(addr),
+	data(dat)
+{}
 
 void Transaction::print()
 {

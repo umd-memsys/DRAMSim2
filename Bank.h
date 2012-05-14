@@ -47,6 +47,7 @@
 #include "SimulatorObject.h"
 #include "BankState.h"
 #include "BusPacket.h"
+#include <iostream>
 
 namespace DRAMSim
 {
@@ -61,7 +62,7 @@ class Bank
 
 public:
 	//functions
-	Bank();
+	Bank(ostream &dramsim_log_);
 	void read(BusPacket *busPacket);
 	void write(const BusPacket *busPacket);
 
@@ -71,6 +72,7 @@ public:
 private:
 	// private member
 	std::vector<DataStruct *> rowEntries;
+	ostream &dramsim_log; 
 
 	static DataStruct *searchForRow(unsigned row, DataStruct *head);
 };

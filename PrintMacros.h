@@ -39,6 +39,7 @@ extern int SHOW_SIM_OUTPUT; //enable or disable PRINT() statements -- set by fla
 
 #define ERROR(str) std::cerr<<"[ERROR ("<<__FILE__<<":"<<__LINE__<<")]: "<<str<<std::endl;
 
+using std::ostream;
 
 #ifdef DEBUG_BUILD
 	#define DEBUG(str)  std::cerr<< str <<std::endl;
@@ -57,11 +58,8 @@ extern int SHOW_SIM_OUTPUT; //enable or disable PRINT() statements -- set by fla
 	#define PRINTN(str) ;
 #else
 	#ifdef LOG_OUTPUT
-		namespace DRAMSim {
-		extern std::ofstream dramsim_log;
-		}
-		#define PRINT(str)  { DRAMSim::dramsim_log <<str<<std::endl; }
-		#define PRINTN(str) { DRAMSim::dramsim_log <<str; }
+		#define PRINT(str)  { dramsim_log <<str<<std::endl; }
+		#define PRINTN(str) { dramsim_log <<str; }
 	#else
 		#define PRINT(str)  if(SHOW_SIM_OUTPUT) { std::cout <<str<<std::endl; }
 		#define PRINTN(str) if(SHOW_SIM_OUTPUT) { std::cout <<str; }

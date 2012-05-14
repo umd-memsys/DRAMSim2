@@ -40,5 +40,5 @@ class some_object
 	public: 
 		void read_complete(unsigned, uint64_t, uint64_t);
 		void write_complete(unsigned, uint64_t, uint64_t);
-		int add_one_and_run();
+		int add_one_and_run(DRAMSim::MultiChannelMemorySystem *mem, uint64_t addr);
 };

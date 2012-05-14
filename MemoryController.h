@@ -57,22 +57,23 @@ class MemoryController : public SimulatorObject
 
 public:
 	//functions
-	MemoryController(MemorySystem* ms, std::ofstream *outfile);
+	MemoryController(MemorySystem* ms, std::ofstream *outfile, ostream &dramsim_log_);
 	virtual ~MemoryController();
 
-	bool addTransaction(Transaction &trans);
+	bool addTransaction(Transaction *trans);
 	bool WillAcceptTransaction();
-	void returnReadData(const Transaction &trans);
+	void returnReadData(const Transaction *trans);
 	void receiveFromBus(BusPacket *bpacket);
-	void attachRanks(vector<Rank> *ranks);
+	void attachRanks(vector<Rank *> *ranks);
 	void update();
 	void printStats(bool finalStats = false);
 
 
 	//fields
-	vector<Transaction> transactionQueue;
-	vector< vector <BankState> > bankStates;
+	vector<Transaction *> transactionQueue;
 private:
+	ostream &dramsim_log;
+	vector< vector <BankState> > bankStates;
 	//functions
 	void insertHistogram(unsigned latencyValue, unsigned rank, unsigned bank);
 
@@ -84,12 +85,12 @@ private:
 	vector<unsigned>refreshCountdown;
 	vector<BusPacket *> writeDataToSend;
 	vector<unsigned> writeDataCountdown;
-	vector<Transaction> returnTransaction;
-	vector<Transaction> pendingReadTransactions;
+	vector<Transaction *> returnTransaction;
+	vector<Transaction *> pendingReadTransactions;
 	map<unsigned,unsigned> latencies; // latencyValue -> latencyCount
 	vector<bool> powerDown;
 
-	vector<Rank> *ranks;
+	vector<Rank *> *ranks;
 
 	//output file
 	std::ofstream *visDataOut;

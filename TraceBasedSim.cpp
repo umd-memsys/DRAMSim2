@@ -508,6 +508,7 @@ int main(int argc, char **argv)
 
 
 	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory, visFilename, paramOverrides);
+	std::ostream &dramsim_logfile = memorySystem->getLogFile(); 
 	// don't need this anymore 
 	delete paramOverrides;
 
@@ -527,7 +528,7 @@ int main(int argc, char **argv)
 
 	void *data = NULL;
 	int lineNumber = 0;
-	Transaction trans;
+	Transaction *trans=NULL;
 	bool pendingTrans = false;
 
 	traceFile.open(traceFileName.c_str());
@@ -549,8 +550,8 @@ int main(int argc, char **argv)
 				if (line.size() > 0)
 				{
 					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType,useClockCycle);
-					trans = Transaction(transType, addr, data);
-					alignTransactionAddress(trans); 
+					trans = new Transaction(transType, addr, data, dramsim_logfile);
+					alignTransactionAddress(*trans); 
 
 					if (i>=clockCycle)
 					{

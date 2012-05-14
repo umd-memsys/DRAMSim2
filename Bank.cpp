@@ -28,13 +28,6 @@
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
 
-
-
-
-
-
-
-
 //Bank.cpp
 //
 //Class file for bank object
@@ -46,8 +39,10 @@
 using namespace std;
 using namespace DRAMSim;
 
-Bank::Bank():
-		rowEntries(NUM_COLS)
+Bank::Bank(ostream &dramsim_log_):
+		rowEntries(NUM_COLS),
+		currentState(dramsim_log_), 
+		dramsim_log(dramsim_log_)
 {}
 
 /* The bank class is just a glorified sparse storage data structure
@@ -63,7 +58,7 @@ Bank::Bank():
  * read() searches for a node with the right row value, if not found
  * 	returns the tracer value 0xDEADBEEF
  * 
- *	TODO: if anyone wants to actually store data, this should be changed to an STL unordered_map 
+ *	TODO: if anyone wants to actually store data, see the 'data_storage' branch and perhaps try to merge that into master
  */
 
 
@@ -141,7 +136,7 @@ void Bank::write(const BusPacket *busPacket)
 		if (DEBUG_BANKS)
 		{
 			PRINTN(" -- Bank "<<busPacket->bank<<" writing to physical address 0x" << hex << busPacket->physicalAddress<<dec<<":");
-			BusPacket::printData(busPacket->data);
+			busPacket->printData();
 			PRINT("");
 		}
 	}

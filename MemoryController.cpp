@@ -43,8 +43,10 @@
 
 using namespace DRAMSim;
 
-MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile) :
-		commandQueue (CommandQueue(bankStates)),
+MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile, ostream &dramsim_log_) :
+		dramsim_log(dramsim_log_),
+		bankStates(NUM_RANKS, vector<BankState>(NUM_BANKS, dramsim_log)),
+		commandQueue(bankStates, dramsim_log_),
 		poppedBusPacket(NULL),
 		csvOut(*outfile),
 		totalTransactions(0),
@@ -69,7 +71,6 @@ MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile)
 
 	//reserve memory for vectors
 	transactionQueue.reserve(TRANS_QUEUE_DEPTH);
-	bankStates = vector< vector <BankState> >(NUM_RANKS, vector<BankState>(NUM_BANKS));
 	powerDown = vector<bool>(NUM_RANKS,false);
 	grandTotalBankAccesses = vector<uint64_t>(NUM_RANKS*NUM_BANKS,0);
 	totalReadsPerBank = vector<uint64_t>(NUM_RANKS*NUM_BANKS,0);
@@ -113,7 +114,7 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 	}
 
 	//add to return read data queue
-	returnTransaction.push_back(Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data));
+	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data,dramsim_log));
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
 
 	// this delete statement saves a mindboggling amount of memory
@@ -121,16 +122,16 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 }
 
 //sends read data back to the CPU
-void MemoryController::returnReadData(const Transaction &trans)
+void MemoryController::returnReadData(const Transaction *trans)
 {
 	if (parentMemorySystem->ReturnReadData!=NULL)
 	{
-		(*parentMemorySystem->ReturnReadData)(parentMemorySystem->systemID, trans.address, currentClockCycle);
+		(*parentMemorySystem->ReturnReadData)(parentMemorySystem->systemID, trans->address, currentClockCycle);
 	}
 }
 
 //gives the memory controller a handle on the rank objects
-void MemoryController::attachRanks(vector<Rank> *ranks)
+void MemoryController::attachRanks(vector<Rank *> *ranks)
 {
 	this->ranks = ranks;
 }
@@ -183,7 +184,7 @@ void MemoryController::update()
 		cmdCyclesLeft--;
 		if (cmdCyclesLeft == 0) //packet is ready to be received by rank
 		{
-			(*ranks)[outgoingCmdPacket->rank].receiveFromBus(outgoingCmdPacket);
+			(*ranks)[outgoingCmdPacket->rank]->receiveFromBus(outgoingCmdPacket);
 			outgoingCmdPacket = NULL;
 		}
 	}
@@ -200,7 +201,7 @@ void MemoryController::update()
 				(*parentMemorySystem->WriteDataDone)(parentMemorySystem->systemID,outgoingDataPacket->physicalAddress, currentClockCycle);
 			}
 
-			(*ranks)[outgoingDataPacket->rank].receiveFromBus(outgoingDataPacket);
+			(*ranks)[outgoingDataPacket->rank]->receiveFromBus(outgoingDataPacket);
 			outgoingDataPacket=NULL;
 		}
 	}
@@ -250,7 +251,7 @@ void MemoryController::update()
 	if (refreshCountdown[refreshRank]==0)
 	{
 		commandQueue.needRefresh(refreshRank);
-		(*ranks)[refreshRank].refreshWaiting = true;
+		(*ranks)[refreshRank]->refreshWaiting = true;
 		refreshCountdown[refreshRank] =	 REFRESH_PERIOD/tCK;
 		refreshRank++;
 		if (refreshRank == NUM_RANKS)
@@ -261,7 +262,7 @@ void MemoryController::update()
 	//if a rank is powered down, make sure we power it up in time for a refresh
 	else if (powerDown[refreshRank] && refreshCountdown[refreshRank] <= tXP)
 	{
-		(*ranks)[refreshRank].refreshWaiting = true;
+		(*ranks)[refreshRank]->refreshWaiting = true;
 	}
 
 	//pass a pointer to a poppedBusPacket
@@ -274,7 +275,7 @@ void MemoryController::update()
 
 			writeDataToSend.push_back(new BusPacket(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,
 			                                    poppedBusPacket->row, poppedBusPacket->rank, poppedBusPacket->bank,
-			                                    poppedBusPacket->data));
+			                                    poppedBusPacket->data, dramsim_log));
 			writeDataCountdown.push_back(WL);
 		}
 
@@ -481,13 +482,13 @@ void MemoryController::update()
 		//
 		//	assuming simple scheduling at the moment
 		//	will eventually add policies here
-		Transaction transaction = transactionQueue[i];
+		Transaction *transaction = transactionQueue[i];
 
 		//map address to rank,bank,row,col
 		unsigned newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn;
 
 		// pass these in as references so they get set by the addressMapping function
-		addressMapping(transaction.address, newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn);
+		addressMapping(transaction->address, newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn);
 
 		//if we have room, break up the transaction into the appropriate commands
 		//and add them to the command queue
@@ -495,8 +496,8 @@ void MemoryController::update()
 		{
 			if (DEBUG_ADDR_MAP) 
 			{
-				PRINTN("== New Transaction - Mapping Address [0x" << hex << transaction.address << dec << "]");
-				if (transaction.transactionType == DATA_READ) 
+				PRINTN("== New Transaction - Mapping Address [0x" << hex << transaction->address << dec << "]");
+				if (transaction->transactionType == DATA_READ) 
 				{
 					PRINT(" (Read)");
 				}
@@ -512,24 +513,30 @@ void MemoryController::update()
 
 			// If we have a read, save the transaction so when the data comes back
 			// in a bus packet, we can staple it back into a transaction and return it
-			if (transaction.transactionType == DATA_READ)
+			if (transaction->transactionType == DATA_READ)
 			{
 				pendingReadTransactions.push_back(transaction);
 			}
+			else
+			{
+				//the transaction has been turned into a buspacket, so we don't need it anymore
+			}
+
 
 			//now that we know there is room in the command queue, we can remove from the transaction queue
 			transactionQueue.erase(transactionQueue.begin()+i);
 
 			//create activate command to the row we just translated
-			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction.address,
+			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
-					newTransactionBank, 0);
+					newTransactionBank, 0, dramsim_log);
 
 			//create read or write command and enqueue it
-			BusPacketType bpType = transaction.getBusPacketType();
-			BusPacket *command = new BusPacket(bpType, transaction.address,
+			BusPacketType bpType = transaction->getBusPacketType();
+			BusPacket *command = new BusPacket(bpType, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
-					newTransactionBank, transaction.data);
+					newTransactionBank, transaction->data, dramsim_log);
+
 
 			/* only allow one transaction to be scheduled per cycle -- this should
 			 * be a reasonable assumption considering how much logic would be
@@ -538,6 +545,13 @@ void MemoryController::update()
 			 */
 			commandQueue.enqueue(ACTcommand);
 			commandQueue.enqueue(command);
+
+			// if the transaction isn't a read, we don't need to keep it around anymore 
+			if (transaction->transactionType != DATA_READ)
+			{
+				delete transaction; 
+			}
+
 			break;
 		}
 		else // no room, do nothing this cycle
@@ -554,7 +568,7 @@ void MemoryController::update()
 		if (USE_LOW_POWER)
 		{
 			//if there are no commands in the queue and that particular rank is not waiting for a refresh...
-			if (commandQueue.isEmpty(i) && !(*ranks)[i].refreshWaiting)
+			if (commandQueue.isEmpty(i) && !(*ranks)[i]->refreshWaiting)
 			{
 				//check to make sure all banks are idle
 				bool allIdle = true;
@@ -571,7 +585,7 @@ void MemoryController::update()
 				if (allIdle)
 				{
 					powerDown[i] = true;
-					(*ranks)[i].powerDown();
+					(*ranks)[i]->powerDown();
 					for (size_t j=0;j<NUM_BANKS;j++)
 					{
 						bankStates[i][j].currentBankState = PowerDown;
@@ -583,7 +597,7 @@ void MemoryController::update()
 			else if (currentClockCycle >= bankStates[i][0].nextPowerUp && powerDown[i]) //use 0 since theyre all the same
 			{
 				powerDown[i] = false;
-				(*ranks)[i].powerUp();
+				(*ranks)[i]->powerUp();
 				for (size_t j=0;j<NUM_BANKS;j++)
 				{
 					bankStates[i][j].currentBankState = Idle;
@@ -641,29 +655,37 @@ void MemoryController::update()
 		if (DEBUG_BUS)
 		{
 			PRINTN(" -- MC Issuing to CPU bus : ");
-			returnTransaction[0].print();
+			returnTransaction[0]->print();
 		}
 		totalTransactions++;
 
+		bool foundMatch=false;
 		//find the pending read transaction to calculate latency
 		for (size_t i=0;i<pendingReadTransactions.size();i++)
 		{
-			if (pendingReadTransactions[i].address == returnTransaction[0].address)
+			if (pendingReadTransactions[i]->address == returnTransaction[0]->address)
 			{
-				//if(currentClockCycle - pendingReadTransactions[i].timeAdded > 2000)
+				//if(currentClockCycle - pendingReadTransactions[i]->timeAdded > 2000)
 				//	{
-				//		pendingReadTransactions[i].print();
+				//		pendingReadTransactions[i]->print();
 				//		exit(0);
 				//	}
 				unsigned chan,rank,bank,row,col;
-				addressMapping(returnTransaction[0].address,chan,rank,bank,row,col);
-				insertHistogram(currentClockCycle-pendingReadTransactions[i].timeAdded,rank,bank);
+				addressMapping(returnTransaction[0]->address,chan,rank,bank,row,col);
+				insertHistogram(currentClockCycle-pendingReadTransactions[i]->timeAdded,rank,bank);
 				//return latency
 				returnReadData(pendingReadTransactions[i]);
 
+				delete pendingReadTransactions[i];
 				pendingReadTransactions.erase(pendingReadTransactions.begin()+i);
+				foundMatch=true; 
 				break;
 			}
+		}
+		if (!foundMatch)
+		{
+			ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[0]->address<<dec);
+			abort(); 
 		}
 		returnTransaction.erase(returnTransaction.begin());
 	}
@@ -683,7 +705,7 @@ void MemoryController::update()
 		for (size_t i=0;i<transactionQueue.size();i++)
 		{
 			PRINTN("  " << i << "]");
-			transactionQueue[i].print();
+			transactionQueue[i]->print();
 		}
 	}
 
@@ -760,11 +782,11 @@ bool MemoryController::WillAcceptTransaction()
 }
 
 //allows outside source to make request of memory system
-bool MemoryController::addTransaction(Transaction &trans)
+bool MemoryController::addTransaction(Transaction *trans)
 {
 	if (WillAcceptTransaction())
 	{
-		trans.timeAdded = currentClockCycle;
+		trans->timeAdded = currentClockCycle;
 		transactionQueue.push_back(trans);
 		return true;
 	}

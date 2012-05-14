@@ -49,6 +49,7 @@ class MemoryController; //forward declaration
 class Rank : public SimulatorObject
 {
 private:
+	ostream &dramsim_log; 
 	int id;
 	unsigned incomingWriteBank;
 	unsigned incomingWriteRow;
@@ -57,7 +58,7 @@ private:
 
 public:
 	//functions
-	Rank();
+	Rank(ostream &dramsim_log_);
 	void receiveFromBus(BusPacket *packet);
 	void attachMemoryController(MemoryController *mc);
 	int getId() const;

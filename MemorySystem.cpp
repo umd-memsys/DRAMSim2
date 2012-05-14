@@ -49,13 +49,11 @@ unsigned NUM_DEVICES;
 unsigned NUM_RANKS;
 
 namespace DRAMSim {
-#ifdef LOG_OUTPUT
-ofstream dramsim_log;
-#endif
 
 powerCallBack_t MemorySystem::ReportPower = NULL;
 
-MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, ofstream &visDataOut_) :
+MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, ofstream &visDataOut_, ostream &dramsim_log_) :
+		dramsim_log(dramsim_log_),
 		ReturnReadData(NULL),
 		WriteDataDone(NULL),
 		systemID(id),
@@ -130,16 +128,16 @@ MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, ofstream &vis
 	DEBUG("CH. " <<systemID<<" TOTAL_STORAGE : "<< TOTAL_STORAGE << "MB | "<<NUM_RANKS<<" Ranks | "<< NUM_DEVICES <<" Devices per rank");
 
 
-	memoryController = new MemoryController(this, &visDataOut);
+	memoryController = new MemoryController(this, &visDataOut, dramsim_log);
 
 	// TODO: change to other vector constructor?
-	ranks = new vector<Rank>();
+	ranks = new vector<Rank *>();
 
 	for (size_t i=0; i<NUM_RANKS; i++)
 	{
-		Rank r = Rank();
-		r.setId(i);
-		r.attachMemoryController(memoryController);
+		Rank *r = new Rank(dramsim_log);
+		r->setId(i);
+		r->attachMemoryController(memoryController);
 		ranks->push_back(r);
 	}
 
@@ -175,7 +173,7 @@ bool MemorySystem::WillAcceptTransaction()
 bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
 {
 	TransactionType type = isWrite ? DATA_WRITE : DATA_READ;
-	Transaction trans(type,addr,NULL);
+	Transaction *trans = new Transaction(type,addr,NULL,dramsim_log);
 	// push_back in memoryController will make a copy of this during
 	// addTransaction so it's kosher for the reference to be local 
 
@@ -190,7 +188,7 @@ bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
 	}
 }
 
-bool MemorySystem::addTransaction(Transaction &trans)
+bool MemorySystem::addTransaction(Transaction *trans)
 {
 	return memoryController->addTransaction(trans);
 }
@@ -217,7 +215,7 @@ void MemorySystem::update()
 	// NOTE - do not change order
 	for (size_t i=0;i<NUM_RANKS;i++)
 	{
-		(*ranks)[i].update();
+		(*ranks)[i]->update();
 	}
 
 	//pendingTransactions will only have stuff in it if MARSS is adding stuff
@@ -231,7 +229,7 @@ void MemorySystem::update()
 	//simply increments the currentClockCycle field for each object
 	for (size_t i=0;i<NUM_RANKS;i++)
 	{
-		(*ranks)[i].step();
+		(*ranks)[i]->step();
 	}
 	memoryController->step();
 	this->step();

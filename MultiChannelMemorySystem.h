@@ -43,12 +43,13 @@ class MultiChannelMemorySystem : public SimulatorObject
 
 	MultiChannelMemorySystem(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, string *visFilename=NULL, const IniReader::OverrideMap *paramOverrides=NULL);
 		virtual ~MultiChannelMemorySystem();
-			bool addTransaction(Transaction &trans);
+			bool addTransaction(Transaction *trans);
 			bool addTransaction(bool isWrite, uint64_t addr);
 			bool willAcceptTransaction(); 
 			bool willAcceptTransaction(uint64_t addr); 
 			void update();
 			void printStats();
+			ostream &getLogFile();
 			void RegisterCallbacks( 
 				TransactionCompleteCB *readDone,
 				TransactionCompleteCB *writeDone,
@@ -58,6 +59,7 @@ class MultiChannelMemorySystem : public SimulatorObject
 
 	//output file
 	std::ofstream visDataOut;
+	ofstream dramsim_log; 
 
 	private:
 		unsigned findChannelNumber(uint64_t addr);

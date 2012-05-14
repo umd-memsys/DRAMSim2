@@ -46,7 +46,8 @@ using namespace std;
 using namespace DRAMSim;
 
 //All banks start precharged
-BankState::BankState():
+BankState::BankState(ostream &dramsim_log_):
+		dramsim_log(dramsim_log_),
 		currentBankState(Idle),
 		openRowAddress(0),
 		nextRead(0),

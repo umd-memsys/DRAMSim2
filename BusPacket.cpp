@@ -45,18 +45,19 @@
 using namespace DRAMSim;
 using namespace std;
 
-BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, void *dat)
-{
-	physicalAddress = physicalAddr;
-	busPacketType = packtype;
-	data = dat;
-	rank = r;
-	bank = b;
-	column = col;
-	row = rw;
-}
+BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr, 
+		unsigned col, unsigned rw, unsigned r, unsigned b, void *dat, 
+		ostream &dramsim_log_) :
+	dramsim_log(dramsim_log_),
+	busPacketType(packtype),
+	column(col),
+	row(rw),
+	bank(b),
+	rank(r),
+	physicalAddress(physicalAddr),
+	data(dat)
+{}
 
-BusPacket::BusPacket() {}
 void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
 {
 	if (this == NULL)
@@ -131,7 +132,7 @@ void BusPacket::print()
 			break;
 		case DATA:
 			PRINTN("BP [DATA] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"] data["<<data<<"]=");
-			BusPacket::printData(data);
+			printData();
 			PRINT("");
 			break;
 		default:
@@ -141,7 +142,7 @@ void BusPacket::print()
 	}
 }
 
-void BusPacket::printData(const void *data)
+void BusPacket::printData() const 
 {
 	if (data == NULL)
 	{

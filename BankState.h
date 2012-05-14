@@ -59,6 +59,7 @@ enum CurrentBankState
 
 class BankState
 {
+	ostream &dramsim_log; 
 public:
 	//Fields
 	CurrentBankState currentBankState;
@@ -73,7 +74,7 @@ public:
 	unsigned stateChangeCountdown;
 
 	//Functions
-	BankState();
+	BankState(ostream &dramsim_log_);
 	void print();
 };
 }
