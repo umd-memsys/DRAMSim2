@@ -72,9 +72,6 @@ using std::string;
  * 	2.5,25
  *
  */
-#define MAX_TMP_STR 64
-// length of a two digit subscript: [xx]
-#define SINGLE_INDEX_LEN 4 
 
 
 namespace DRAMSim {
@@ -82,44 +79,43 @@ namespace DRAMSim {
 	class CSVWriter {
 		public :
 		struct IndexedName {
-			char *str; 
-			IndexedName(const char *baseName, unsigned channel)
+			static const size_t MAX_TMP_STR = 64; 
+			static const unsigned SINGLE_INDEX_LEN = 4; 
+			string str; 
+
+			// functions 
+			static bool isNameTooLong(const char *baseName, unsigned numIndices)
 			{
-				if (strlen(baseName)+(1*SINGLE_INDEX_LEN) > MAX_TMP_STR)
+				return (strlen(baseName)+(numIndices*SINGLE_INDEX_LEN)) > MAX_TMP_STR;
+			}
+			static void checkNameLength(const char *baseName, unsigned numIndices)
+			{
+				if (isNameTooLong(baseName, 1))
 				{
-					ERROR("Your string is too long for the stats, increase MAX_TMP_STR"); 
+					ERROR("Your string "<<baseName<<" is too long for the max stats size ("<<MAX_TMP_STR<<", increase MAX_TMP_STR"); 
 					exit(-1); 
 				}
+			}
+			IndexedName(const char *baseName, unsigned channel)
+			{
+				checkNameLength(baseName,1);
 				char tmp_str[MAX_TMP_STR]; 
 				snprintf(tmp_str, MAX_TMP_STR,"%s[%u]", baseName, channel); 
-				str = strndup(tmp_str, MAX_TMP_STR); 
+				str = string(tmp_str); 
 			}
 			IndexedName(const char *baseName, unsigned channel, unsigned rank)
 			{
-				if (strlen(baseName)+(2*SINGLE_INDEX_LEN) > MAX_TMP_STR)
-				{
-					ERROR("Your string is too long for the stats, increase MAX_TMP_STR"); 
-					exit(-1); 
-				}
+				checkNameLength(baseName,2);
 				char tmp_str[MAX_TMP_STR]; 
 				snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u]", baseName, channel, rank); 
-				str = strndup(tmp_str, MAX_TMP_STR); 
+				str = string(tmp_str); 
 			}
 			IndexedName(const char *baseName, unsigned channel, unsigned rank, unsigned bank)
 			{
-				if (strlen(baseName)+(3*SINGLE_INDEX_LEN) > MAX_TMP_STR)
-				{
-					ERROR("Your string is too long for the stats, increase MAX_TMP_STR"); 
-					exit(-1); 
-				}
+				checkNameLength(baseName,2);
 				char tmp_str[MAX_TMP_STR]; 
 				snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u][%u]", baseName, channel, rank, bank); 
-				str = strndup(tmp_str, MAX_TMP_STR); 
-			}
-
-			virtual ~IndexedName()
-			{
-				delete str; 
+				str = string(tmp_str);
 			}
 
 		};
@@ -181,7 +177,7 @@ namespace DRAMSim {
 		{
 			if (!finalized)
 			{
-				fieldNames.push_back(string(indexedName.str));
+				fieldNames.push_back(indexedName.str);
 			}
 			return *this; 
 		}
