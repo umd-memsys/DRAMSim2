@@ -38,14 +38,14 @@ using namespace std;
 using namespace DRAMSim;
 
 Rank::Rank(ostream &dramsim_log_) :
+	id(-1),
 	dramsim_log(dramsim_log_),
+	isPowerDown(false),
+	refreshWaiting(false),
+	readReturnCountdown(0),
 	banks(NUM_BANKS, Bank(dramsim_log_)),
-	bankStates(NUM_BANKS, BankState(dramsim_log_)),
-		// store the rank #, mostly for convenience and printing
-		id(-1),
-		isPowerDown(false),
-		refreshWaiting(false),
-		readReturnCountdown(0)
+	bankStates(NUM_BANKS, BankState(dramsim_log_))
+
 {
 
 	memoryController = NULL;

@@ -45,7 +45,7 @@ $(LIB_NAME_MACOS): $(POBJ)
 	@$(CXX) -M $(CXXFLAGS) $< > $@
 
 %.deppo : %.cpp
-	$(CXX) -M $(CXXFLAGS) -MT"$*.po" $< > $@
+	@$(CXX) -M $(CXXFLAGS) -MT"$*.po" $< > $@
 
 # build all .cpp files to .o files
 %.o : %.cpp

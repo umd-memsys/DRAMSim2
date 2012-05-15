@@ -49,8 +49,8 @@ class MemoryController; //forward declaration
 class Rank : public SimulatorObject
 {
 private:
-	ostream &dramsim_log; 
 	int id;
+	ostream &dramsim_log; 
 	unsigned incomingWriteBank;
 	unsigned incomingWriteRow;
 	unsigned incomingWriteColumn;
@@ -68,7 +68,6 @@ public:
 	void powerDown();
 
 	//fields
-	vector<Bank> banks;
 	MemoryController *memoryController;
 	BusPacket *outgoingDataPacket;
 	unsigned dataCyclesLeft;
@@ -77,7 +76,9 @@ public:
 	//these are vectors so that each element is per-bank
 	vector<BusPacket *> readReturnPacket;
 	vector<unsigned> readReturnCountdown;
+	vector<Bank> banks;
 	vector<BankState> bankStates;
+
 };
 }
 #endif
