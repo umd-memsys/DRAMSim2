@@ -112,7 +112,7 @@ namespace DRAMSim {
 			}
 			IndexedName(const char *baseName, unsigned channel, unsigned rank, unsigned bank)
 			{
-				checkNameLength(baseName,2);
+				checkNameLength(baseName,3);
 				char tmp_str[MAX_TMP_STR]; 
 				snprintf(tmp_str, MAX_TMP_STR,"%s[%u][%u][%u]", baseName, channel, rank, bank); 
 				str = string(tmp_str);
