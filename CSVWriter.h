@@ -90,7 +90,7 @@ namespace DRAMSim {
 			}
 			static void checkNameLength(const char *baseName, unsigned numIndices)
 			{
-				if (isNameTooLong(baseName, 1))
+				if (isNameTooLong(baseName, numIndices))
 				{
 					ERROR("Your string "<<baseName<<" is too long for the max stats size ("<<MAX_TMP_STR<<", increase MAX_TMP_STR"); 
 					exit(-1); 
