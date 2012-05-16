@@ -508,6 +508,8 @@ int main(int argc, char **argv)
 
 
 	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory, visFilename, paramOverrides);
+	// set the frequency ratio to 1:1
+	memorySystem->setCPUClockSpeed(0); 
 	std::ostream &dramsim_logfile = memorySystem->getLogFile(); 
 	// don't need this anymore 
 	delete paramOverrides;

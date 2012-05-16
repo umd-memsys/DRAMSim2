@@ -44,7 +44,10 @@ using namespace DRAMSim;
 
 
 MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilename_, const string &systemIniFilename_, const string &pwd_, const string &traceFilename_, unsigned megsOfMemory_, string *visFilename_, const IniReader::OverrideMap *paramOverrides)
-	:megsOfMemory(megsOfMemory_), deviceIniFilename(deviceIniFilename_), systemIniFilename(systemIniFilename_), traceFilename(traceFilename_), pwd(pwd_), visFilename(visFilename_)
+	:megsOfMemory(megsOfMemory_), deviceIniFilename(deviceIniFilename_),
+	systemIniFilename(systemIniFilename_), traceFilename(traceFilename_),
+	pwd(pwd_), visFilename(visFilename_), 
+	clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update))
 {
 	currentClockCycle=0; 
 	if (visFilename)
@@ -96,7 +99,20 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilena
 		MemorySystem *channel = new MemorySystem(i, megsOfMemory/NUM_CHANS, visDataOut, dramsim_log);
 		channels.push_back(channel);
 	}
+	// for compatibility with the old marss code which assumed an sg15 part with a
+	// 2GHz CPU, the new code will reset this value later
+	setCPUClockSpeed(2000000000UL); 
 
+}
+/* Initialize the ClockDomainCrosser to use the CPU speed 
+	If cpuClkFreqHz == 0, then assume a 1:1 ratio (like for TraceBasedSim)
+	*/
+void MultiChannelMemorySystem::setCPUClockSpeed(uint64_t cpuClkFreqHz)
+{
+
+	uint64_t dramsimClkFreqHz = (uint64_t)(1.0/(tCK*1e-9));
+	clockDomainCrosser.clock1 = dramsimClkFreqHz; 
+	clockDomainCrosser.clock2 = (cpuClkFreqHz == 0) ? dramsimClkFreqHz : cpuClkFreqHz; 
 }
 
 bool fileExists(string &path)
@@ -355,11 +371,16 @@ MultiChannelMemorySystem::~MultiChannelMemorySystem()
 		visDataOut.close();
 	}
 }
-void MultiChannelMemorySystem::update() 
+void MultiChannelMemorySystem::update()
+{
+	clockDomainCrosser.update(); 
+}
+void MultiChannelMemorySystem::actual_update() 
 {
 	if (currentClockCycle == 0)
 	{
 		InitOutputFiles(traceFilename);
+		DEBUG("DRAMSim2 Clock Frequency ="<<clockDomainCrosser.clock1<<"Hz, CPU Clock Frequency="<<clockDomainCrosser.clock2<<"Hz"); 
 	}
 
 	for (size_t i=0; i<NUM_CHANS; i++)

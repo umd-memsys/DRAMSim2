@@ -6,7 +6,11 @@ using namespace std;
 
 namespace ClockDomain
 {
-
+	// "Default" crosser with a 1:1 ratio
+	ClockDomainCrosser::ClockDomainCrosser(ClockUpdateCB *_callback)
+		: callback(_callback), clock1(1UL), clock2(1UL), counter1(0UL), counter2(0UL)
+	{
+	}
 	ClockDomainCrosser::ClockDomainCrosser(uint64_t _clock1, uint64_t _clock2, ClockUpdateCB *_callback) 
 		: callback(_callback), clock1(_clock1), clock2(_clock2), counter1(0), counter2(0)
 	{
@@ -54,6 +58,13 @@ namespace ClockDomain
 
 	void ClockDomainCrosser::update()
 	{
+		//short circuit case for 1:1 ratios
+		if (clock1 == clock2 && callback)
+		{
+			(*callback)();
+			return; 
+		}
+
 		// Update counter 1.
 		counter1 += clock1;
 

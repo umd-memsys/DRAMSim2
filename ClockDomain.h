@@ -44,7 +44,7 @@ namespace ClockDomain
 		ClockUpdateCB *callback;
 		uint64_t clock1, clock2;
 		uint64_t counter1, counter2;
-
+		ClockDomainCrosser(ClockUpdateCB *_callback);
 		ClockDomainCrosser(uint64_t _clock1, uint64_t _clock2, ClockUpdateCB *_callback);
 		ClockDomainCrosser(double ratio, ClockUpdateCB *_callback);
 		void update();

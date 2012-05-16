@@ -32,6 +32,7 @@
 #include "SystemConfiguration.h"
 #include "MemorySystem.h"
 #include "IniReader.h"
+#include "ClockDomain.h"
 
 
 namespace DRAMSim {
@@ -56,6 +57,7 @@ class MultiChannelMemorySystem : public SimulatorObject
 				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
 
 	void InitOutputFiles(string tracefilename);
+	void setCPUClockSpeed(uint64_t cpuClkFreqHz);
 
 	//output file
 	std::ofstream visDataOut;
@@ -63,6 +65,7 @@ class MultiChannelMemorySystem : public SimulatorObject
 
 	private:
 		unsigned findChannelNumber(uint64_t addr);
+		void actual_update(); 
 		vector<MemorySystem*> channels; 
 		unsigned megsOfMemory; 
 		string deviceIniFilename;
@@ -70,6 +73,7 @@ class MultiChannelMemorySystem : public SimulatorObject
 		string traceFilename;
 		string pwd;
 		string *visFilename;
+		ClockDomain::ClockDomainCrosser clockDomainCrosser; 
 		static void mkdirIfNotExist(string path);
 		static bool fileExists(string path); 
 
