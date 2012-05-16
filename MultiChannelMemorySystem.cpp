@@ -338,8 +338,13 @@ void MultiChannelMemorySystem::mkdirIfNotExist(string path)
 
 MultiChannelMemorySystem::~MultiChannelMemorySystem()
 {
-// Should only ever be called on exit, so don't bother to delete stuff, just
-// flush our streams and close em up
+	for (size_t i=0; i<NUM_CHANS; i++)
+	{
+		delete channels[i];
+	}
+	channels.clear(); 
+
+// flush our streams and close them up
 #ifdef LOG_OUTPUT
 	dramsim_log.flush();
 	dramsim_log.close();

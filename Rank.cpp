@@ -70,7 +70,15 @@ void Rank::attachMemoryController(MemoryController *memoryController)
 {
 	this->memoryController = memoryController;
 }
-
+Rank::~Rank()
+{
+	for (size_t i=0; i<readReturnPacket.size(); i++)
+	{
+		delete readReturnPacket[i];
+	}
+	readReturnPacket.clear(); 
+	delete outgoingDataPacket; 
+}
 void Rank::receiveFromBus(BusPacket *packet)
 {
 	if (DEBUG_BUS)

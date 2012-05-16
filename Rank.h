@@ -59,6 +59,7 @@ private:
 public:
 	//functions
 	Rank(ostream &dramsim_log_);
+	virtual ~Rank(); 
 	void receiveFromBus(BusPacket *packet);
 	void attachMemoryController(MemoryController *mc);
 	int getId() const;

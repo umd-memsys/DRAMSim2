@@ -511,16 +511,6 @@ void MemoryController::update()
 				PRINT("  Col  : " << newTransactionColumn);
 			}
 
-			// If we have a read, save the transaction so when the data comes back
-			// in a bus packet, we can staple it back into a transaction and return it
-			if (transaction->transactionType == DATA_READ)
-			{
-				pendingReadTransactions.push_back(transaction);
-			}
-			else
-			{
-				//the transaction has been turned into a buspacket, so we don't need it anymore
-			}
 
 
 			//now that we know there is room in the command queue, we can remove from the transaction queue
@@ -538,20 +528,26 @@ void MemoryController::update()
 					newTransactionBank, transaction->data, dramsim_log);
 
 
+
+			commandQueue.enqueue(ACTcommand);
+			commandQueue.enqueue(command);
+
+			// If we have a read, save the transaction so when the data comes back
+			// in a bus packet, we can staple it back into a transaction and return it
+			if (transaction->transactionType == DATA_READ)
+			{
+				pendingReadTransactions.push_back(transaction);
+			}
+			else
+			{
+				// just delete the transaction now that it's a buspacket
+				delete transaction; 
+			}
 			/* only allow one transaction to be scheduled per cycle -- this should
 			 * be a reasonable assumption considering how much logic would be
 			 * required to schedule multiple entries per cycle (parallel data
 			 * lines, switching logic, decision logic)
 			 */
-			commandQueue.enqueue(ACTcommand);
-			commandQueue.enqueue(command);
-
-			// if the transaction isn't a read, we don't need to keep it around anymore 
-			if (transaction->transactionType != DATA_READ)
-			{
-				delete transaction; 
-			}
-
 			break;
 		}
 		else // no room, do nothing this cycle
@@ -687,6 +683,7 @@ void MemoryController::update()
 			ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[0]->address<<dec);
 			abort(); 
 		}
+		delete returnTransaction[0];
 		returnTransaction.erase(returnTransaction.begin());
 	}
 
@@ -962,6 +959,15 @@ MemoryController::~MemoryController()
 {
 	//ERROR("MEMORY CONTROLLER DESTRUCTOR");
 	//abort();
+	for (size_t i=0; i<pendingReadTransactions.size(); i++)
+	{
+		delete pendingReadTransactions[i];
+	}
+	for (size_t i=0; i<returnTransaction.size(); i++)
+	{
+		delete returnTransaction[i];
+	}
+
 }
 //inserts a latency into the latency histogram
 void MemoryController::insertHistogram(unsigned latencyValue, unsigned rank, unsigned bank)

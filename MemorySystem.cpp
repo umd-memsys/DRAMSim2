@@ -141,7 +141,6 @@ MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, ofstream &vis
 		ranks->push_back(r);
 	}
 
-
 	memoryController->attachRanks(ranks);
 
 }
@@ -155,6 +154,11 @@ MemorySystem::~MemorySystem()
 //	abort();
 
 	delete(memoryController);
+
+	for (size_t i=0; i<NUM_RANKS; i++)
+	{
+		delete (*ranks)[i];
+	}
 	ranks->clear();
 	delete(ranks);
 

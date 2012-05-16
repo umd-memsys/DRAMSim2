@@ -564,6 +564,8 @@ int main(int argc, char **argv)
 #ifdef RETURN_TRANSACTIONS
 							transactionReceiver.add_pending(trans, i); 
 #endif
+							// the memory system accepted our request so now it takes ownership of it
+							trans = NULL; 
 						}
 					}
 					else
@@ -592,6 +594,7 @@ int main(int argc, char **argv)
 #ifdef RETURN_TRANSACTIONS
 				transactionReceiver.add_pending(trans, i); 
 #endif
+				trans=NULL;
 			}
 		}
 
@@ -601,6 +604,10 @@ int main(int argc, char **argv)
 	traceFile.close();
 	(*memorySystem).printStats();
 	// make valgrind happy
+	if (trans)
+	{
+		delete trans;
+	}
 	delete(memorySystem);
 }
 #endif
