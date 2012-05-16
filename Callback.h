@@ -30,6 +30,8 @@
 
 
 
+#include <stdint.h> // uint64_t
+
 #ifndef CALLBACK_H
 #define CALLBACK_H
 
