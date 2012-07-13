@@ -45,6 +45,7 @@ class MultiChannelMemorySystem : public SimulatorObject
 	MultiChannelMemorySystem(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, string *visFilename=NULL, const IniReader::OverrideMap *paramOverrides=NULL);
 		virtual ~MultiChannelMemorySystem();
 			bool addTransaction(Transaction *trans);
+			bool addTransaction(const Transaction &trans);
 			bool addTransaction(bool isWrite, uint64_t addr);
 			bool willAcceptTransaction(); 
 			bool willAcceptTransaction(uint64_t addr); 

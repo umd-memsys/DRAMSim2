@@ -421,6 +421,12 @@ ostream &MultiChannelMemorySystem::getLogFile()
 {
 	return dramsim_log; 
 }
+bool MultiChannelMemorySystem::addTransaction(const Transaction &trans)
+{
+	// copy the transaction and send the pointer to the new transaction 
+	return addTransaction(new Transaction(trans)); 
+}
+
 bool MultiChannelMemorySystem::addTransaction(Transaction *trans)
 {
 	unsigned channelNumber = findChannelNumber(trans->address); 

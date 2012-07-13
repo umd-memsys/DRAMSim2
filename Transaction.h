@@ -38,7 +38,7 @@
 #include "SystemConfiguration.h"
 #include "BusPacket.h"
 
-using namespace std;
+using std::ostream; 
 
 namespace DRAMSim
 {
@@ -51,7 +51,6 @@ enum TransactionType
 
 class Transaction
 {
-	ostream &dramsim_log; 
 	Transaction();
 public:
 	//fields
@@ -62,10 +61,10 @@ public:
 	uint64_t timeReturned;
 
 
+	friend ostream &operator<<(ostream &os, const Transaction &t);
 	//functions
-	Transaction(TransactionType transType, uint64_t addr, void *data, ostream &dramsim_log_);
-
-	void print();
+	Transaction(TransactionType transType, uint64_t addr, void *data);
+	Transaction(const Transaction &t);
 
 	BusPacketType getBusPacketType()
 	{
@@ -107,6 +106,7 @@ public:
 		}
 	}
 };
+
 }
 
 #endif

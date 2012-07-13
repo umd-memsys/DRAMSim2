@@ -552,7 +552,7 @@ int main(int argc, char **argv)
 				if (line.size() > 0)
 				{
 					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType,useClockCycle);
-					trans = new Transaction(transType, addr, data, dramsim_logfile);
+					trans = new Transaction(transType, addr, data);
 					alignTransactionAddress(*trans); 
 
 					if (i>=clockCycle)

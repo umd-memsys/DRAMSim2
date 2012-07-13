@@ -114,7 +114,7 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 	}
 
 	//add to return read data queue
-	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data,dramsim_log));
+	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data));
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
 
 	// this delete statement saves a mindboggling amount of memory
@@ -650,8 +650,7 @@ void MemoryController::update()
 	{
 		if (DEBUG_BUS)
 		{
-			PRINTN(" -- MC Issuing to CPU bus : ");
-			returnTransaction[0]->print();
+			PRINTN(" -- MC Issuing to CPU bus : " << *returnTransaction[0]);
 		}
 		totalTransactions++;
 
@@ -701,8 +700,7 @@ void MemoryController::update()
 		PRINT("== Printing transaction queue");
 		for (size_t i=0;i<transactionQueue.size();i++)
 		{
-			PRINTN("  " << i << "]");
-			transactionQueue[i]->print();
+			PRINTN("  " << i << "] "<< *transactionQueue[i]);
 		}
 	}
 
