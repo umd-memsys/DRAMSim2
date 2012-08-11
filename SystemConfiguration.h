@@ -123,7 +123,7 @@ extern float Vdd;
 extern unsigned NUM_DEVICES;
 
 //same bank
-#define READ_TO_PRE_DELAY (AL+BL/2+max(((int)tRTP),2)-2)
+#define READ_TO_PRE_DELAY (AL+BL/2+ max(tRTP,tCCD)-tCCD)
 #define WRITE_TO_PRE_DELAY (WL+BL/2+tWR)
 #define READ_TO_WRITE_DELAY (RL+BL/2+tRTRS-WL)
 #define READ_AUTOPRE_DELAY (AL+tRTP+tRP)
