@@ -57,7 +57,7 @@ class MemoryController : public SimulatorObject
 
 public:
 	//functions
-	MemoryController(MemorySystem* ms, std::ofstream *outfile, ostream &dramsim_log_);
+	MemoryController(MemorySystem* ms, CSVWriter &csvOut_, ostream &dramsim_log_);
 	virtual ~MemoryController();
 
 	bool addTransaction(Transaction *trans);
@@ -67,6 +67,7 @@ public:
 	void attachRanks(vector<Rank *> *ranks);
 	void update();
 	void printStats(bool finalStats = false);
+	void resetStats(); 
 
 
 	//fields
@@ -93,8 +94,7 @@ private:
 	vector<Rank *> *ranks;
 
 	//output file
-	std::ofstream *visDataOut;
-	CSVWriter csvOut; 
+	CSVWriter &csvOut; 
 
 	// these packets are counting down waiting to be transmitted on the "bus"
 	BusPacket *outgoingCmdPacket;

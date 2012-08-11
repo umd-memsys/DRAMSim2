@@ -47,7 +47,8 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilena
 	:megsOfMemory(megsOfMemory_), deviceIniFilename(deviceIniFilename_),
 	systemIniFilename(systemIniFilename_), traceFilename(traceFilename_),
 	pwd(pwd_), visFilename(visFilename_), 
-	clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update))
+	clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update)),
+	csvOut(new CSVWriter(visDataOut))
 {
 	currentClockCycle=0; 
 	if (visFilename)
@@ -93,10 +94,9 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilena
 		ERROR("Zero channels"); 
 		abort(); 
 	}
-
 	for (size_t i=0; i<NUM_CHANS; i++)
 	{
-		MemorySystem *channel = new MemorySystem(i, megsOfMemory/NUM_CHANS, visDataOut, dramsim_log);
+		MemorySystem *channel = new MemorySystem(i, megsOfMemory/NUM_CHANS, (*csvOut), dramsim_log);
 		channels.push_back(channel);
 	}
 	// for compatibility with the old marss code which assumed an sg15 part with a
@@ -383,10 +383,22 @@ void MultiChannelMemorySystem::actual_update()
 		DEBUG("DRAMSim2 Clock Frequency ="<<clockDomainCrosser.clock1<<"Hz, CPU Clock Frequency="<<clockDomainCrosser.clock2<<"Hz"); 
 	}
 
+	if (currentClockCycle % EPOCH_LENGTH == 0)
+	{
+		(*csvOut) << "ms" <<currentClockCycle * tCK * 1E-6; 
+		for (size_t i=0; i<NUM_CHANS; i++)
+		{
+			channels[i]->printStats(false); 
+		}
+		csvOut->finalize();
+	}
+	
 	for (size_t i=0; i<NUM_CHANS; i++)
 	{
 		channels[i]->update(); 
 	}
+
+
 	currentClockCycle++; 
 }
 unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
@@ -468,13 +480,16 @@ bool MultiChannelMemorySystem::willAcceptTransaction()
 
 
 
-void MultiChannelMemorySystem::printStats() {
+void MultiChannelMemorySystem::printStats(bool finalStats) {
+
+	(*csvOut) << "ms" <<currentClockCycle * tCK * 1E-6; 
 	for (size_t i=0; i<NUM_CHANS; i++)
 	{
 		PRINT("==== Channel ["<<i<<"] ====");
-		channels[i]->printStats(); 
+		channels[i]->printStats(finalStats); 
 		PRINT("//// Channel ["<<i<<"] ////");
 	}
+	csvOut->finalize();
 }
 void MultiChannelMemorySystem::RegisterCallbacks( 
 		TransactionCompleteCB *readDone,

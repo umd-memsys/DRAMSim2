@@ -159,6 +159,7 @@ namespace DRAMSim {
 		{
 			if (!finalized)
 			{
+//				cout <<"Adding "<<name<<endl;
 				fieldNames.push_back(string(name));
 			}
 			return *this; 
@@ -177,11 +178,22 @@ namespace DRAMSim {
 		{
 			if (!finalized)
 			{
+//				cout <<"Adding "<<indexedName.str<<endl;
 				fieldNames.push_back(indexedName.str);
 			}
 			return *this; 
 		}
-
+		
+		bool isFinalized()
+		{
+//			printf("obj=%p", this); 
+			return finalized; 
+		}
+		
+		ostream &getOutputStream()
+		{
+			return output; 
+		}
 		// Insertion operators for value types 
 		// All of the other types just need to pass through to the underlying
 		// ofstream, so just write this small wrapper function to make the
@@ -203,9 +215,15 @@ namespace DRAMSim {
 	ADD_TYPE(uint64_t);
 	ADD_TYPE(float);
 	ADD_TYPE(double);
+
+	//disable copy constructor and assignment operator
+	private:
+		CSVWriter(const CSVWriter &); 
+		CSVWriter &operator=(const CSVWriter &);
+		
 	}; // class CSVWriter
 
 
-} // namespace BOBSim
+} // namespace DRAMSim
 
 #endif // _CSV_WRITER_H_

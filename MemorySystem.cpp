@@ -52,12 +52,12 @@ namespace DRAMSim {
 
 powerCallBack_t MemorySystem::ReportPower = NULL;
 
-MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, ofstream &visDataOut_, ostream &dramsim_log_) :
+MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, CSVWriter &csvOut_, ostream &dramsim_log_) :
 		dramsim_log(dramsim_log_),
 		ReturnReadData(NULL),
 		WriteDataDone(NULL),
 		systemID(id),
-		visDataOut(visDataOut_)
+		csvOut(csvOut_)
 {
 	currentClockCycle = 0;
 
@@ -128,7 +128,7 @@ MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, ofstream &vis
 	DEBUG("CH. " <<systemID<<" TOTAL_STORAGE : "<< TOTAL_STORAGE << "MB | "<<NUM_RANKS<<" Ranks | "<< NUM_DEVICES <<" Devices per rank");
 
 
-	memoryController = new MemoryController(this, &visDataOut, dramsim_log);
+	memoryController = new MemoryController(this, csvOut, dramsim_log);
 
 	// TODO: change to other vector constructor?
 	ranks = new vector<Rank *>();
@@ -198,14 +198,9 @@ bool MemorySystem::addTransaction(Transaction *trans)
 }
 
 //prints statistics
-void MemorySystem::printStats()
+void MemorySystem::printStats(bool finalStats)
 {
-	memoryController->printStats(true);
-}
-
-void MemorySystem::printStats(bool)
-{
-	printStats();
+	memoryController->printStats(finalStats);
 }
 
 
