@@ -33,6 +33,7 @@
 #include "MemorySystem.h"
 #include "IniReader.h"
 #include "ClockDomain.h"
+#include "CSVWriter.h"
 
 
 namespace DRAMSim {
@@ -50,7 +51,7 @@ class MultiChannelMemorySystem : public SimulatorObject
 			bool willAcceptTransaction(); 
 			bool willAcceptTransaction(uint64_t addr); 
 			void update();
-			void printStats();
+			void printStats(bool finalStats=false);
 			ostream &getLogFile();
 			void RegisterCallbacks( 
 				TransactionCompleteCB *readDone,
@@ -77,6 +78,8 @@ class MultiChannelMemorySystem : public SimulatorObject
 		ClockDomain::ClockDomainCrosser clockDomainCrosser; 
 		static void mkdirIfNotExist(string path);
 		static bool fileExists(string path); 
+		CSVWriter *csvOut; 
+
 
 	};
 }

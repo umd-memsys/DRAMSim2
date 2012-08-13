@@ -604,7 +604,7 @@ int main(int argc, char **argv)
 	}
 
 	traceFile.close();
-	(*memorySystem).printStats();
+	memorySystem->printStats(true);
 	// make valgrind happy
 	if (trans)
 	{

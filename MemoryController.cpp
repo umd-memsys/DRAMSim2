@@ -43,21 +43,17 @@
 
 using namespace DRAMSim;
 
-MemoryController::MemoryController(MemorySystem *parent, std::ofstream *outfile, ostream &dramsim_log_) :
+MemoryController::MemoryController(MemorySystem *parent, CSVWriter &csvOut_, ostream &dramsim_log_) :
 		dramsim_log(dramsim_log_),
 		bankStates(NUM_RANKS, vector<BankState>(NUM_BANKS, dramsim_log)),
 		commandQueue(bankStates, dramsim_log_),
 		poppedBusPacket(NULL),
-		csvOut(*outfile),
+		csvOut(csvOut_),
 		totalTransactions(0),
 		refreshRank(0)
 {
 	//get handle on parent
 	parentMemorySystem = parent;
-	if (VIS_FILE_OUTPUT)
-	{
-		visDataOut = outfile; 
-	}
 
 
 	//bus related fields
@@ -744,31 +740,6 @@ void MemoryController::update()
 
 	commandQueue.step();
 
-	//print stats if we're at the end of an epoch
-	if (currentClockCycle % EPOCH_LENGTH == 0)
-	{
-		this->printStats();
-
-		totalTransactions = 0;
-		for (size_t i=0;i<NUM_RANKS;i++)
-		{
-			for (size_t j=0; j<NUM_BANKS; j++)
-			{
-				//XXX: this means the bank list won't be printed for partial epochs
-				grandTotalBankAccesses[SEQUENTIAL(i,j)] += totalReadsPerBank[SEQUENTIAL(i,j)] + totalWritesPerBank[SEQUENTIAL(i,j)];
-				totalReadsPerBank[SEQUENTIAL(i,j)] = 0;
-				totalWritesPerBank[SEQUENTIAL(i,j)] = 0;
-				totalEpochLatency[SEQUENTIAL(i,j)] = 0;
-			}
-
-			burstEnergy[i] = 0;
-			actpreEnergy[i] = 0;
-			refreshEnergy[i] = 0;
-			backgroundEnergy[i] = 0;
-			totalReadsPerRank[i] = 0;
-			totalWritesPerRank[i] = 0;
-		}
-	}
 }
 
 bool MemoryController::WillAcceptTransaction()
@@ -791,14 +762,31 @@ bool MemoryController::addTransaction(Transaction *trans)
 	}
 }
 
+void MemoryController::resetStats()
+{
+	for (size_t i=0; i<NUM_RANKS; i++)
+	{
+		for (size_t j=0; j<NUM_BANKS; j++)
+		{
+			//XXX: this means the bank list won't be printed for partial epochs
+			grandTotalBankAccesses[SEQUENTIAL(i,j)] += totalReadsPerBank[SEQUENTIAL(i,j)] + totalWritesPerBank[SEQUENTIAL(i,j)];
+			totalReadsPerBank[SEQUENTIAL(i,j)] = 0;
+			totalWritesPerBank[SEQUENTIAL(i,j)] = 0;
+			totalEpochLatency[SEQUENTIAL(i,j)] = 0;
+		}
 
+		burstEnergy[i] = 0;
+		actpreEnergy[i] = 0;
+		refreshEnergy[i] = 0;
+		backgroundEnergy[i] = 0;
+		totalReadsPerRank[i] = 0;
+		totalWritesPerRank[i] = 0;
+	}
+}
 //prints statistics at the end of an epoch or  simulation
 void MemoryController::printStats(bool finalStats)
 {
 	unsigned myChannel = parentMemorySystem->systemID;
-	//skip the print on the first cycle, it's pretty useless
-	if (currentClockCycle == 0)
-		return;
 
 	//if we are not at the end of the epoch, make sure to adjust for the actual number of cycles elapsed
 
@@ -843,11 +831,6 @@ void MemoryController::printStats(bool finalStats)
 	PRINTN( "   Total Return Transactions : " << totalTransactions );
 	PRINT( " ("<<totalBytesTransferred <<" bytes) aggregate average bandwidth "<<totalBandwidth<<"GB/s");
 
-	// only the first memory channel should print the timestamp
-	if (VIS_FILE_OUTPUT && myChannel == 0)
-	{
-		csvOut << "ms" <<currentClockCycle * tCK * 1E-6; 
-	}
 	double totalAggregateBandwidth = 0.0;	
 	for (size_t r=0;r<NUM_RANKS;r++)
 	{
@@ -883,6 +866,7 @@ void MemoryController::printStats(bool finalStats)
 
 		if (VIS_FILE_OUTPUT)
 		{
+		//	cout << "c="<<myChannel<< " r="<<r<<"writing to csv out on cycle "<< currentClockCycle<<endl;
 			// write the vis file output
 			csvOut << CSVWriter::IndexedName("Background_Power",myChannel,r) <<backgroundPower[r];
 			csvOut << CSVWriter::IndexedName("ACT_PRE_Power",myChannel,r) << actprePower[r];
@@ -904,7 +888,6 @@ void MemoryController::printStats(bool finalStats)
 	{
 		csvOut << CSVWriter::IndexedName("Aggregate_Bandwidth",myChannel) << totalAggregateBandwidth;
 		csvOut << CSVWriter::IndexedName("Average_Bandwidth",myChannel) << totalAggregateBandwidth / (NUM_RANKS*NUM_BANKS);
-		csvOut.finalize(); 
 	}
 
 	// only print the latency histogram at the end of the simulation since it clogs the output too much to print every epoch
@@ -914,7 +897,7 @@ void MemoryController::printStats(bool finalStats)
 		PRINT( "       [lat] : #");
 		if (VIS_FILE_OUTPUT)
 		{
-			(*visDataOut) << "!!HISTOGRAM_DATA"<<endl;
+			csvOut.getOutputStream() << "!!HISTOGRAM_DATA"<<endl;
 		}
 
 		map<unsigned,unsigned>::iterator it; //
@@ -923,7 +906,7 @@ void MemoryController::printStats(bool finalStats)
 			PRINT( "       ["<< it->first <<"-"<<it->first+(HISTOGRAM_BIN_SIZE-1)<<"] : "<< it->second );
 			if (VIS_FILE_OUTPUT)
 			{
-				(*visDataOut) << it->first <<"="<< it->second << endl;
+				csvOut.getOutputStream() << it->first <<"="<< it->second << endl;
 			}
 		}
 		if (currentClockCycle % EPOCH_LENGTH == 0)
@@ -952,6 +935,8 @@ void MemoryController::printStats(bool finalStats)
 #ifdef LOG_OUTPUT
 	dramsim_log.flush();
 #endif
+
+	resetStats();
 }
 MemoryController::~MemoryController()
 {

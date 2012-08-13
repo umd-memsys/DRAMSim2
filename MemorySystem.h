@@ -44,6 +44,7 @@
 #include "Rank.h"
 #include "Transaction.h"
 #include "Callback.h"
+#include "CSVWriter.h"
 #include <deque>
 
 namespace DRAMSim
@@ -54,13 +55,12 @@ class MemorySystem : public SimulatorObject
 	ostream &dramsim_log;
 public:
 	//functions
-	MemorySystem(unsigned id, unsigned megsOfMemory, ofstream &visDataOut, ostream &dramsim_log_);
+	MemorySystem(unsigned id, unsigned megsOfMemory, CSVWriter &csvOut_, ostream &dramsim_log_);
 	virtual ~MemorySystem();
 	void update();
 	bool addTransaction(Transaction *trans);
 	bool addTransaction(bool isWrite, uint64_t addr);
-	void printStats();
-	void printStats(bool unused);
+	void printStats(bool finalStats);
 	bool WillAcceptTransaction();
 	void RegisterCallbacks(
 	    Callback_t *readDone,
@@ -81,7 +81,7 @@ public:
 	unsigned systemID;
 
 private:
-	ofstream &visDataOut; 
+	CSVWriter &csvOut;
 };
 }
 
