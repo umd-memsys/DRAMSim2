@@ -47,7 +47,7 @@ namespace DRAMSim
 			bool addTransaction(bool isWrite, uint64_t addr);
 			void setCPUClockSpeed(uint64_t cpuClkFreqHz);
 			void update();
-			void printStats();
+			void printStats(bool finalStats);
 			bool willAcceptTransaction(); 
 			bool willAcceptTransaction(uint64_t addr); 
 			std::ostream &getLogFile();
