@@ -408,7 +408,7 @@ void IniReader::ReadIniFile(string filename, bool isSystemFile)
 			// all characters after the equals are the value
 			valueString = line.substr(equalsIndex+1,strlen-equalsIndex);
 
-			IniReader::SetKey(key, valueString, lineNumber, isSystemFile);
+			IniReader::SetKey(key, valueString, isSystemFile, lineNumber);
 			// got to the end of the config map without finding the key
 		}
 	}
