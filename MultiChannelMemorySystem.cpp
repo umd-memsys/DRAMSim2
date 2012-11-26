@@ -502,8 +502,8 @@ void MultiChannelMemorySystem::RegisterCallbacks(
 	}
 }
 namespace DRAMSim {
-MultiChannelMemorySystem *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory) 
+MultiChannelMemorySystem *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, string *visfilename) 
 {
-	return new MultiChannelMemorySystem(dev, sys, pwd, trc, megsOfMemory);
+	return new MultiChannelMemorySystem(dev, sys, pwd, trc, megsOfMemory, visfilename);
 }
 }
