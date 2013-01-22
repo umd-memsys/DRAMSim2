@@ -41,6 +41,23 @@
 
 #define SEQUENTIAL(rank,bank) (rank*NUM_BANKS)+bank
 
+/* Power computations are localized to MemoryController.cpp */ 
+extern unsigned IDD0;
+extern unsigned IDD1;
+extern unsigned IDD2P;
+extern unsigned IDD2Q;
+extern unsigned IDD2N;
+extern unsigned IDD3Pf;
+extern unsigned IDD3Ps;
+extern unsigned IDD3N;
+extern unsigned IDD4W;
+extern unsigned IDD4R;
+extern unsigned IDD5;
+extern unsigned IDD6;
+extern unsigned IDD6L;
+extern unsigned IDD7;
+extern float Vdd; 
+
 using namespace DRAMSim;
 
 MemoryController::MemoryController(MemorySystem *parent, CSVWriter &csvOut_, ostream &dramsim_log_) :

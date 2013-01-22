@@ -105,21 +105,8 @@ extern unsigned tXP;
 
 extern unsigned tCMD;
 
-extern unsigned IDD0;
-extern unsigned IDD1;
-extern unsigned IDD2P;
-extern unsigned IDD2Q;
-extern unsigned IDD2N;
-extern unsigned IDD3Pf;
-extern unsigned IDD3Ps;
-extern unsigned IDD3N;
-extern unsigned IDD4W;
-extern unsigned IDD4R;
-extern unsigned IDD5;
-extern unsigned IDD6;
-extern unsigned IDD6L;
-extern unsigned IDD7;
-extern float Vdd; 
+/* For power parameters (current and voltage), see externs in MemoryController.cpp */ 
+
 extern unsigned NUM_DEVICES;
 
 //same bank
