@@ -99,10 +99,6 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilena
 		MemorySystem *channel = new MemorySystem(i, megsOfMemory/NUM_CHANS, (*csvOut), dramsim_log);
 		channels.push_back(channel);
 	}
-	// for compatibility with the old marss code which assumed an sg15 part with a
-	// 2GHz CPU, the new code will reset this value later
-	setCPUClockSpeed(2000000000UL); 
-
 }
 /* Initialize the ClockDomainCrosser to use the CPU speed 
 	If cpuClkFreqHz == 0, then assume a 1:1 ratio (like for TraceBasedSim)
