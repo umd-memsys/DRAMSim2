@@ -441,7 +441,7 @@ bool MultiChannelMemorySystem::addTransaction(Transaction *trans)
 	return channels[channelNumber]->addTransaction(trans); 
 }
 
-bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr)
+bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr, unsigned, unsigned, unsigned)
 {
 	unsigned channelNumber = findChannelNumber(addr); 
 	return channels[channelNumber]->addTransaction(isWrite, addr); 
@@ -456,7 +456,7 @@ bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr)
 	that memory controller
 */
 
-bool MultiChannelMemorySystem::willAcceptTransaction(uint64_t addr)
+bool MultiChannelMemorySystem::willAcceptTransaction(bool isWrite, uint64_t addr, unsigned, unsigned, unsigned)
 {
 	unsigned chan, rank,bank,row,col; 
 	addressMapping(addr, chan, rank, bank, row, col); 
@@ -487,7 +487,7 @@ void MultiChannelMemorySystem::printStats(bool finalStats) {
 	}
 	csvOut->finalize();
 }
-void MultiChannelMemorySystem::RegisterCallbacks( 
+void MultiChannelMemorySystem::registerCallbacks( 
 		TransactionCompleteCB *readDone,
 		TransactionCompleteCB *writeDone,
 		void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower))
@@ -497,6 +497,10 @@ void MultiChannelMemorySystem::RegisterCallbacks(
 		channels[i]->RegisterCallbacks(readDone, writeDone, reportPower); 
 	}
 }
+void MultiChannelMemorySystem::simulationDone() {
+	printStats(true); 
+}
+
 namespace DRAMSim {
 MultiChannelMemorySystem *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, string *visfilename) 
 {

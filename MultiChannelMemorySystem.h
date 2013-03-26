@@ -47,13 +47,14 @@ class MultiChannelMemorySystem : public SimulatorObject
 		virtual ~MultiChannelMemorySystem();
 			bool addTransaction(Transaction *trans);
 			bool addTransaction(const Transaction &trans);
-			bool addTransaction(bool isWrite, uint64_t addr);
+			bool addTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64, unsigned linkIdx=100, unsigned coreID=0);
+			bool willAcceptTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64, unsigned linkIdx=100, unsigned coreID=0); 
 			bool willAcceptTransaction(); 
-			bool willAcceptTransaction(uint64_t addr); 
 			void update();
 			void printStats(bool finalStats=false);
 			ostream &getLogFile();
-			void RegisterCallbacks( 
+			void simulationDone();
+			void registerCallbacks( 
 				TransactionCompleteCB *readDone,
 				TransactionCompleteCB *writeDone,
 				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));

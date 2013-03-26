@@ -44,15 +44,17 @@ namespace DRAMSim
 
 	class MultiChannelMemorySystem {
 		public: 
-			bool addTransaction(bool isWrite, uint64_t addr);
+			bool willAcceptTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64, unsigned linkIdx=100, unsigned coreID=0); 
+			bool addTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64, unsigned linkIdx=100, unsigned coreID=0);
+
 			void setCPUClockSpeed(uint64_t cpuClkFreqHz);
 			void update();
 			void printStats(bool finalStats);
 			bool willAcceptTransaction(); 
-			bool willAcceptTransaction(uint64_t addr); 
 			std::ostream &getLogFile();
+			void simulationDone();
 
-			void RegisterCallbacks( 
+			void registerCallbacks( 
 				TransactionCompleteCB *readDone,
 				TransactionCompleteCB *writeDone,
 				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));

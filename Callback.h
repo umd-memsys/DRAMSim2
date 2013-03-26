@@ -32,8 +32,8 @@
 
 #include <stdint.h> // uint64_t
 
-#ifndef CALLBACK_H
-#define CALLBACK_H
+#ifndef _DRAMSIM_CALLBACK_H_
+#define _DRAMSIM_CALLBACK_H_
 
 namespace DRAMSim
 {
