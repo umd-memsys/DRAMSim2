@@ -61,6 +61,7 @@ extern float Vdd;
 using namespace DRAMSim;
 
 MemoryController::MemoryController(MemorySystem *parent, CSVWriter &csvOut_, ostream &dramsim_log_) :
+		lastDumpCycle(0),
 		dramsim_log(dramsim_log_),
 		bankStates(NUM_RANKS, vector<BankState>(NUM_BANKS, dramsim_log)),
 		commandQueue(bankStates, dramsim_log_),
@@ -807,7 +808,7 @@ void MemoryController::printStats(bool finalStats)
 
 	//if we are not at the end of the epoch, make sure to adjust for the actual number of cycles elapsed
 
-	uint64_t cyclesElapsed = (currentClockCycle % EPOCH_LENGTH == 0) ? EPOCH_LENGTH : currentClockCycle % EPOCH_LENGTH;
+	uint64_t cyclesElapsed = currentClockCycle - lastDumpCycle; //(currentClockCycle % EPOCH_LENGTH == 0) ? EPOCH_LENGTH : currentClockCycle % EPOCH_LENGTH;
 	unsigned bytesPerTransaction = (JEDEC_DATA_BUS_BITS*BL)/8;
 	uint64_t totalBytesTransferred = totalTransactions * bytesPerTransaction;
 	double secondsThisEpoch = (double)cyclesElapsed * tCK * 1E-9;
@@ -880,7 +881,6 @@ void MemoryController::printStats(bool finalStats)
 		PRINT( "     -Act/Pre    (watts)     : " << actprePower[r] );
 		PRINT( "     -Burst      (watts)     : " << burstPower[r]);
 		PRINT( "     -Refresh    (watts)     : " << refreshPower[r] );
-
 		if (VIS_FILE_OUTPUT)
 		{
 		//	cout << "c="<<myChannel<< " r="<<r<<"writing to csv out on cycle "<< currentClockCycle<<endl;
@@ -957,6 +957,7 @@ void MemoryController::printStats(bool finalStats)
 	dramsim_log.flush();
 #endif
 
+	lastDumpCycle = currentClockCycle;
 	resetStats();
 }
 MemoryController::~MemoryController()
