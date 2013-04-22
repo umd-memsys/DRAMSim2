@@ -46,6 +46,8 @@
 using namespace DRAMSim;
 using namespace std;
 
+SimulatorObject::SimulatorObject() : currentClockCycle(0) {
+}
 void SimulatorObject::step()
 {
 	currentClockCycle++;
