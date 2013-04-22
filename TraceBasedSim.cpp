@@ -375,7 +375,7 @@ int main(int argc, char **argv)
 	string systemIniFilename("system.ini");
 	string deviceIniFilename;
 	string pwdString;
-	string *visFilename = NULL;
+	string visFilename("dramsim.vis");
 	unsigned megsOfMemory=2048;
 	bool useClockCycle=true;
 	
@@ -453,7 +453,7 @@ int main(int argc, char **argv)
 			paramOverrides = parseParamOverrides(string(optarg)); 
 			break;
 		case 'v':
-			visFilename = new string(optarg);
+			visFilename = string(optarg);
 			break;
 		case '?':
 			usage();
@@ -507,7 +507,8 @@ int main(int argc, char **argv)
 	string line;
 
 
-	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory, visFilename, paramOverrides);
+	CSVWriter &CSVOut = CSVWriter::GetCSVWriterInstance(visFilename); 
+	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory, CSVOut, paramOverrides);
 	// set the frequency ratio to 1:1
 	memorySystem->setCPUClockSpeed(0); 
 	std::ostream &dramsim_logfile = memorySystem->getLogFile(); 

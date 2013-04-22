@@ -28,13 +28,6 @@
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
 
-
-
-
-
-
-
-
 #ifndef SIMULATOROBJ_H
 #define SIMULATOROBJ_H
 
@@ -47,14 +40,14 @@
 
 namespace DRAMSim
 {
-class SimulatorObject
-{
-public:
-	uint64_t currentClockCycle;
-
-	void step();
-	virtual void update()=0;
-};
+	class SimulatorObject
+	{
+		public:
+			uint64_t currentClockCycle;
+			SimulatorObject(); 
+			void step();
+			virtual void update()=0;
+	};
 }
 
 #endif

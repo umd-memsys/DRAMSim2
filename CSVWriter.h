@@ -33,17 +33,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include <string>
+#include <fstream>
 
 #include <string.h>
 
 using std::vector; 
 using std::ostream;
+using std::ofstream;
 using std::string; 
+using std::stringstream;
 /*
- * CSVWriter: Writes CSV data with headers to an underlying ofstream 
- * 	This wrapper is meant to look like an ofstream, but it captures 
+ * CSVWriter: Writes CSV data with headers to an underlying ostream 
+ * 	This wrapper is meant to look like an ostream, but it captures 
  * 	the names of each field and prints it out to a header before printing
  * 	the CSV data below. 
  *
@@ -92,9 +96,14 @@ namespace DRAMSim {
 			{
 				if (isNameTooLong(baseName, numIndices))
 				{
-					ERROR("Your string "<<baseName<<" is too long for the max stats size ("<<MAX_TMP_STR<<", increase MAX_TMP_STR"); 
+					std::cerr << "Your string "<<baseName<<" is too long for the max stats size ("<<MAX_TMP_STR<<", increase MAX_TMP_STR\n";
 					exit(-1); 
 				}
+			}
+			IndexedName(const char *baseName, const string &suffix) {
+				stringstream ss; 
+				ss << baseName << suffix;
+				str = ss.str(); 
 			}
 			IndexedName(const char *baseName, unsigned channel)
 			{
@@ -118,6 +127,11 @@ namespace DRAMSim {
 				str = string(tmp_str);
 			}
 
+		};
+		struct StringWrapper {
+			string s;
+			StringWrapper(const string &_s) : s(_s)
+			{}
 		};
 		// where the output will eventually go 
 		ostream &output; 
@@ -149,11 +163,18 @@ namespace DRAMSim {
 				output << std::endl; 
 			}
 		}
+		static CSVWriter &GetCSVWriterInstance(const string &filename) {
+			ostream &output = *(new ofstream(filename.c_str())); 
+			return *(new CSVWriter(output)); 
+		}
 
 		// Constructor 
 		CSVWriter(ostream &_output) : output(_output), finalized(false), idx(0)
 		{}
 
+		bool isFinalized() {
+			return finalized; 
+		}
 		// Insertion operators for field names
 		CSVWriter &operator<<(const char *name)
 		{
@@ -183,13 +204,17 @@ namespace DRAMSim {
 			}
 			return *this; 
 		}
-		
-		bool isFinalized()
+		// special case: when we want to actually just print a string to the field instead of the header
+		CSVWriter &operator<<(const CSVWriter::StringWrapper &s)
 		{
-//			printf("obj=%p", this); 
-			return finalized; 
-		}
-		
+			if (finalized)
+			{
+				output << s.s << ",";
+				idx++;
+			}
+			return *this; 
+		}	
+
 		ostream &getOutputStream()
 		{
 			return output; 

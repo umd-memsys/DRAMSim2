@@ -73,6 +73,7 @@ public:
 	//fields
 	vector<Transaction *> transactionQueue;
 private:
+	uint64_t lastDumpCycle; 
 	ostream &dramsim_log;
 	vector< vector <BankState> > bankStates;
 	//functions

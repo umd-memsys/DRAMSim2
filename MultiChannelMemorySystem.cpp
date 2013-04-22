@@ -37,29 +37,36 @@
 #include "MultiChannelMemorySystem.h"
 #include "AddressMapping.h"
 #include "IniReader.h"
+#include "CSVWriter.h"
 
 
 
 using namespace DRAMSim; 
 
 
-MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilename_, const string &systemIniFilename_, const string &pwd_, const string &traceFilename_, unsigned megsOfMemory_, string *visFilename_, const IniReader::OverrideMap *paramOverrides)
-	:megsOfMemory(megsOfMemory_), deviceIniFilename(deviceIniFilename_),
-	systemIniFilename(systemIniFilename_), traceFilename(traceFilename_),
-	pwd(pwd_), visFilename(visFilename_), 
-	clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update)),
-	csvOut(new CSVWriter(visDataOut))
-{
-	currentClockCycle=0; 
-	if (visFilename)
-		printf("CC VISFILENAME=%s\n",visFilename->c_str());
+MultiChannelMemorySystem::MultiChannelMemorySystem(
+		const string &deviceIniFilename_, 
+		const string &systemIniFilename_, 
+		const string &pwd_, 
+		const string &traceFilename_, 
+		unsigned megsOfMemory_, 
+		CSVWriter &csvOut_, 
+		const IniReader::OverrideMap *paramOverrides)
 
+	:	megsOfMemory(megsOfMemory_), 
+	deviceIniFilename(deviceIniFilename_),
+	systemIniFilename(systemIniFilename_), 
+	traceFilename(traceFilename_),
+	pwd(pwd_),
+	clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update)),
+	csvOut(csvOut_)
+{
 	if (!isPowerOfTwo(megsOfMemory))
 	{
 		ERROR("Please specify a power of 2 memory size"); 
 		abort(); 
 	}
-
+	printf("PWD is '%s'\n",pwd.c_str());
 	if (pwd.length() > 0)
 	{
 		//ignore the pwd argument if the argument is an absolute path
@@ -73,6 +80,10 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilena
 			systemIniFilename = pwd + "/" + systemIniFilename;
 		}
 	}
+	else {
+		abort();
+	}
+
 
 	DEBUG("== Loading device model file '"<<deviceIniFilename<<"' == ");
 	IniReader::ReadIniFile(deviceIniFilename, false);
@@ -96,7 +107,7 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const string &deviceIniFilena
 	}
 	for (size_t i=0; i<NUM_CHANS; i++)
 	{
-		MemorySystem *channel = new MemorySystem(i, megsOfMemory/NUM_CHANS, (*csvOut), dramsim_log);
+		MemorySystem *channel = new MemorySystem(i, megsOfMemory/NUM_CHANS, csvOut, dramsim_log);
 		channels.push_back(channel);
 	}
 }
@@ -167,8 +178,6 @@ string FilenameWithNumberSuffix(const string &filename, const string &extension,
  **/
 void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 {
-	size_t lastSlash;
-	size_t deviceIniFilenameLength = deviceIniFilename.length();
 	string sim_description_str;
 	string deviceName;
 	
@@ -284,7 +293,7 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 			exit(-1);
 		}
 		//write out the ini config values for the visualizer tool
-		IniReader::WriteValuesOut(visDataOut);
+//		IniReader::WriteValuesOut(visDataOut);
 
 	}
 	else
@@ -361,11 +370,13 @@ MultiChannelMemorySystem::~MultiChannelMemorySystem()
 	dramsim_log.flush();
 	dramsim_log.close();
 #endif
+	/*
 	if (VIS_FILE_OUTPUT) 
 	{	
 		visDataOut.flush();
 		visDataOut.close();
 	}
+	*/
 }
 void MultiChannelMemorySystem::update()
 {
@@ -381,12 +392,7 @@ void MultiChannelMemorySystem::actual_update()
 
 	if (currentClockCycle % EPOCH_LENGTH == 0)
 	{
-		(*csvOut) << "ms" <<currentClockCycle * tCK * 1E-6; 
-		for (size_t i=0; i<NUM_CHANS; i++)
-		{
-			channels[i]->printStats(false); 
-		}
-		csvOut->finalize();
+//		printStats(false); 
 	}
 	
 	for (size_t i=0; i<NUM_CHANS; i++)
@@ -441,7 +447,7 @@ bool MultiChannelMemorySystem::addTransaction(Transaction *trans)
 	return channels[channelNumber]->addTransaction(trans); 
 }
 
-bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr)
+bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr, unsigned, unsigned, unsigned)
 {
 	unsigned channelNumber = findChannelNumber(addr); 
 	return channels[channelNumber]->addTransaction(isWrite, addr); 
@@ -456,7 +462,7 @@ bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr)
 	that memory controller
 */
 
-bool MultiChannelMemorySystem::willAcceptTransaction(uint64_t addr)
+bool MultiChannelMemorySystem::willAcceptTransaction(bool isWrite, uint64_t addr, unsigned, unsigned, unsigned)
 {
 	unsigned chan, rank,bank,row,col; 
 	addressMapping(addr, chan, rank, bank, row, col); 
@@ -478,16 +484,16 @@ bool MultiChannelMemorySystem::willAcceptTransaction()
 
 void MultiChannelMemorySystem::printStats(bool finalStats) {
 
-	(*csvOut) << "ms" <<currentClockCycle * tCK * 1E-6; 
+	csvOut << "ms" <<currentClockCycle * tCK * 1E-6; 
 	for (size_t i=0; i<NUM_CHANS; i++)
 	{
 		PRINT("==== Channel ["<<i<<"] ====");
 		channels[i]->printStats(finalStats); 
 		PRINT("//// Channel ["<<i<<"] ////");
 	}
-	csvOut->finalize();
+//	csvOut.finalize();
 }
-void MultiChannelMemorySystem::RegisterCallbacks( 
+void MultiChannelMemorySystem::registerCallbacks( 
 		TransactionCompleteCB *readDone,
 		TransactionCompleteCB *writeDone,
 		void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower))
@@ -497,9 +503,13 @@ void MultiChannelMemorySystem::RegisterCallbacks(
 		channels[i]->RegisterCallbacks(readDone, writeDone, reportPower); 
 	}
 }
+void MultiChannelMemorySystem::simulationDone() {
+	printStats(true); 
+}
+
 namespace DRAMSim {
-MultiChannelMemorySystem *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, string *visfilename) 
+DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut) 
 {
-	return new MultiChannelMemorySystem(dev, sys, pwd, trc, megsOfMemory, visfilename);
+	return new MultiChannelMemorySystem(dev, sys, pwd, trc, megsOfMemory, csvOut);
 }
 }

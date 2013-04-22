@@ -27,45 +27,54 @@
 *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
+
 #include "SimulatorObject.h"
+#include "DRAMSim.h"
 #include "Transaction.h"
 #include "SystemConfiguration.h"
 #include "MemorySystem.h"
 #include "IniReader.h"
 #include "ClockDomain.h"
-#include "CSVWriter.h"
 
 
 namespace DRAMSim {
 
+class CSVWriter; 
 
-class MultiChannelMemorySystem : public SimulatorObject 
+class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 {
 	public: 
 
-	MultiChannelMemorySystem(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, string *visFilename=NULL, const IniReader::OverrideMap *paramOverrides=NULL);
+	MultiChannelMemorySystem(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut_, const IniReader::OverrideMap *paramOverrides=NULL);
 		virtual ~MultiChannelMemorySystem();
+		uint64_t getCycle() { return currentClockCycle; }
 			bool addTransaction(Transaction *trans);
 			bool addTransaction(const Transaction &trans);
-			bool addTransaction(bool isWrite, uint64_t addr);
+			bool addTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64, unsigned linkIdx=100, unsigned coreID=0);
+			bool willAcceptTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64, unsigned linkIdx=100, unsigned coreID=0); 
 			bool willAcceptTransaction(); 
-			bool willAcceptTransaction(uint64_t addr); 
 			void update();
 			void printStats(bool finalStats=false);
 			ostream &getLogFile();
-			void RegisterCallbacks( 
+			void simulationDone();
+			float getUpdateClockPeriod() {
+				return tCK*1E-9;
+			}
+			void registerCallbacks( 
 				TransactionCompleteCB *readDone,
 				TransactionCompleteCB *writeDone,
 				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
 
-	void InitOutputFiles(string tracefilename);
 	void setCPUClockSpeed(uint64_t cpuClkFreqHz);
+	void dumpStats(CSVWriter &CSVOut) {
+		printStats(false); 
+	}
 
 	//output file
-	std::ofstream visDataOut;
 	ofstream dramsim_log; 
 
 	private:
+		void InitOutputFiles(string tracefilename);
 		unsigned findChannelNumber(uint64_t addr);
 		void actual_update(); 
 		vector<MemorySystem*> channels; 
@@ -74,11 +83,10 @@ class MultiChannelMemorySystem : public SimulatorObject
 		string systemIniFilename;
 		string traceFilename;
 		string pwd;
-		string *visFilename;
 		ClockDomain::ClockDomainCrosser clockDomainCrosser; 
 		static void mkdirIfNotExist(string path);
 		static bool fileExists(string path); 
-		CSVWriter *csvOut; 
+		CSVWriter &csvOut; 
 
 
 	};
