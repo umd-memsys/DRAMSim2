@@ -49,7 +49,6 @@
 
 namespace DRAMSim
 {
-typedef CallbackBase<void,unsigned,uint64_t,uint64_t> Callback_t;
 class MemorySystem : public SimulatorObject
 {
 	ostream &dramsim_log;
