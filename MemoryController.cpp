@@ -912,19 +912,23 @@ void MemoryController::printStats(bool finalStats)
 	{
 		PRINT( " ---  Latency list ("<<latencies.size()<<")");
 		PRINT( "       [lat] : #");
+		/*
 		if (VIS_FILE_OUTPUT)
 		{
 			csvOut.getOutputStream() << "!!HISTOGRAM_DATA"<<endl;
 		}
+		*/
 
 		map<unsigned,unsigned>::iterator it; //
 		for (it=latencies.begin(); it!=latencies.end(); it++)
 		{
 			PRINT( "       ["<< it->first <<"-"<<it->first+(HISTOGRAM_BIN_SIZE-1)<<"] : "<< it->second );
+			/*
 			if (VIS_FILE_OUTPUT)
 			{
 				csvOut.getOutputStream() << it->first <<"="<< it->second << endl;
 			}
+			*/
 		}
 		if (currentClockCycle % EPOCH_LENGTH == 0)
 		{

@@ -282,7 +282,7 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 			exit(-1);
 		}
 		//write out the ini config values for the visualizer tool
-		IniReader::WriteValuesOut(visDataOut);
+//		IniReader::WriteValuesOut(visDataOut);
 
 	}
 	else
@@ -359,11 +359,13 @@ MultiChannelMemorySystem::~MultiChannelMemorySystem()
 	dramsim_log.flush();
 	dramsim_log.close();
 #endif
+	/*
 	if (VIS_FILE_OUTPUT) 
 	{	
 		visDataOut.flush();
 		visDataOut.close();
 	}
+	*/
 }
 void MultiChannelMemorySystem::update()
 {
