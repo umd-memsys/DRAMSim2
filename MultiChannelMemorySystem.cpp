@@ -167,8 +167,6 @@ string FilenameWithNumberSuffix(const string &filename, const string &extension,
  **/
 void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 {
-	size_t lastSlash;
-	size_t deviceIniFilenameLength = deviceIniFilename.length();
 	string sim_description_str;
 	string deviceName;
 	
