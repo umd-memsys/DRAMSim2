@@ -168,7 +168,6 @@ string FilenameWithNumberSuffix(const string &filename, const string &extension,
 /**
  * This function creates up to 3 output files: 
  * 	- The .log file if LOG_OUTPUT is set
- * 	- the .vis file where csv data for each epoch will go
  * 	- the .tmp file if verification output is enabled
  * The results directory is setup to be in PWD/TRACEFILENAME.[SIM_DESC]/DRAM_PARTNAME/PARAMS.vis
  * The environment variable SIM_DESC is also appended to output files/directories
@@ -206,100 +205,7 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 			abort(); 
 		}
 	}
-	// This sets up the vis file output along with the creating the result
-	// directory structure if it doesn't exist
-	if (VIS_FILE_OUTPUT)
-	{
-		stringstream out,tmpNum;
-		string path;
-		string filename;
 
-		if (!visFilename)
-		{
-			path = "results/";
-			// chop off the .ini if it's there
-			if (deviceIniFilename.substr(deviceIniFilenameLength-4) == ".ini")
-			{
-				deviceName = deviceIniFilename.substr(0,deviceIniFilenameLength-4);
-				deviceIniFilenameLength -= 4;
-			}
-
-			// chop off everything past the last / (i.e. leave filename only)
-			if ((lastSlash = deviceName.find_last_of("/")) != string::npos)
-			{
-				deviceName = deviceName.substr(lastSlash+1,deviceIniFilenameLength-lastSlash-1);
-			}
-
-		string rest;
-			// working backwards, chop off the next piece of the directory
-			if ((lastSlash = traceFilename.find_last_of("/")) != string::npos)
-			{
-				traceFilename = traceFilename.substr(lastSlash+1,traceFilename.length()-lastSlash-1);
-			}
-			if (sim_description != NULL)
-			{
-				traceFilename += "."+sim_description_str;
-			}
-
-			if (pwd.length() > 0)
-			{
-				path = pwd + "/" + path;
-			}
-
-			// create the directories if they don't exist 
-			mkdirIfNotExist(path);
-			path = path + traceFilename + "/";
-			mkdirIfNotExist(path);
-			path = path + deviceName + "/";
-			mkdirIfNotExist(path);
-
-			// finally, figure out the filename
-			string sched = "BtR";
-			string queue = "pRank";
-			if (schedulingPolicy == RankThenBankRoundRobin)
-			{
-				sched = "RtB";
-			}
-			if (queuingStructure == PerRankPerBank)
-			{
-				queue = "pRankpBank";
-			}
-
-			/* I really don't see how "the C++ way" is better than snprintf()  */
-			out << (TOTAL_STORAGE>>10) << "GB." << NUM_CHANS << "Ch." << NUM_RANKS <<"R." <<ADDRESS_MAPPING_SCHEME<<"."<<ROW_BUFFER_POLICY<<"."<< TRANS_QUEUE_DEPTH<<"TQ."<<CMD_QUEUE_DEPTH<<"CQ."<<sched<<"."<<queue;
-		}
-		else //visFilename given
-		{
-			out << *visFilename;
-		}
-		if (sim_description)
-		{
-			out << "." << sim_description;
-		}
-
-		//filename so far, without extension, see if it exists already
-		filename = out.str();
-
-
-		filename = FilenameWithNumberSuffix(filename, ".vis"); 
-		path.append(filename);
-		cerr << "writing vis file to " <<path<<endl;
-
-
-		visDataOut.open(path.c_str());
-		if (!visDataOut)
-		{
-			ERROR("Cannot open '"<<path<<"'");
-			exit(-1);
-		}
-		//write out the ini config values for the visualizer tool
-//		IniReader::WriteValuesOut(visDataOut);
-
-	}
-	else
-	{
-		// cerr << "vis file output disabled\n";
-	}
 #ifdef LOG_OUTPUT
 	string dramsimLogFilename("dramsim");
 	if (sim_description != NULL)
