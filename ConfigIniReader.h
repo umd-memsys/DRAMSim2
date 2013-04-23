@@ -75,34 +75,43 @@ void ConfigOption<RowBufferPolicy>::set(const std::string &value_str) {
 
 
 struct Config {
-	/*
-	 * TODO: generate this struct with a macro 
-	 */
-	ConfigOption<unsigned> REFRESH_PERIOD;
-	ConfigOption<float> tCK;
-	ConfigOption<RowBufferPolicy> rowBufferPolicy; 
+	typedef std::map<std::string, std::string> OptionsMap;
+	typedef std::map<std::string, bool> OptionsSuccessfullySetMap; 
 
+	/* Generate the member definitions */
+#define PARAM(type, name, default_value) \
+	ConfigOption<type> name; 
+#include "params.def"
+#undef PARAM
+
+	bool finalized; 
 	Config() : 
-		REFRESH_PERIOD("REFRESH_PERIOD", 100),
-		tCK("tCK", 1.5f),
-		rowBufferPolicy("RowBufferPolicy", OpenPage)
+	/* Generate the initializer list */ 
+#define PARAM(type, name, default_value) \
+		name(#name, default_value),
+#include "params.def"
+#undef PARAM
+		// XXX: need some non-paramed initializer here to terminate the comma list 
+		finalized(false)
 	{}
 
-	bool set(const std::string &key, const std::string &value) {
-		if (REFRESH_PERIOD.getName() == key) {
-			REFRESH_PERIOD.set(value);
-			return true; 
-		};
-
-		if (tCK.getName() == key) {
-			tCK.set(value);
-			return true; 
-		};
-		
-		if (rowBufferPolicy.getName() == key) {
-			rowBufferPolicy.set(value);
-			return true; 
+	OptionsSuccessfullySetMap set(const OptionsMap &options) {
+		OptionsSuccessfullySetMap successes; 
+		for(OptionsMap::const_iterator it = options.begin(); it != options.end(); ++it){
+			successes[it->first] = this->set(it->first, it->second);
 		}
+		return successes; 
+	}
+
+	private:
+	bool set(const std::string &key, const std::string &value) {
+#define PARAM(type, name, default_value) \
+		if (name.getName() == key) { \
+			name.set(value); \
+			return true; \
+		}
+#include "params.def"
+#undef PARAM
 
 		return false;
 	}

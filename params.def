@@ -1,0 +1,4 @@
+PARAM(unsigned, REFRESH_PERIOD, 100)
+PARAM(float, tCK, 1.5)
+PARAM(RowBufferPolicy, rowBufferPolicy, OpenPage) 
+

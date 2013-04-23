@@ -14,8 +14,10 @@ TEST(ConfigOptions, setters_and_getters) {
 	float tCK2 = cfg.tCK; 
 	ASSERT_EQ(tCK2, 2.0f);
 
-	cfg.REFRESH_PERIOD.set("49");
 	unsigned refPd = cfg.REFRESH_PERIOD; 
+	ASSERT_EQ(refPd, 100U);
+	cfg.REFRESH_PERIOD.set("49");
+	refPd = cfg.REFRESH_PERIOD; 
 	ASSERT_EQ(refPd, 49U);
 
 	// An enum example
@@ -30,15 +32,29 @@ TEST(ConfigOptions, setters_and_getters) {
 
 }
 
-TEST(ConfigOptions, setters) {
+TEST(ConfigOptions, set_by_map) {
 	
 	DRAMSim::Config cfg; 
+	DRAMSim::Config::OptionsMap map; 
+	DRAMSim::Config::OptionsSuccessfullySetMap successes; 
+
+	map["tCK"] = "2.5"; 
 
 	float tCK = cfg.tCK; 
 	ASSERT_EQ(tCK, 1.5f);
-	bool success = cfg.set("tCK", "2.5");
-	ASSERT_TRUE(success);
+	successes = cfg.set(map);
+	ASSERT_EQ(successes.size(), 1U);
 	tCK = cfg.tCK; 
 	ASSERT_EQ(tCK, 2.5f);
 
+	map["tCK"] = "5.0"; 
+	map["REFRESH_PERIOD"] = "500"; 
+	map["bogus"] = "234";
+
+	successes = cfg.set(map);
+	ASSERT_EQ(successes.size(), 2U);
+
+	tCK = cfg.tCK; 
+	ASSERT_EQ(tCK, 5.0f);
+	ASSERT_EQ((unsigned)cfg.REFRESH_PERIOD, 500U); 
 }
