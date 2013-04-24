@@ -46,20 +46,17 @@
 using namespace DRAMSim;
 
 MemoryController::MemoryController(MemorySystem *parent, CSVWriter &csvOut_, ostream &dramsim_log_) :
+		parentMemorySystem(parent),
+		cfg(parent->cfg),
 		lastDumpCycle(0),
 		dramsim_log(dramsim_log_),
 		bankStates(cfg.NUM_RANKS, vector<BankState>(cfg.NUM_BANKS, dramsim_log)),
-		commandQueue(bankStates, dramsim_log_),
+		commandQueue(bankStates, dramsim_log_, cfg),
 		poppedBusPacket(NULL),
 		csvOut(csvOut_),
 		totalTransactions(0),
 		refreshRank(0)
 {
-	assert(cfg.NUM_RANKS > 0); 
-	//get handle on parent
-	parentMemorySystem = parent;
-
-
 	//bus related fields
 	outgoingCmdPacket = NULL;
 	outgoingDataPacket = NULL;
@@ -114,7 +111,7 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 	}
 
 	//add to return read data queue
-	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data));
+	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data, cfg));
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
 
 	// this delete statement saves a mindboggling amount of memory
@@ -275,7 +272,7 @@ void MemoryController::update()
 
 			writeDataToSend.push_back(new BusPacket(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,
 			                                    poppedBusPacket->row, poppedBusPacket->rank, poppedBusPacket->bank,
-			                                    poppedBusPacket->data, dramsim_log));
+			                                    poppedBusPacket->data, dramsim_log, cfg));
 			writeDataCountdown.push_back(cfg.WL);
 		}
 
@@ -488,7 +485,7 @@ void MemoryController::update()
 		unsigned newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn;
 
 		// pass these in as references so they get set by the addressMapping function
-		addressMapping(transaction->address, newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn);
+		addressMapping(transaction->address, newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn, cfg);
 
 		//if we have room, break up the transaction into the appropriate commands
 		//and add them to the command queue
@@ -519,13 +516,13 @@ void MemoryController::update()
 			//create activate command to the row we just translated
 			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
-					newTransactionBank, 0, dramsim_log);
+					newTransactionBank, 0, dramsim_log,cfg);
 
 			//create read or write command and enqueue it
 			BusPacketType bpType = transaction->getBusPacketType();
 			BusPacket *command = new BusPacket(bpType, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
-					newTransactionBank, transaction->data, dramsim_log);
+					newTransactionBank, transaction->data, dramsim_log,cfg);
 
 
 
@@ -666,7 +663,7 @@ void MemoryController::update()
 				//		exit(0);
 				//	}
 				unsigned chan,rank,bank,row,col;
-				addressMapping(returnTransaction[0]->address,chan,rank,bank,row,col);
+				addressMapping(returnTransaction[0]->address,chan,rank,bank,row,col, cfg);
 				insertHistogram(currentClockCycle-pendingReadTransactions[i]->timeAdded,rank,bank);
 				//return latency
 				returnReadData(pendingReadTransactions[i]);

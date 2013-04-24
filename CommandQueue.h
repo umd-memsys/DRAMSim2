@@ -51,10 +51,12 @@ using namespace std;
 
 namespace DRAMSim
 {
+	class Config; 
 class CommandQueue : public SimulatorObject
 {
 	CommandQueue();
 	ostream &dramsim_log;
+	Config &cfg;
 public:
 	//typedefs
 	typedef vector<BusPacket *> BusPacket1D;
@@ -62,7 +64,7 @@ public:
 	typedef vector<BusPacket2D> BusPacket3D;
 
 	//functions
-	CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log);
+	CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log, Config &cfg_);
 	virtual ~CommandQueue(); 
 
 	void enqueue(BusPacket *newBusPacket);

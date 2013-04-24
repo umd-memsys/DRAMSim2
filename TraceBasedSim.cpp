@@ -47,6 +47,7 @@
 #include "MultiChannelMemorySystem.h"
 #include "Transaction.h"
 #include "IniReader.h"
+#include "CSVWriter.h"
 
 enum TraceType
 {
@@ -340,6 +341,7 @@ void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &tra
 
 void alignTransactionAddress(Transaction &trans)
 {
+	Config &cfg = trans.cfg; 
 	// zero out the low order bits which correspond to the size of a transaction
 
 	unsigned throwAwayBits = dramsim_log2((cfg.BL*cfg.JEDEC_DATA_BUS_BITS/8));
@@ -526,6 +528,7 @@ int main(int argc, char **argv)
 	// set the frequency ratio to 1:1
 	memorySystem->setCPUClockSpeed(0); 
 	std::ostream &dramsim_logfile = memorySystem->getLogFile(); 
+	Config &cfg = memorySystem->cfg;
 
 
 #ifdef RETURN_TRANSACTIONS
@@ -564,7 +567,7 @@ int main(int argc, char **argv)
 				if (line.size() > 0)
 				{
 					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType,useClockCycle);
-					trans = new Transaction(transType, addr, data);
+					trans = new Transaction(transType, addr, data, cfg);
 					alignTransactionAddress(*trans); 
 
 					if (i>=clockCycle)

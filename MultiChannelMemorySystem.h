@@ -72,6 +72,7 @@ class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 
 	//output file
 	ofstream dramsim_log; 
+	Config cfg; 
 
 	private:
 		void InitOutputFiles(string tracefilename);

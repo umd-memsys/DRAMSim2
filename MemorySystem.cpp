@@ -37,30 +37,30 @@
 //
 
 #include "MemorySystem.h"
-#include "IniReader.h"
 #include <unistd.h>
+
+#include "MemoryController.h"
+#include "Rank.h"
+#include "Transaction.h"
+#include "ConfigIniReader.h"
 
 using namespace std;
 
 
 ofstream cmd_verify_out; //used in Rank.cpp and MemoryController.cpp if VERIFICATION_OUTPUT is set
 
-unsigned NUM_DEVICES;
-unsigned NUM_RANKS;
-
 namespace DRAMSim {
 
 powerCallBack_t MemorySystem::ReportPower = NULL;
 
-MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, CSVWriter &csvOut_, ostream &dramsim_log_) :
+MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, Config &cfg_, CSVWriter &csvOut_, ostream &dramsim_log_) :
+		cfg(cfg_),
 		dramsim_log(dramsim_log_),
 		ReturnReadData(NULL),
 		WriteDataDone(NULL),
 		systemID(id),
 		csvOut(csvOut_)
 {
-	currentClockCycle = 0;
-
 	DEBUG("===== MemorySystem "<<systemID<<" =====");
 
 
@@ -109,7 +109,7 @@ MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, CSVWriter &cs
 	*********************/
 
 	// number of bytes per rank
-	unsigned long megsOfStoragePerRank = ((((long long)cfg.NUM_ROWS * (cfg.NUM_COLS * cfg.DEVICE_WIDTH) * cfg.NUM_BANKS) * ((long long)cfg.JEDEC_DATA_BUS_BITS / cfg.DEVICE_WIDTH)) / 8) >> 20;
+	unsigned long megsOfStoragePerRank = ((((long long)cfg.NUM_ROWS * (cfg.NUM_COLS * cfg.DEVICE_WIDTH) * cfg.NUM_BANKS) * ((long long)cfg.JEDEC_DATA_BUS_BITS / cfg.DEVICE_WIDTH)) / 8UL) >> 20UL;
 
 	// If this is set, effectively override the number of ranks
 	if (megsOfMemory != 0)
@@ -135,9 +135,8 @@ MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, CSVWriter &cs
 
 	for (size_t i=0; i<cfg.NUM_RANKS; i++)
 	{
-		Rank *r = new Rank(dramsim_log);
+		Rank *r = new Rank(*memoryController, dramsim_log);
 		r->setId(i);
-		r->attachMemoryController(memoryController);
 		ranks->push_back(r);
 	}
 
@@ -177,9 +176,7 @@ bool MemorySystem::WillAcceptTransaction()
 bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
 {
 	TransactionType type = isWrite ? DATA_WRITE : DATA_READ;
-	Transaction *trans = new Transaction(type,addr,NULL);
-	// push_back in memoryController will make a copy of this during
-	// addTransaction so it's kosher for the reference to be local 
+	Transaction *trans = new Transaction(type,addr,NULL,cfg);
 
 	if (memoryController->WillAcceptTransaction()) 
 	{
@@ -233,7 +230,6 @@ void MemorySystem::update()
 	memoryController->step();
 	this->step();
 
-	//PRINT("\n"); // two new lines
 }
 
 void MemorySystem::RegisterCallbacks( Callback_t* readCB, Callback_t* writeCB,

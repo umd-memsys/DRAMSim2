@@ -40,10 +40,9 @@
 
 using namespace std;
 namespace DRAMSim {
-struct Config; 
-extern Config &cfg; 
 
-Bank::Bank(ostream &dramsim_log_):
+Bank::Bank(Config &cfg_, ostream &dramsim_log_):
+		cfg(cfg_),
 		currentState(dramsim_log_), 
 		rowEntries(cfg.NUM_COLS),
 		dramsim_log(dramsim_log_)

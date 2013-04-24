@@ -49,10 +49,12 @@
 //
 //Configuration values for the current system
 
+/*
 namespace DRAMSim {
 	struct Config; 
 	extern Config &cfg; 
 }
+*/
 
 extern std::ofstream cmd_verify_out; //used by BusPacket.cpp if VERIFICATION_OUTPUT is enabled
 
@@ -63,8 +65,6 @@ extern std::ofstream cmd_verify_out; //used by BusPacket.cpp if VERIFICATION_OUT
 
 namespace DRAMSim
 {
-typedef void (*returnCallBack_t)(unsigned id, uint64_t addr, uint64_t clockcycle);
-typedef void (*powerCallBack_t)(double bgpower, double burstpower, double refreshpower, double actprepower);
 
 //
 //FUNCTIONS

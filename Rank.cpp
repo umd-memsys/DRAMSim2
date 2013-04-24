@@ -35,25 +35,20 @@
 using namespace std;
 using namespace DRAMSim;
 
-Rank::Rank(ostream &dramsim_log_) :
+Rank::Rank(MemoryController &memoryController_, ostream &dramsim_log_) :
+	memoryController(memoryController_),
+	cfg(memoryController.cfg),
 	id(-1),
 	dramsim_log(dramsim_log_),
 	isPowerDown(false),
 	refreshWaiting(false),
 	readReturnCountdown(0),
-	banks(cfg.NUM_BANKS, Bank(dramsim_log_)),
+	banks(cfg.NUM_BANKS, Bank(cfg, dramsim_log_)),
 	bankStates(cfg.NUM_BANKS, BankState(dramsim_log_))
 
 {
-
-	memoryController = NULL;
 	outgoingDataPacket = NULL;
 	dataCyclesLeft = 0;
-	currentClockCycle = 0;
-
-#ifndef NO_STORAGE
-#endif
-
 }
 
 // mutators
@@ -62,12 +57,6 @@ void Rank::setId(int id)
 	this->id = id;
 }
 
-// attachMemoryController() must be called before any other Rank functions
-// are called
-void Rank::attachMemoryController(MemoryController *memoryController)
-{
-	this->memoryController = memoryController;
-}
 Rank::~Rank()
 {
 	for (size_t i=0; i<readReturnPacket.size(); i++)
@@ -305,7 +294,7 @@ void Rank::update()
 		if (dataCyclesLeft == 0)
 		{
 			//if the packet is done on the bus, call receiveFromBus and free up the bus
-			memoryController->receiveFromBus(outgoingDataPacket);
+			memoryController.receiveFromBus(outgoingDataPacket);
 			outgoingDataPacket = NULL;
 		}
 	}
