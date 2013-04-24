@@ -9,7 +9,7 @@ SRC = $(wildcard *.cpp)
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
 
-tests: $(OBJ) 
+RunTests: $(OBJ) 
 	$(MAKE) -C .. 
 	$(CXX) -o $@ $^ $(LDFLAGS)
 

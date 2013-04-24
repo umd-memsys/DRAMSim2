@@ -15,7 +15,7 @@ TEST(ConfigOptions, setters_and_getters) {
 	ASSERT_EQ(tCK2, 2.0f);
 
 	unsigned refPd = cfg.REFRESH_PERIOD; 
-	ASSERT_EQ(refPd, 100U);
+	ASSERT_EQ(refPd, 7800U);
 	cfg.REFRESH_PERIOD.set("49");
 	refPd = cfg.REFRESH_PERIOD; 
 	ASSERT_EQ(refPd, 49U);
@@ -36,23 +36,28 @@ TEST(ConfigOptions, set_by_map) {
 	
 	DRAMSim::Config cfg; 
 	DRAMSim::Config::OptionsMap map; 
-	DRAMSim::Config::OptionsSuccessfullySetMap successes; 
+	DRAMSim::Config::OptionsFailedToSet failures; 
 
-	map["tCK"] = "2.5"; 
 
 	float tCK = cfg.tCK; 
-	ASSERT_EQ(tCK, 1.5f);
-	successes = cfg.set(map);
-	ASSERT_EQ(successes.size(), 1U);
+	ASSERT_EQ(tCK, 1.25f);
+
+	map["tCK"] = "2.5"; 
+	failures = cfg.set(map);
+	ASSERT_EQ(failures.size(), 0U);
 	tCK = cfg.tCK; 
 	ASSERT_EQ(tCK, 2.5f);
 
 	map["tCK"] = "5.0"; 
 	map["REFRESH_PERIOD"] = "500"; 
 	map["bogus"] = "234";
+	map["DEBUG_ADDR_MAP"] = "true";
 
-	successes = cfg.set(map);
-	ASSERT_EQ(successes.size(), 2U);
+	ASSERT_FALSE((bool) cfg.DEBUG_ADDR_MAP); 
+	failures = cfg.set(map);
+	ASSERT_EQ(failures.size(), 1U);
+	ASSERT_STREQ(failures.begin()->c_str(), "bogus");
+	ASSERT_TRUE((bool) cfg.DEBUG_ADDR_MAP); 
 
 	tCK = cfg.tCK; 
 	ASSERT_EQ(tCK, 5.0f);

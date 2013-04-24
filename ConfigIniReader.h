@@ -37,6 +37,7 @@
 #include <string.h> //strndup
 #include <iostream>
 #include <map>
+#include <list> 
 #include <string>
 //#include <CSVWriter.h>
 #include <sstream> 
@@ -67,7 +68,7 @@ class ConfigOption {
 	void set(const std::string &value_str) {
 		this->optionValueString = value_str; 
 		std::istringstream iss(value_str);
-		iss >> this->value; 
+		iss >> std::boolalpha >> this->value; 
 		setAfterDefault = true; 
 	}
 	const std::string &getName() const {
@@ -169,7 +170,7 @@ inline void ConfigOption<SchedulingPolicy>::set(const std::string &value_str) {
 
 struct Config {
 	typedef std::map<std::string, std::string> OptionsMap;
-	typedef std::map<std::string, bool> OptionsSuccessfullySetMap; 
+	typedef std::list<std::string> OptionsFailedToSet; 
 
 	/* Generate the member definitions */
 #define PARAM(type, name, default_value) \
@@ -188,12 +189,14 @@ struct Config {
 		finalized(false)
 	{}
 
-	OptionsSuccessfullySetMap set(const OptionsMap &options) {
-		OptionsSuccessfullySetMap successes; 
+	OptionsFailedToSet set(const OptionsMap &options) {
+		OptionsFailedToSet failures; 
 		for(OptionsMap::const_iterator it = options.begin(); it != options.end(); ++it){
-			successes[it->first] = this->set(it->first, it->second);
+			if (!this->set(it->first, it->second)) {
+				failures.push_back(it->first); 
+			}
 		}
-		return successes; 
+		return failures; 
 	}
 
 	private:
