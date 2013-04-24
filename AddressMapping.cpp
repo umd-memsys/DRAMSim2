@@ -29,22 +29,25 @@
 *********************************************************************************/
 #include "SystemConfiguration.h"
 #include "AddressMapping.h"
+#include "ConfigIniReader.h"
 
 namespace DRAMSim
 {
 
+	struct Config; 
+	extern Config &cfg; 
 void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsigned &newTransactionRank, unsigned &newTransactionBank, unsigned &newTransactionRow, unsigned &newTransactionColumn)
 {
 	uint64_t tempA, tempB;
-	unsigned transactionSize = (JEDEC_DATA_BUS_BITS/8)*BL; 
+	unsigned transactionSize = (cfg.JEDEC_DATA_BUS_BITS/8)*cfg.BL; 
 	uint64_t transactionMask =  transactionSize - 1; //ex: (64 bit bus width) x (8 Burst Length) - 1 = 64 bytes - 1 = 63 = 0x3f mask
-	unsigned channelBitWidth = dramsim_log2(NUM_CHANS);
-	unsigned	rankBitWidth = dramsim_log2(NUM_RANKS);
-	unsigned	bankBitWidth = dramsim_log2(NUM_BANKS);
-	unsigned	rowBitWidth = dramsim_log2(NUM_ROWS);
-	unsigned	colBitWidth = dramsim_log2(NUM_COLS);
+	unsigned channelBitWidth = dramsim_log2(cfg.NUM_CHANS);
+	unsigned	rankBitWidth = dramsim_log2(cfg.NUM_RANKS);
+	unsigned	bankBitWidth = dramsim_log2(cfg.NUM_BANKS);
+	unsigned	rowBitWidth = dramsim_log2(cfg.NUM_ROWS);
+	unsigned	colBitWidth = dramsim_log2(cfg.NUM_COLS);
 	// this forces the alignment to the width of a single burst (64 bits = 8 bytes = 3 address bits for DDR parts)
-	unsigned	byteOffsetWidth = dramsim_log2((JEDEC_DATA_BUS_BITS/8));
+	unsigned	byteOffsetWidth = dramsim_log2((cfg.JEDEC_DATA_BUS_BITS/8));
 	// Since we're assuming that a request is for BL*BUS_WIDTH, the bottom bits
 	// of this address *should* be all zeros if it's not, issue a warning
 
@@ -78,7 +81,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 
 	physicalAddress >>= colLowBitWidth;
 	unsigned colHighBitWidth = colBitWidth - colLowBitWidth; 
-	if (DEBUG_ADDR_MAP)
+	if (cfg.DEBUG_ADDR_MAP)
 	{
 		DEBUG("Bit widths: ch:"<<channelBitWidth<<" r:"<<rankBitWidth<<" b:"<<bankBitWidth
 				<<" row:"<<rowBitWidth<<" colLow:"<<colLowBitWidth
@@ -87,7 +90,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 	}
 
 	//perform various address mapping schemes
-	if (addressMappingScheme == Scheme1)
+	if (cfg.addressMappingScheme == Scheme1)
 	{
 		//chan:rank:row:col:bank
 		tempA = physicalAddress;
@@ -116,7 +119,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		newTransactionChan = tempA ^ tempB;
 
 	}
-	else if (addressMappingScheme == Scheme2)
+	else if (cfg.addressMappingScheme == Scheme2)
 	{
 		//chan:row:col:bank:rank
 		tempA = physicalAddress;
@@ -145,7 +148,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		newTransactionChan = tempA ^ tempB;
 
 	}
-	else if (addressMappingScheme == Scheme3)
+	else if (cfg.addressMappingScheme == Scheme3)
 	{
 		//chan:rank:bank:col:row
 		tempA = physicalAddress;
@@ -174,7 +177,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		newTransactionChan = tempA ^ tempB;
 
 	}
-	else if (addressMappingScheme == Scheme4)
+	else if (cfg.addressMappingScheme == Scheme4)
 	{
 		//chan:rank:bank:row:col
 		tempA = physicalAddress;
@@ -203,7 +206,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		newTransactionChan = tempA ^ tempB;
 
 	}
-	else if (addressMappingScheme == Scheme5)
+	else if (cfg.addressMappingScheme == Scheme5)
 	{
 		//chan:row:col:rank:bank
 
@@ -234,7 +237,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 
 
 	}
-	else if (addressMappingScheme == Scheme6)
+	else if (cfg.addressMappingScheme == Scheme6)
 	{
 		//chan:row:bank:rank:col
 
@@ -266,7 +269,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 
 	}
 	// clone of scheme 5, but channel moved to lower bits
-	else if (addressMappingScheme == Scheme7)
+	else if (cfg.addressMappingScheme == Scheme7)
 	{
 		//row:col:rank:bank:chan
 		tempA = physicalAddress;
@@ -301,7 +304,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		ERROR("== Error - Unknown Address Mapping Scheme");
 		exit(-1);
 	}
-	if (DEBUG_ADDR_MAP)
+	if (cfg.DEBUG_ADDR_MAP)
 	{
 		DEBUG("Mapped Ch="<<newTransactionChan<<" Rank="<<newTransactionRank
 				<<" Bank="<<newTransactionBank<<" Row="<<newTransactionRow

@@ -28,9 +28,7 @@
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
 
-
-
-
+#include "ConfigIniReader.h"
 #include "Rank.h"
 #include "MemoryController.h"
 
@@ -43,8 +41,8 @@ Rank::Rank(ostream &dramsim_log_) :
 	isPowerDown(false),
 	refreshWaiting(false),
 	readReturnCountdown(0),
-	banks(NUM_BANKS, Bank(dramsim_log_)),
-	bankStates(NUM_BANKS, BankState(dramsim_log_))
+	banks(cfg.NUM_BANKS, Bank(dramsim_log_)),
+	bankStates(cfg.NUM_BANKS, BankState(dramsim_log_))
 
 {
 
@@ -81,12 +79,12 @@ Rank::~Rank()
 }
 void Rank::receiveFromBus(BusPacket *packet)
 {
-	if (DEBUG_BUS)
+	if (cfg.DEBUG_BUS)
 	{
 		PRINTN(" -- R" << this->id << " Receiving On Bus    : ");
 		packet->print();
 	}
-	if (VERIFICATION_OUTPUT)
+	if (cfg.VERIFICATION_OUTPUT)
 	{
 		packet->print(currentClockCycle,false);
 	}
@@ -105,11 +103,11 @@ void Rank::receiveFromBus(BusPacket *packet)
 		}
 
 		//update state table
-		bankStates[packet->bank].nextPrecharge = max(bankStates[packet->bank].nextPrecharge, currentClockCycle + READ_TO_PRE_DELAY);
-		for (size_t i=0;i<NUM_BANKS;i++)
+		bankStates[packet->bank].nextPrecharge = max(bankStates[packet->bank].nextPrecharge, currentClockCycle + cfg.READ_TO_PRE_DELAY);
+		for (size_t i=0;i<cfg.NUM_BANKS;i++)
 		{
-			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + max(tCCD, BL/2));
-			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + READ_TO_WRITE_DELAY);
+			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + max((unsigned)cfg.tCCD, (unsigned)cfg.BL/2));
+			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + cfg.READ_TO_WRITE_DELAY);
 		}
 
 		//get the read data and put it in the storage which delays until the appropriate time (RL)
@@ -119,7 +117,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 		packet->busPacketType = DATA;
 #endif
 		readReturnPacket.push_back(packet);
-		readReturnCountdown.push_back(RL);
+		readReturnCountdown.push_back(cfg.RL);
 		break;
 	case READ_P:
 		//make sure a read is allowed
@@ -133,12 +131,12 @@ void Rank::receiveFromBus(BusPacket *packet)
 
 		//update state table
 		bankStates[packet->bank].currentBankState = Idle;
-		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + READ_AUTOPRE_DELAY);
-		for (size_t i=0;i<NUM_BANKS;i++)
+		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + cfg.READ_AUTOPRE_DELAY);
+		for (size_t i=0;i<cfg.NUM_BANKS;i++)
 		{
 			//will set next read/write for all banks - including current (which shouldnt matter since its now idle)
-			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + max(BL/2, tCCD));
-			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + READ_TO_WRITE_DELAY);
+			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + max(cfg.BL/2, (unsigned)cfg.tCCD));
+			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + cfg.READ_TO_WRITE_DELAY);
 		}
 
 		//get the read data and put it in the storage which delays until the appropriate time (RL)
@@ -149,7 +147,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 #endif
 
 		readReturnPacket.push_back(packet);
-		readReturnCountdown.push_back(RL);
+		readReturnCountdown.push_back(cfg.RL);
 		break;
 	case WRITE:
 		//make sure a write is allowed
@@ -163,11 +161,11 @@ void Rank::receiveFromBus(BusPacket *packet)
 		}
 
 		//update state table
-		bankStates[packet->bank].nextPrecharge = max(bankStates[packet->bank].nextPrecharge, currentClockCycle + WRITE_TO_PRE_DELAY);
-		for (size_t i=0;i<NUM_BANKS;i++)
+		bankStates[packet->bank].nextPrecharge = max(bankStates[packet->bank].nextPrecharge, currentClockCycle + cfg.WRITE_TO_PRE_DELAY);
+		for (size_t i=0;i<cfg.NUM_BANKS;i++)
 		{
-			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + WRITE_TO_READ_DELAY_B);
-			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + max(BL/2, tCCD));
+			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + cfg.WRITE_TO_READ_DELAY_B);
+			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + max(cfg.BL/2, (unsigned)cfg.tCCD));
 		}
 
 		//take note of where data is going when it arrives
@@ -188,11 +186,11 @@ void Rank::receiveFromBus(BusPacket *packet)
 
 		//update state table
 		bankStates[packet->bank].currentBankState = Idle;
-		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + WRITE_AUTOPRE_DELAY);
-		for (size_t i=0;i<NUM_BANKS;i++)
+		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + cfg.WRITE_AUTOPRE_DELAY);
+		for (size_t i=0;i<cfg.NUM_BANKS;i++)
 		{
-			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + max(tCCD, BL/2));
-			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + WRITE_TO_READ_DELAY_B);
+			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + max((unsigned)cfg.tCCD, (unsigned)cfg.BL/2));
+			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + cfg.WRITE_TO_READ_DELAY_B);
 		}
 
 		//take note of where data is going when it arrives
@@ -213,27 +211,27 @@ void Rank::receiveFromBus(BusPacket *packet)
 		}
 
 		bankStates[packet->bank].currentBankState = RowActive;
-		bankStates[packet->bank].nextActivate = currentClockCycle + tRC;
+		bankStates[packet->bank].nextActivate = currentClockCycle + cfg.tRC;
 		bankStates[packet->bank].openRowAddress = packet->row;
 
 		//if AL is greater than one, then posted-cas is enabled - handle accordingly
-		if (AL>0)
+		if (cfg.AL>0)
 		{
-			bankStates[packet->bank].nextWrite = currentClockCycle + (tRCD-AL);
-			bankStates[packet->bank].nextRead = currentClockCycle + (tRCD-AL);
+			bankStates[packet->bank].nextWrite = currentClockCycle + (cfg.tRCD-cfg.AL);
+			bankStates[packet->bank].nextRead = currentClockCycle + (cfg.tRCD-cfg.AL);
 		}
 		else
 		{
-			bankStates[packet->bank].nextWrite = currentClockCycle + (tRCD-AL);
-			bankStates[packet->bank].nextRead = currentClockCycle + (tRCD-AL);
+			bankStates[packet->bank].nextWrite = currentClockCycle + (cfg.tRCD-cfg.AL);
+			bankStates[packet->bank].nextRead = currentClockCycle + (cfg.tRCD-cfg.AL);
 		}
 
-		bankStates[packet->bank].nextPrecharge = currentClockCycle + tRAS;
-		for (size_t i=0;i<NUM_BANKS;i++)
+		bankStates[packet->bank].nextPrecharge = currentClockCycle + cfg.tRAS;
+		for (size_t i=0;i<cfg.NUM_BANKS;i++)
 		{
 			if (i != packet->bank)
 			{
-				bankStates[i].nextActivate = max(bankStates[i].nextActivate, currentClockCycle + tRRD);
+				bankStates[i].nextActivate = max(bankStates[i].nextActivate, currentClockCycle + cfg.tRRD);
 			}
 		}
 		delete(packet); 
@@ -248,19 +246,19 @@ void Rank::receiveFromBus(BusPacket *packet)
 		}
 
 		bankStates[packet->bank].currentBankState = Idle;
-		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + tRP);
+		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + cfg.tRP);
 		delete(packet); 
 		break;
 	case REFRESH:
 		refreshWaiting = false;
-		for (size_t i=0;i<NUM_BANKS;i++)
+		for (size_t i=0;i<cfg.NUM_BANKS;i++)
 		{
 			if (bankStates[i].currentBankState != Idle)
 			{
 				ERROR("== Error - Rank " << id << " received a REF when not allowed");
 				exit(0);
 			}
-			bankStates[i].nextActivate = currentClockCycle + tRFC;
+			bankStates[i].nextActivate = currentClockCycle + cfg.tRFC;
 		}
 		delete(packet); 
 		break;
@@ -325,13 +323,13 @@ void Rank::update()
 		// ready to go out on the bus
 
 		outgoingDataPacket = readReturnPacket[0];
-		dataCyclesLeft = BL/2;
+		dataCyclesLeft = cfg.BL/2;
 
 		// remove the packet from the ranks
 		readReturnPacket.erase(readReturnPacket.begin());
 		readReturnCountdown.erase(readReturnCountdown.begin());
 
-		if (DEBUG_BUS)
+		if (cfg.DEBUG_BUS)
 		{
 			PRINTN(" -- R" << this->id << " Issuing On Data Bus : ");
 			outgoingDataPacket->print();
@@ -345,7 +343,7 @@ void Rank::update()
 void Rank::powerDown()
 {
 	//perform checks
-	for (size_t i=0;i<NUM_BANKS;i++)
+	for (size_t i=0;i<cfg.NUM_BANKS;i++)
 	{
 		if (bankStates[i].currentBankState != Idle)
 		{
@@ -353,7 +351,7 @@ void Rank::powerDown()
 			exit(0);
 		}
 
-		bankStates[i].nextPowerUp = currentClockCycle + tCKE;
+		bankStates[i].nextPowerUp = currentClockCycle + cfg.tCKE;
 		bankStates[i].currentBankState = PowerDown;
 	}
 
@@ -371,7 +369,7 @@ void Rank::powerUp()
 
 	isPowerDown = false;
 
-	for (size_t i=0;i<NUM_BANKS;i++)
+	for (size_t i=0;i<cfg.NUM_BANKS;i++)
 	{
 		if (bankStates[i].nextPowerUp > currentClockCycle)
 		{
@@ -379,7 +377,7 @@ void Rank::powerUp()
 			ERROR(bankStates[i].nextPowerUp << "    " << currentClockCycle);
 			exit(0);
 		}
-		bankStates[i].nextActivate = currentClockCycle + tXP;
+		bankStates[i].nextActivate = currentClockCycle + cfg.tXP;
 		bankStates[i].currentBankState = Idle;
 	}
 }

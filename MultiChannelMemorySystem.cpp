@@ -36,12 +36,14 @@
 
 #include "MultiChannelMemorySystem.h"
 #include "AddressMapping.h"
-#include "IniReader.h"
+#include "ConfigIniReader.h"
 #include "CSVWriter.h"
 
 
 
-using namespace DRAMSim; 
+namespace DRAMSim {
+	Config &cfg = *(new Config()); 
+
 
 
 MultiChannelMemorySystem::MultiChannelMemorySystem(
@@ -51,7 +53,7 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(
 		const string &traceFilename_, 
 		unsigned megsOfMemory_, 
 		CSVWriter &csvOut_, 
-		const IniReader::OverrideMap *paramOverrides)
+		const Config::OptionsMap *paramOverrides)
 
 	:	megsOfMemory(megsOfMemory_), 
 	deviceIniFilename(deviceIniFilename_),
@@ -80,34 +82,28 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(
 			systemIniFilename = pwd + "/" + systemIniFilename;
 		}
 	}
-	else {
-		abort();
-	}
 
 
 	DEBUG("== Loading device model file '"<<deviceIniFilename<<"' == ");
-	IniReader::ReadIniFile(deviceIniFilename, false);
+	Config::OptionsMap deviceParameters = IniReader::ReadIniFile(deviceIniFilename);
 	DEBUG("== Loading system model file '"<<systemIniFilename<<"' == ");
-	IniReader::ReadIniFile(systemIniFilename, true);
+	Config::OptionsMap systemParameters = IniReader::ReadIniFile(systemIniFilename);
 
 	// If we have any overrides, set them now before creating all of the memory objects
+	cfg.set(deviceParameters); 
+	cfg.set(systemParameters); 
 	if (paramOverrides)
-		IniReader::OverrideKeys(paramOverrides);
+		cfg.set(*paramOverrides);
 
-	IniReader::InitEnumsFromStrings();
-	if (!IniReader::CheckIfAllSet())
-	{
-		exit(-1);
-	}
 
-	if (NUM_CHANS == 0) 
+	if (cfg.NUM_CHANS == 0) 
 	{
 		ERROR("Zero channels"); 
 		abort(); 
 	}
-	for (size_t i=0; i<NUM_CHANS; i++)
+	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
-		MemorySystem *channel = new MemorySystem(i, megsOfMemory/NUM_CHANS, csvOut, dramsim_log);
+		MemorySystem *channel = new MemorySystem(i, megsOfMemory/cfg.NUM_CHANS, csvOut, dramsim_log);
 		channels.push_back(channel);
 	}
 }
@@ -117,7 +113,7 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(
 void MultiChannelMemorySystem::setCPUClockSpeed(uint64_t cpuClkFreqHz)
 {
 
-	uint64_t dramsimClkFreqHz = (uint64_t)(1.0/(tCK*1e-9));
+	uint64_t dramsimClkFreqHz = (uint64_t)(1.0/(cfg.tCK*1e-9));
 	clockDomainCrosser.clock1 = dramsimClkFreqHz; 
 	clockDomainCrosser.clock2 = (cpuClkFreqHz == 0) ? dramsimClkFreqHz : cpuClkFreqHz; 
 }
@@ -189,7 +185,7 @@ void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
 
 	// create a properly named verification output file if need be and open it
 	// as the stream 'cmd_verify_out'
-	if (VERIFICATION_OUTPUT)
+	if (cfg.VERIFICATION_OUTPUT)
 	{
 		string basefilename = deviceIniFilename.substr(deviceIniFilename.find_last_of("/")+1);
 		string verify_filename =  "sim_out_"+basefilename;
@@ -265,7 +261,7 @@ void MultiChannelMemorySystem::mkdirIfNotExist(string path)
 
 MultiChannelMemorySystem::~MultiChannelMemorySystem()
 {
-	for (size_t i=0; i<NUM_CHANS; i++)
+	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
 		delete channels[i];
 	}
@@ -296,12 +292,12 @@ void MultiChannelMemorySystem::actual_update()
 		DEBUG("DRAMSim2 Clock Frequency ="<<clockDomainCrosser.clock1<<"Hz, CPU Clock Frequency="<<clockDomainCrosser.clock2<<"Hz"); 
 	}
 
-	if (currentClockCycle % EPOCH_LENGTH == 0)
+	if (currentClockCycle % cfg.EPOCH_LENGTH == 0)
 	{
 //		printStats(false); 
 	}
 	
-	for (size_t i=0; i<NUM_CHANS; i++)
+	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
 		channels[i]->update(); 
 	}
@@ -312,12 +308,12 @@ void MultiChannelMemorySystem::actual_update()
 unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 {
 	// Single channel case is a trivial shortcut case 
-	if (NUM_CHANS == 1)
+	if (cfg.NUM_CHANS == 1)
 	{
 		return 0; 
 	}
 
-	if (!isPowerOfTwo(NUM_CHANS))
+	if (!isPowerOfTwo(cfg.NUM_CHANS))
 	{
 		ERROR("We can only support power of two # of channels.\n" <<
 				"I don't know what Intel was thinking, but trying to address map half a bit is a neat trick that we're not sure how to do"); 
@@ -327,9 +323,9 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 	// only chan is used from this set 
 	unsigned channelNumber,rank,bank,row,col;
 	addressMapping(addr, channelNumber, rank, bank, row, col); 
-	if (channelNumber >= NUM_CHANS)
+	if (channelNumber >= cfg.NUM_CHANS)
 	{
-		ERROR("Got channel index "<<channelNumber<<" but only "<<NUM_CHANS<<" exist"); 
+		ERROR("Got channel index "<<channelNumber<<" but only "<<cfg.NUM_CHANS<<" exist"); 
 		abort();
 	}
 	//DEBUG("Channel idx = "<<channelNumber<<" totalbits="<<totalBits<<" channelbits="<<channelBits); 
@@ -377,7 +373,7 @@ bool MultiChannelMemorySystem::willAcceptTransaction(bool isWrite, uint64_t addr
 
 bool MultiChannelMemorySystem::willAcceptTransaction()
 {
-	for (size_t c=0; c<NUM_CHANS; c++) {
+	for (size_t c=0; c<cfg.NUM_CHANS; c++) {
 		if (!channels[c]->WillAcceptTransaction())
 		{
 			return false; 
@@ -390,8 +386,8 @@ bool MultiChannelMemorySystem::willAcceptTransaction()
 
 void MultiChannelMemorySystem::printStats(bool finalStats) {
 
-	csvOut << "ms" <<currentClockCycle * tCK * 1E-6; 
-	for (size_t i=0; i<NUM_CHANS; i++)
+	csvOut << "ms" <<currentClockCycle * cfg.tCK * 1E-6; 
+	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
 		PRINT("==== Channel ["<<i<<"] ====");
 		channels[i]->printStats(finalStats); 
@@ -404,7 +400,7 @@ void MultiChannelMemorySystem::registerCallbacks(
 		TransactionCompleteCB *writeDone,
 		void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower))
 {
-	for (size_t i=0; i<NUM_CHANS; i++)
+	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
 		channels[i]->RegisterCallbacks(readDone, writeDone, reportPower); 
 	}
@@ -413,9 +409,8 @@ void MultiChannelMemorySystem::simulationDone() {
 	printStats(true); 
 }
 
-namespace DRAMSim {
 DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut) 
 {
 	return new MultiChannelMemorySystem(dev, sys, pwd, trc, megsOfMemory, csvOut);
 }
-}
+} // namespace 

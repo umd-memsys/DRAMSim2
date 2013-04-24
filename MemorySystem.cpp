@@ -109,23 +109,23 @@ MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, CSVWriter &cs
 	*********************/
 
 	// number of bytes per rank
-	unsigned long megsOfStoragePerRank = ((((long long)NUM_ROWS * (NUM_COLS * DEVICE_WIDTH) * NUM_BANKS) * ((long long)JEDEC_DATA_BUS_BITS / DEVICE_WIDTH)) / 8) >> 20;
+	unsigned long megsOfStoragePerRank = ((((long long)cfg.NUM_ROWS * (cfg.NUM_COLS * cfg.DEVICE_WIDTH) * cfg.NUM_BANKS) * ((long long)cfg.JEDEC_DATA_BUS_BITS / cfg.DEVICE_WIDTH)) / 8) >> 20;
 
 	// If this is set, effectively override the number of ranks
 	if (megsOfMemory != 0)
 	{
-		NUM_RANKS = megsOfMemory / megsOfStoragePerRank;
-		if (NUM_RANKS == 0)
+		cfg.NUM_RANKS = megsOfMemory / megsOfStoragePerRank;
+		if (cfg.NUM_RANKS == 0)
 		{
 			PRINT("WARNING: Cannot create memory system with "<<megsOfMemory<<"MB, defaulting to minimum size of "<<megsOfStoragePerRank<<"MB");
-			NUM_RANKS=1;
+			cfg.NUM_RANKS=1;
 		}
 	}
 
-	NUM_DEVICES = JEDEC_DATA_BUS_BITS/DEVICE_WIDTH;
-	TOTAL_STORAGE = (NUM_RANKS * megsOfStoragePerRank); 
+	cfg.NUM_DEVICES = cfg.JEDEC_DATA_BUS_BITS/cfg.DEVICE_WIDTH;
+	unsigned totalStorage = (cfg.NUM_RANKS * megsOfStoragePerRank); 
 
-	DEBUG("CH. " <<systemID<<" TOTAL_STORAGE : "<< TOTAL_STORAGE << "MB | "<<NUM_RANKS<<" Ranks | "<< NUM_DEVICES <<" Devices per rank");
+	DEBUG("CH. " <<systemID<<" TOTAL_STORAGE : "<< totalStorage << "MB | "<<cfg.NUM_RANKS<<" Ranks | "<< cfg.NUM_DEVICES <<" Devices per rank");
 
 
 	memoryController = new MemoryController(this, csvOut, dramsim_log);
@@ -133,7 +133,7 @@ MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, CSVWriter &cs
 	// TODO: change to other vector constructor?
 	ranks = new vector<Rank *>();
 
-	for (size_t i=0; i<NUM_RANKS; i++)
+	for (size_t i=0; i<cfg.NUM_RANKS; i++)
 	{
 		Rank *r = new Rank(dramsim_log);
 		r->setId(i);
@@ -155,14 +155,14 @@ MemorySystem::~MemorySystem()
 
 	delete(memoryController);
 
-	for (size_t i=0; i<NUM_RANKS; i++)
+	for (size_t i=0; i<cfg.NUM_RANKS; i++)
 	{
 		delete (*ranks)[i];
 	}
 	ranks->clear();
 	delete(ranks);
 
-	if (VERIFICATION_OUTPUT)
+	if (cfg.VERIFICATION_OUTPUT)
 	{
 		cmd_verify_out.flush();
 		cmd_verify_out.close();
@@ -212,7 +212,7 @@ void MemorySystem::update()
 
 	//updates the state of each of the objects
 	// NOTE - do not change order
-	for (size_t i=0;i<NUM_RANKS;i++)
+	for (size_t i=0;i<cfg.NUM_RANKS;i++)
 	{
 		(*ranks)[i]->update();
 	}
@@ -226,7 +226,7 @@ void MemorySystem::update()
 	memoryController->update();
 
 	//simply increments the currentClockCycle field for each object
-	for (size_t i=0;i<NUM_RANKS;i++)
+	for (size_t i=0;i<cfg.NUM_RANKS;i++)
 	{
 		(*ranks)[i]->step();
 	}

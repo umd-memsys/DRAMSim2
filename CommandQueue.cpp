@@ -29,17 +29,12 @@
 *********************************************************************************/
 
 
-
-
-
-
-
-
 //CommandQueue.cpp
 //
 //Class file for command queue object
 //
 
+#include "ConfigIniReader.h"
 #include "CommandQueue.h"
 #include "MemoryController.h"
 #include <assert.h>
@@ -62,13 +57,13 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 
 	//use numBankQueus below to create queue structure
 	size_t numBankQueues;
-	if (queuingStructure==PerRank)
+	if (cfg.queuingStructure==PerRank)
 	{
 		numBankQueues = 1;
 	}
-	else if (queuingStructure==PerRankPerBank)
+	else if (cfg.queuingStructure==PerRankPerBank)
 	{
-		numBankQueues = NUM_BANKS;
+		numBankQueues = cfg.NUM_BANKS;
 	}
 	else
 	{
@@ -77,15 +72,15 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 	}
 
 	//vector of counters used to ensure rows don't stay open too long
-	rowAccessCounters = vector< vector<unsigned> >(NUM_RANKS, vector<unsigned>(NUM_BANKS,0));
+	rowAccessCounters = vector< vector<unsigned> >(cfg.NUM_RANKS, vector<unsigned>(cfg.NUM_BANKS,0));
 
 	//create queue based on the structure we want
 	BusPacket1D actualQueue;
 	BusPacket2D perBankQueue = BusPacket2D();
 	queues = BusPacket3D();
-	for (size_t rank=0; rank<NUM_RANKS; rank++)
+	for (size_t rank=0; rank<cfg.NUM_RANKS; rank++)
 	{
-		//this loop will run only once for per-rank and NUM_BANKS times for per-rank-per-bank
+		//this loop will run only once for per-rank and cfg.NUM_BANKS times for per-rank-per-bank
 		for (size_t bank=0; bank<numBankQueues; bank++)
 		{
 			actualQueue	= BusPacket1D();
@@ -101,8 +96,8 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 	//
 	//countdown vector will have decrementing counters starting at tFAW
 	//  when the 0th element reaches 0, remove it
-	tFAWCountdown.reserve(NUM_RANKS);
-	for (size_t i=0;i<NUM_RANKS;i++)
+	tFAWCountdown.reserve(cfg.NUM_RANKS);
+	for (size_t i=0;i<cfg.NUM_RANKS;i++)
 	{
 		//init the empty vectors here so we don't seg fault later
 		tFAWCountdown.push_back(vector<unsigned>());
@@ -111,11 +106,11 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 CommandQueue::~CommandQueue()
 {
 	//ERROR("COMMAND QUEUE destructor");
-	size_t bankMax = NUM_RANKS;
-	if (queuingStructure == PerRank) {
+	size_t bankMax = cfg.NUM_RANKS;
+	if (cfg.queuingStructure == PerRank) {
 		bankMax = 1; 
 	}
-	for (size_t r=0; r< NUM_RANKS; r++)
+	for (size_t r=0; r< cfg.NUM_RANKS; r++)
 	{
 		for (size_t b=0; b<bankMax; b++) 
 		{
@@ -132,20 +127,20 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
 {
 	unsigned rank = newBusPacket->rank;
 	unsigned bank = newBusPacket->bank;
-	if (queuingStructure==PerRank)
+	if (cfg.queuingStructure==PerRank)
 	{
 		queues[rank][0].push_back(newBusPacket);
-		if (queues[rank][0].size()>CMD_QUEUE_DEPTH)
+		if (queues[rank][0].size()>cfg.CMD_QUEUE_DEPTH)
 		{
 			ERROR("== Error - Enqueued more than allowed in command queue");
 			ERROR("						Need to call .hasRoomFor(int numberToEnqueue, unsigned rank, unsigned bank) first");
 			exit(0);
 		}
 	}
-	else if (queuingStructure==PerRankPerBank)
+	else if (cfg.queuingStructure==PerRankPerBank)
 	{
 		queues[rank][bank].push_back(newBusPacket);
-		if (queues[rank][bank].size()>CMD_QUEUE_DEPTH)
+		if (queues[rank][bank].size()>cfg.CMD_QUEUE_DEPTH)
 		{
 			ERROR("== Error - Enqueued more than allowed in command queue");
 			ERROR("						Need to call .hasRoomFor(int numberToEnqueue, unsigned rank, unsigned bank) first");
@@ -168,7 +163,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 	//
 	//deal with tFAW book-keeping
 	//	each rank has it's own counter since the restriction is on a device level
-	for (size_t i=0;i<NUM_RANKS;i++)
+	for (size_t i=0;i<cfg.NUM_RANKS;i++)
 	{
 		//decrement all the counters we have going
 		for (size_t j=0;j<tFAWCountdown[i].size();j++)
@@ -191,7 +186,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 		 Otherwise, it starts looking for rows to close (in open page)
 	*/
 
-	if (rowBufferPolicy==ClosePage)
+	if (cfg.rowBufferPolicy==ClosePage)
 	{
 		bool sendingREF = false;
 		//if the memory controller set the flags signaling that we need to issue a refresh
@@ -199,7 +194,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 		{
 			bool foundActiveOrTooEarly = false;
 			//look for an open bank
-			for (size_t b=0;b<NUM_BANKS;b++)
+			for (size_t b=0;b<cfg.NUM_BANKS;b++)
 			{
 				vector<BusPacket *> &queue = getCommandQueue(refreshRank,b);
 				//checks to make sure that all banks are idle
@@ -263,7 +258,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 				//		refresh logic above has sent one out (ie, letting banks close)
 				if (!queue.empty() && !((nextRank == refreshRank) && refreshWaiting))
 				{
-					if (queuingStructure == PerRank)
+					if (cfg.queuingStructure == PerRank)
 					{
 
 						//search from beginning to find first issuable bus packet
@@ -302,9 +297,9 @@ bool CommandQueue::pop(BusPacket **busPacket)
 				if (foundIssuable) break;
 
 				//rank round robin
-				if (queuingStructure == PerRank)
+				if (cfg.queuingStructure == PerRank)
 				{
-					nextRank = (nextRank + 1) % NUM_RANKS;
+					nextRank = (nextRank + 1) % cfg.NUM_RANKS;
 					if (startingRank == nextRank)
 					{
 						break;
@@ -325,14 +320,14 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			if (!foundIssuable) return false;
 		}
 	}
-	else if (rowBufferPolicy==OpenPage)
+	else if (cfg.rowBufferPolicy==OpenPage)
 	{
 		bool sendingREForPRE = false;
 		if (refreshWaiting)
 		{
 			bool sendREF = true;
 			//make sure all banks idle and timing met for a REF
-			for (size_t b=0;b<NUM_BANKS;b++)
+			for (size_t b=0;b<cfg.NUM_BANKS;b++)
 			{
 				//if a bank is active we can't send a REF yet
 				if (bankStates[refreshRank][b].currentBankState == RowActive)
@@ -463,9 +458,9 @@ bool CommandQueue::pop(BusPacket **busPacket)
 				if (foundIssuable) break;
 
 				//rank round robin
-				if (queuingStructure == PerRank)
+				if (cfg.queuingStructure == PerRank)
 				{
-					nextRank = (nextRank + 1) % NUM_RANKS;
+					nextRank = (nextRank + 1) % cfg.NUM_RANKS;
 					if (startingRank == nextRank)
 					{
 						break;
@@ -510,7 +505,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 						}
 
 						//if nothing found going to that bank and row or too many accesses have happend, close it
-						if (!found || rowAccessCounters[nextRankPRE][nextBankPRE]==TOTAL_ROW_ACCESSES)
+						if (!found || rowAccessCounters[nextRankPRE][nextBankPRE]==cfg.TOTAL_ROW_ACCESSES)
 						{
 							if (currentClockCycle >= bankStates[nextRankPRE][nextBankPRE].nextPrecharge)
 							{
@@ -535,7 +530,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 	//  posted-cas is enabled when AL>0
 	//  when sendAct is true, when don't want to increment our indexes
 	//  so we send the column access that is paid with this act
-	if (AL>0 && sendAct)
+	if (cfg.AL>0 && sendAct)
 	{
 		sendAct = false;
 	}
@@ -548,7 +543,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 	//if its an activate, add a tfaw counter
 	if ((*busPacket)->busPacketType==ACTIVATE)
 	{
-		tFAWCountdown[(*busPacket)->rank].push_back(tFAW);
+		tFAWCountdown[(*busPacket)->rank].push_back(cfg.tFAW);
 	}
 
 	return true;
@@ -558,16 +553,16 @@ bool CommandQueue::pop(BusPacket **busPacket)
 bool CommandQueue::hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned bank)
 {
 	vector<BusPacket *> &queue = getCommandQueue(rank, bank); 
-	return (CMD_QUEUE_DEPTH - queue.size() >= numberToEnqueue);
+	return (cfg.CMD_QUEUE_DEPTH - queue.size() >= numberToEnqueue);
 }
 
 //prints the contents of the command queue
 void CommandQueue::print()
 {
-	if (queuingStructure==PerRank)
+	if (cfg.queuingStructure==PerRank)
 	{
 		PRINT(endl << "== Printing Per Rank Queue" );
-		for (size_t i=0;i<NUM_RANKS;i++)
+		for (size_t i=0;i<cfg.NUM_RANKS;i++)
 		{
 			PRINT(" = Rank " << i << "  size : " << queues[i][0].size() );
 			for (size_t j=0;j<queues[i][0].size();j++)
@@ -577,14 +572,14 @@ void CommandQueue::print()
 			}
 		}
 	}
-	else if (queuingStructure==PerRankPerBank)
+	else if (cfg.queuingStructure==PerRankPerBank)
 	{
 		PRINT("\n== Printing Per Rank, Per Bank Queue" );
 
-		for (size_t i=0;i<NUM_RANKS;i++)
+		for (size_t i=0;i<cfg.NUM_RANKS;i++)
 		{
 			PRINT(" = Rank " << i );
-			for (size_t j=0;j<NUM_BANKS;j++)
+			for (size_t j=0;j<cfg.NUM_BANKS;j++)
 			{
 				PRINT("    Bank "<< j << "   size : " << queues[i][j].size() );
 
@@ -605,11 +600,11 @@ void CommandQueue::print()
  */
 vector<BusPacket *> &CommandQueue::getCommandQueue(unsigned rank, unsigned bank)
 {
-	if (queuingStructure == PerRankPerBank)
+	if (cfg.queuingStructure == PerRankPerBank)
 	{
 		return queues[rank][bank];
 	}
-	else if (queuingStructure == PerRank)
+	else if (cfg.queuingStructure == PerRank)
 	{
 		return queues[rank][0];
 	}
@@ -647,7 +642,7 @@ bool CommandQueue::isIssuable(BusPacket *busPacket)
 		if (bankStates[busPacket->rank][busPacket->bank].currentBankState == RowActive &&
 		        currentClockCycle >= bankStates[busPacket->rank][busPacket->bank].nextWrite &&
 		        busPacket->row == bankStates[busPacket->rank][busPacket->bank].openRowAddress &&
-		        rowAccessCounters[busPacket->rank][busPacket->bank] < TOTAL_ROW_ACCESSES)
+		        rowAccessCounters[busPacket->rank][busPacket->bank] < cfg.TOTAL_ROW_ACCESSES)
 		{
 			return true;
 		}
@@ -661,7 +656,7 @@ bool CommandQueue::isIssuable(BusPacket *busPacket)
 		if (bankStates[busPacket->rank][busPacket->bank].currentBankState == RowActive &&
 		        currentClockCycle >= bankStates[busPacket->rank][busPacket->bank].nextRead &&
 		        busPacket->row == bankStates[busPacket->rank][busPacket->bank].openRowAddress &&
-		        rowAccessCounters[busPacket->rank][busPacket->bank] < TOTAL_ROW_ACCESSES)
+		        rowAccessCounters[busPacket->rank][busPacket->bank] < cfg.TOTAL_ROW_ACCESSES)
 		{
 			return true;
 		}
@@ -692,13 +687,13 @@ bool CommandQueue::isIssuable(BusPacket *busPacket)
 //figures out if a rank's queue is empty
 bool CommandQueue::isEmpty(unsigned rank)
 {
-	if (queuingStructure == PerRank)
+	if (cfg.queuingStructure == PerRank)
 	{
 		return queues[rank][0].empty();
 	}
-	else if (queuingStructure == PerRankPerBank)
+	else if (cfg.queuingStructure == PerRankPerBank)
 	{
-		for (size_t i=0;i<NUM_BANKS;i++)
+		for (size_t i=0;i<cfg.NUM_BANKS;i++)
 		{
 			if (!queues[rank][i].empty()) return false;
 		}
@@ -720,28 +715,28 @@ void CommandQueue::needRefresh(unsigned rank)
 
 void CommandQueue::nextRankAndBank(unsigned &rank, unsigned &bank)
 {
-	if (schedulingPolicy == RankThenBankRoundRobin)
+	if (cfg.schedulingPolicy == RankThenBankRoundRobin)
 	{
 		rank++;
-		if (rank == NUM_RANKS)
+		if (rank == cfg.NUM_RANKS)
 		{
 			rank = 0;
 			bank++;
-			if (bank == NUM_BANKS)
+			if (bank == cfg.NUM_BANKS)
 			{
 				bank = 0;
 			}
 		}
 	}
 	//bank-then-rank round robin
-	else if (schedulingPolicy == BankThenRankRoundRobin)
+	else if (cfg.schedulingPolicy == BankThenRankRoundRobin)
 	{
 		bank++;
-		if (bank == NUM_BANKS)
+		if (bank == cfg.NUM_BANKS)
 		{
 			bank = 0;
 			rank++;
-			if (rank == NUM_RANKS)
+			if (rank == cfg.NUM_RANKS)
 			{
 				rank = 0;
 			}

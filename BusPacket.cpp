@@ -28,18 +28,12 @@
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
 
-
-
-
-
-
-
-
 //BusPacket.cpp
 //
 //Class file for bus packet object
 //
 
+#include "ConfigIniReader.h"
 #include "BusPacket.h"
 
 using namespace DRAMSim;
@@ -65,7 +59,7 @@ void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
 		return;
 	}
 
-	if (VERIFICATION_OUTPUT)
+	if (cfg.VERIFICATION_OUTPUT)
 	{
 		switch (busPacketType)
 		{

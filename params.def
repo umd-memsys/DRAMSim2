@@ -1,4 +1,88 @@
-PARAM(unsigned, REFRESH_PERIOD, 100)
-PARAM(float, tCK, 1.5)
-PARAM(RowBufferPolicy, rowBufferPolicy, OpenPage) 
+// Default System.ini parameters 
 
+PARAM(unsigned, NUM_RANKS, 0)
+PARAM(unsigned, NUM_DEVICES, 0)
+
+PARAM(unsigned,NUM_CHANS,4) // number of *logically independent* channels (i.e. each with a separate memory controller); should be a power of 2
+PARAM(unsigned,JEDEC_DATA_BUS_BITS,64) // Always 64 for DDRx; if you want multiple *ganged* channels, set this to N*64
+PARAM(unsigned,TRANS_QUEUE_DEPTH,64) // transaction queue, i.e., CPU-level commands such as:  READ 0xbeef
+PARAM(unsigned,CMD_QUEUE_DEPTH,64) // command queue, i.e., DRAM-level commands such as: CAS 544, RAS 4
+PARAM(unsigned,EPOCH_LENGTH,100000) // length of an epoch in cycles (granularity of simulation)
+
+PARAM(DRAMSim::RowBufferPolicy,rowBufferPolicy,OpenPage) // close_page or open_page
+PARAM(DRAMSim::AddressMappingScheme,addressMappingScheme,Scheme7) //valid schemes 1-7; For multiple independent channels, use scheme7 since it has the most parallelism 
+PARAM(DRAMSim::SchedulingPolicy,schedulingPolicy,RankThenBankRoundRobin) // bank_then_rank_round_robin or rank_then_bank_round_robin 
+PARAM(DRAMSim::QueuingStructure,queuingStructure,PerRank) //per_rank or per_rank_per_bank
+
+//for true/false, please use all lowercase
+PARAM(bool,DEBUG_TRANS_Q,false)
+PARAM(bool,DEBUG_CMD_Q,false)
+PARAM(bool,DEBUG_ADDR_MAP,false)
+PARAM(bool,DEBUG_BUS,false)
+PARAM(bool,DEBUG_BANKSTATE,false)
+PARAM(bool,DEBUG_BANKS,false)
+PARAM(bool,DEBUG_POWER,false)
+PARAM(bool,VIS_FILE_OUTPUT,true)
+
+PARAM(bool,USE_LOW_POWER,true) // go into low power mode when idle?
+PARAM(bool,VERIFICATION_OUTPUT,false) // should be false for normal operation
+PARAM(unsigned,TOTAL_ROW_ACCESSES,4)	//	maximum number of open page requests to send to the same row before forcing a row close (to prevent starvation)
+PARAM(unsigned,LATENCY_HISTOGRAM_BIN_SIZE,10)
+
+// Default device ini parameters (DDR3-1600)
+PARAM(unsigned,NUM_BANKS,8)
+PARAM(unsigned,NUM_ROWS,16384)
+PARAM(unsigned,NUM_COLS,2048)
+PARAM(unsigned,DEVICE_WIDTH,4)
+
+
+//in nanoseconds
+PARAM(unsigned, REFRESH_PERIOD, 7800)
+PARAM(float, tCK,1.25)
+
+PARAM(unsigned, CL,11)
+PARAM(unsigned, AL,0)
+PARAM(unsigned, RL,(CL+AL))
+PARAM(unsigned, WL,(RL-1))
+PARAM(unsigned, BL,8)
+PARAM(unsigned, tRAS,28)
+PARAM(unsigned, tRCD,11)
+PARAM(unsigned, tRRD,5 )// actually 6ns=4.8CK, but rounded up
+PARAM(unsigned, tRC,39)
+PARAM(unsigned, tRP,11)
+PARAM(unsigned, tCCD,4)
+PARAM(unsigned, tRTP,6 )// 7.5ns
+PARAM(unsigned, tWTR,6 )// 7.5ns
+PARAM(unsigned, tWR,12 )// 15ns
+PARAM(unsigned, tRTRS,1)// -- RANK PARAMETER, TODO 
+PARAM(unsigned, tRFC,88)
+PARAM(unsigned, tFAW,24 )// This part has 1KB (2k columns x 4) = 30ns
+PARAM(unsigned, tCKE,4 )// 5ns
+PARAM(unsigned, tXP,5 )// 6ns = 4.8CK rounded up
+PARAM(unsigned, tCMD,1 )//*
+// x4 width; DDR3-1660; page 44
+PARAM(unsigned, IDD0,95)
+PARAM(unsigned, IDD1,115)
+PARAM(unsigned, IDD2P,45 )// assuming 'fast mode'
+PARAM(unsigned, IDD2Q,67)
+PARAM(unsigned, IDD2N,70)
+PARAM(unsigned, IDD3Pf,45 )// unused -- also DDR3 doesnt have f,s versions 
+PARAM(unsigned, IDD3Ps,45) // also unused
+PARAM(unsigned, IDD3N,67  )
+PARAM(unsigned, IDD4W,250)
+PARAM(unsigned, IDD4R,250)
+PARAM(unsigned, IDD5,260)
+PARAM(unsigned, IDD6,6) // this is unused
+PARAM(unsigned, IDD6L,6) // this is unused
+PARAM(unsigned, IDD7,400) // this is unused
+
+//same bank
+PARAM(unsigned, READ_TO_PRE_DELAY,(AL+BL/2+max((unsigned)tRTP,2U)-2))
+PARAM(unsigned, WRITE_TO_PRE_DELAY,(WL+BL/2+tWR))
+PARAM(unsigned, READ_TO_WRITE_DELAY,(RL+BL/2+tRTRS-WL))
+PARAM(unsigned, READ_AUTOPRE_DELAY,(AL+tRTP+tRP))
+PARAM(unsigned, WRITE_AUTOPRE_DELAY,(WL+BL/2+tWR+tRP))
+PARAM(unsigned, WRITE_TO_READ_DELAY_B,(WL+BL/2+tWTR)) //interbank
+PARAM(unsigned, WRITE_TO_READ_DELAY_R,(WL+BL/2+tRTRS-RL)) //interrank
+
+PARAM(float, Vdd, 1.5f) // TODO: double check this

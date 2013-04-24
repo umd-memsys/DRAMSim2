@@ -34,6 +34,7 @@
 //	Transaction is considered requests sent from the CPU to
 //	the memory controller (read, write, etc.)...
 
+#include "ConfigIniReader.h"
 #include "Transaction.h"
 #include "PrintMacros.h"
 
@@ -78,5 +79,46 @@ ostream &operator<<(ostream &os, const Transaction &t)
 	}
 	return os; 
 }
+
+BusPacketType Transaction::getBusPacketType()
+{
+	switch (transactionType)
+	{
+		case DATA_READ:
+			if (cfg.rowBufferPolicy == ClosePage)
+			{
+				return READ_P;
+			}
+			else if (cfg.rowBufferPolicy == OpenPage)
+			{
+				return READ; 
+			}
+			else
+			{
+				ERROR("Unknown row buffer policy");
+				abort();
+			}
+			break;
+		case DATA_WRITE:
+			if (cfg.rowBufferPolicy == ClosePage)
+			{
+				return WRITE_P;
+			}
+			else if (cfg.rowBufferPolicy == OpenPage)
+			{
+				return WRITE; 
+			}
+			else
+			{
+				ERROR("Unknown row buffer policy");
+				abort();
+			}
+			break;
+		default:
+			ERROR("This transaction type doesn't have a corresponding bus packet type");
+			abort();
+	}
+}
+
 }
 

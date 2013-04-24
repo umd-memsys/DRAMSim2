@@ -114,14 +114,6 @@ private:
 
 	vector< uint64_t > totalEpochLatency;
 
-	unsigned channelBitWidth;
-	unsigned rankBitWidth;
-	unsigned bankBitWidth;
-	unsigned rowBitWidth;
-	unsigned colBitWidth;
-	unsigned byteOffsetWidth;
-
-
 	unsigned refreshRank;
 	
 public:
