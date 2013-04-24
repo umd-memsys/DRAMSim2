@@ -1,18 +1,28 @@
+/**
+ * These are the compiled defaults for a memory system configuration 
+ *
+ * These parameters specify a Dual Channel DDR3-1600 system based on the device
+ * ini file: ini/DDR3_micron_32M_8B_x4_sg125.ini . This file is in turn based
+ * on the Micron MT41J256M4 part. 
+ *
+ */
+
 // Default System.ini parameters 
 
+// These will be reset by the code 
 PARAM(unsigned, NUM_RANKS, 0)
 PARAM(unsigned, NUM_DEVICES, 0)
 
-PARAM(unsigned,NUM_CHANS,4) // number of *logically independent* channels (i.e. each with a separate memory controller); should be a power of 2
+PARAM(unsigned,NUM_CHANS,2) // number of *logically independent* channels (i.e. each with a separate memory controller); should be a power of 2
 PARAM(unsigned,JEDEC_DATA_BUS_BITS,64) // Always 64 for DDRx; if you want multiple *ganged* channels, set this to N*64
 PARAM(unsigned,TRANS_QUEUE_DEPTH,64) // transaction queue, i.e., CPU-level commands such as:  READ 0xbeef
 PARAM(unsigned,CMD_QUEUE_DEPTH,64) // command queue, i.e., DRAM-level commands such as: CAS 544, RAS 4
-PARAM(unsigned,EPOCH_LENGTH,100000) // length of an epoch in cycles (granularity of simulation)
+PARAM(unsigned,EPOCH_LENGTH,100000) // length of an epoch in cycles (granularity of simulation stats)
 
-PARAM(DRAMSim::RowBufferPolicy,rowBufferPolicy,OpenPage) // close_page or open_page
-PARAM(DRAMSim::AddressMappingScheme,addressMappingScheme,Scheme7) //valid schemes 1-7; For multiple independent channels, use scheme7 since it has the most parallelism 
-PARAM(DRAMSim::SchedulingPolicy,schedulingPolicy,RankThenBankRoundRobin) // bank_then_rank_round_robin or rank_then_bank_round_robin 
-PARAM(DRAMSim::QueuingStructure,queuingStructure,PerRank) //per_rank or per_rank_per_bank
+PARAM(DRAMSim::RowBufferPolicy,rowBufferPolicy,OpenPage) // OpenPage or ClosePage
+PARAM(DRAMSim::AddressMappingScheme,addressMappingScheme,Scheme7) //valid Schemes 1-7; For multiple independent channels, use Scheme7 since it has the most parallelism 
+PARAM(DRAMSim::SchedulingPolicy,schedulingPolicy,RankThenBankRoundRobin) // BankThenRankRoundRobin or RankThenBankRoundRobin 
+PARAM(DRAMSim::QueuingStructure,queuingStructure,PerRank) //PerRank or PerRankPerBank
 
 //for true/false, please use all lowercase
 PARAM(bool,DEBUG_TRANS_Q,false)
