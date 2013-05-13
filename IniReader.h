@@ -48,7 +48,7 @@ class IniReader
 {
 
 public:
-	static Config::OptionsMap ReadIniFile(string filename);
+	static OptionsMap ReadIniFile(string filename);
 };
 }
 

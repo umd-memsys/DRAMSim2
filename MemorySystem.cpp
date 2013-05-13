@@ -153,6 +153,7 @@ MemorySystem::~MemorySystem()
 //	abort();
 
 	delete(memoryController);
+	memoryController=NULL; 
 
 	for (size_t i=0; i<cfg.NUM_RANKS; i++)
 	{

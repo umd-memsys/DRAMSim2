@@ -52,7 +52,7 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(
 		const string &traceFilename_, 
 		unsigned megsOfMemory_, 
 		CSVWriter &csvOut_, 
-		const Config::OptionsMap *paramOverrides)
+		const OptionsMap *paramOverrides)
 
 	:	megsOfMemory(megsOfMemory_), 
 	deviceIniFilename(deviceIniFilename_),
@@ -84,15 +84,17 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(
 
 
 	DEBUG("== Loading device model file '"<<deviceIniFilename<<"' == ");
-	Config::OptionsMap deviceParameters = IniReader::ReadIniFile(deviceIniFilename);
+	OptionsMap deviceParameters = IniReader::ReadIniFile(deviceIniFilename);
 	DEBUG("== Loading system model file '"<<systemIniFilename<<"' == ");
-	Config::OptionsMap systemParameters = IniReader::ReadIniFile(systemIniFilename);
+	OptionsMap systemParameters = IniReader::ReadIniFile(systemIniFilename);
 
 	// If we have any overrides, set them now before creating all of the memory objects
 	cfg.set(deviceParameters); 
 	cfg.set(systemParameters); 
-	if (paramOverrides)
-		cfg.set(*paramOverrides);
+	if (paramOverrides) {
+		OptionsFailedToSet failedOpts = cfg.set(*paramOverrides);
+		DEBUG("Setting overrides: "<<failedOpts.size()<<" Failed out of "<<paramOverrides->size()<< "\n"); 
+	}
 
 
 	if (cfg.NUM_CHANS == 0) 
@@ -408,8 +410,8 @@ void MultiChannelMemorySystem::simulationDone() {
 	printStats(true); 
 }
 
-DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut) 
+DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut, const OptionsMap *paramOverrides) 
 {
-	return new MultiChannelMemorySystem(dev, sys, pwd, trc, megsOfMemory, csvOut);
+	return new MultiChannelMemorySystem(dev, sys, pwd, trc, megsOfMemory, csvOut, paramOverrides);
 }
 } // namespace 

@@ -45,7 +45,7 @@ class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 {
 	public: 
 
-	MultiChannelMemorySystem(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut_, const Config::OptionsMap *paramOverrides=NULL);
+	MultiChannelMemorySystem(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut_, const OptionsMap *paramOverrides=NULL);
 		virtual ~MultiChannelMemorySystem();
 		uint64_t getCycle() { return currentClockCycle; }
 			bool addTransaction(Transaction *trans);

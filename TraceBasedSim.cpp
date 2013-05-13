@@ -354,9 +354,9 @@ void alignTransactionAddress(Transaction &trans)
  * Override options can be specified on the command line as -o key1=value1,key2=value2
  * this method should parse the key-value pairs and put them into a map 
  **/ 
-Config::OptionsMap parseParamOverrides(const string &kv_str)
+OptionsMap parseParamOverrides(const string &kv_str)
 {
-	Config::OptionsMap kv_map;
+	OptionsMap kv_map;
 	size_t start = 0, comma=0, equal_sign=0;
 	// split the commas if they are there
 	while (1)
@@ -395,7 +395,7 @@ int main(int argc, char **argv)
 	unsigned megsOfMemory=2048;
 	bool useClockCycle=true;
 	
-	Config::OptionsMap paramOverrides; 
+	OptionsMap paramOverrides; 
 
 	unsigned numCycles=1000;
 	//getopt stuff

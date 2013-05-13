@@ -36,11 +36,10 @@
 #include <stdlib.h>
 #include <string.h> //strndup
 #include <iostream>
-#include <map>
-#include <list> 
 #include <string>
 //#include <CSVWriter.h>
 #include <sstream> 
+#include "DRAMSim.h"
 
 
 using namespace std; 
@@ -169,8 +168,6 @@ inline void ConfigOption<SchedulingPolicy>::set(const std::string &value_str) {
 }
 
 struct Config {
-	typedef std::map<std::string, std::string> OptionsMap;
-	typedef std::list<std::string> OptionsFailedToSet; 
 
 	/* Generate the member definitions */
 #define PARAM(type, name, default_value) \

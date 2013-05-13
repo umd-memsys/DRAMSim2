@@ -38,9 +38,9 @@ using namespace std;
 namespace DRAMSim
 {
 
-Config::OptionsMap IniReader::ReadIniFile(string filename)
+OptionsMap IniReader::ReadIniFile(string filename)
 {
-	Config::OptionsMap options; 
+	OptionsMap options; 
 	ifstream iniFile;
 	string line;
 	string key,valueString;
