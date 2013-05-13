@@ -54,6 +54,7 @@ class Transaction
 	Transaction();
 public:
 	//fields
+	Config &cfg; 
 	TransactionType transactionType;
 	uint64_t address;
 	void *data;
@@ -63,48 +64,10 @@ public:
 
 	friend ostream &operator<<(ostream &os, const Transaction &t);
 	//functions
-	Transaction(TransactionType transType, uint64_t addr, void *data);
+	Transaction(TransactionType transType, uint64_t addr, void *data, Config &cfg);
 	Transaction(const Transaction &t);
 
-	BusPacketType getBusPacketType()
-	{
-		switch (transactionType)
-		{
-			case DATA_READ:
-			if (rowBufferPolicy == ClosePage)
-			{
-				return READ_P;
-			}
-			else if (rowBufferPolicy == OpenPage)
-			{
-				return READ; 
-			}
-			else
-			{
-				ERROR("Unknown row buffer policy");
-				abort();
-			}
-			break;
-		case DATA_WRITE:
-			if (rowBufferPolicy == ClosePage)
-			{
-				return WRITE_P;
-			}
-			else if (rowBufferPolicy == OpenPage)
-			{
-				return WRITE; 
-			}
-			else
-			{
-				ERROR("Unknown row buffer policy");
-				abort();
-			}
-			break;
-		default:
-			ERROR("This transaction type doesn't have a corresponding bus packet type");
-			abort();
-		}
-	}
+	BusPacketType getBusPacketType();
 };
 
 }

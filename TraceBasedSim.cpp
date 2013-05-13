@@ -47,7 +47,14 @@
 #include "MultiChannelMemorySystem.h"
 #include "Transaction.h"
 #include "IniReader.h"
+#include "CSVWriter.h"
 
+enum TraceType
+{
+	k6,
+	mase,
+	misc
+};
 
 using namespace DRAMSim;
 using namespace std;
@@ -64,8 +71,14 @@ class TransactionReceiver
 	private: 
 		map<uint64_t, list<uint64_t> > pendingReadRequests; 
 		map<uint64_t, list<uint64_t> > pendingWriteRequests; 
-
+		unsigned numReads, numWrites; 
+	
 	public: 
+		TransactionReceiver() : numReads(0), numWrites(0) 
+		{
+
+
+		}
 		void add_pending(const Transaction &t, uint64_t cycle)
 		{
 			// C++ lists are ordered, so the list will always push to the back and
@@ -107,7 +120,8 @@ class TransactionReceiver
 			uint64_t latency = done_cycle - added_cycle;
 
 			pendingReadRequests[address].pop_front();
-			cout << "Read Callback:  0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
+			numReads++;
+			cout << "Read Callback: #"<<numReads<<": 0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
 		}
 		void write_complete(unsigned id, uint64_t address, uint64_t done_cycle)
 		{
@@ -131,7 +145,8 @@ class TransactionReceiver
 			uint64_t latency = done_cycle - added_cycle;
 
 			pendingWriteRequests[address].pop_front();
-			cout << "Write Callback: 0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
+			numWrites++;
+			cout << "Write Callback: #"<<numWrites<<" 0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
 		}
 };
 #endif
@@ -326,9 +341,10 @@ void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &tra
 
 void alignTransactionAddress(Transaction &trans)
 {
+	Config &cfg = trans.cfg; 
 	// zero out the low order bits which correspond to the size of a transaction
 
-	unsigned throwAwayBits = dramsim_log2((BL*JEDEC_DATA_BUS_BITS/8));
+	unsigned throwAwayBits = dramsim_log2((cfg.BL*cfg.JEDEC_DATA_BUS_BITS/8));
 
 	trans.address >>= throwAwayBits;
 	trans.address <<= throwAwayBits;
@@ -338,9 +354,9 @@ void alignTransactionAddress(Transaction &trans)
  * Override options can be specified on the command line as -o key1=value1,key2=value2
  * this method should parse the key-value pairs and put them into a map 
  **/ 
-IniReader::OverrideMap *parseParamOverrides(const string &kv_str)
+OptionsMap parseParamOverrides(const string &kv_str)
 {
-	IniReader::OverrideMap *kv_map = new IniReader::OverrideMap(); 
+	OptionsMap kv_map;
 	size_t start = 0, comma=0, equal_sign=0;
 	// split the commas if they are there
 	while (1)
@@ -360,7 +376,7 @@ IniReader::OverrideMap *parseParamOverrides(const string &kv_str)
 		string key = kv_str.substr(start, equal_sign-start);
 		string value = kv_str.substr(equal_sign+1, comma-equal_sign-1); 
 
-		(*kv_map)[key] = value; 
+		kv_map[key] = value; 
 		start = comma+1;
 
 	}
@@ -379,7 +395,7 @@ int main(int argc, char **argv)
 	unsigned megsOfMemory=2048;
 	bool useClockCycle=true;
 	
-	IniReader::OverrideMap *paramOverrides = NULL; 
+	OptionsMap paramOverrides; 
 
 	unsigned numCycles=1000;
 	//getopt stuff
@@ -508,12 +524,11 @@ int main(int argc, char **argv)
 
 
 	CSVWriter &CSVOut = CSVWriter::GetCSVWriterInstance(visFilename); 
-	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory, CSVOut, paramOverrides);
+	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory, CSVOut, &paramOverrides);
 	// set the frequency ratio to 1:1
 	memorySystem->setCPUClockSpeed(0); 
 	std::ostream &dramsim_logfile = memorySystem->getLogFile(); 
-	// don't need this anymore 
-	delete paramOverrides;
+	Config &cfg = memorySystem->cfg;
 
 
 #ifdef RETURN_TRANSACTIONS
@@ -521,7 +536,7 @@ int main(int argc, char **argv)
 	/* create and register our callback functions */
 	Callback_t *read_cb = new Callback<TransactionReceiver, void, unsigned, uint64_t, uint64_t>(&transactionReceiver, &TransactionReceiver::read_complete);
 	Callback_t *write_cb = new Callback<TransactionReceiver, void, unsigned, uint64_t, uint64_t>(&transactionReceiver, &TransactionReceiver::write_complete);
-	memorySystem->RegisterCallbacks(read_cb, write_cb, NULL);
+	memorySystem->registerCallbacks(read_cb, write_cb, NULL);
 #endif
 
 
@@ -541,7 +556,6 @@ int main(int argc, char **argv)
 		cout << "== Error - Could not open trace file"<<endl;
 		exit(0);
 	}
-
 	for (size_t i=0;i<numCycles;i++)
 	{
 		if (!pendingTrans)
@@ -553,19 +567,19 @@ int main(int argc, char **argv)
 				if (line.size() > 0)
 				{
 					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType,useClockCycle);
-					trans = new Transaction(transType, addr, data);
+					trans = new Transaction(transType, addr, data, cfg);
 					alignTransactionAddress(*trans); 
 
 					if (i>=clockCycle)
 					{
-						if (!(*memorySystem).addTransaction(trans))
+						if (!memorySystem->addTransaction(trans))
 						{
 							pendingTrans = true;
 						}
 						else
 						{
 #ifdef RETURN_TRANSACTIONS
-							transactionReceiver.add_pending(trans, i); 
+							transactionReceiver.add_pending(*trans, i); 
 #endif
 							// the memory system accepted our request so now it takes ownership of it
 							trans = NULL; 
@@ -591,17 +605,16 @@ int main(int argc, char **argv)
 
 		else if (pendingTrans && i >= clockCycle)
 		{
-			pendingTrans = !(*memorySystem).addTransaction(trans);
+			pendingTrans = !memorySystem->addTransaction(trans);
 			if (!pendingTrans)
 			{
 #ifdef RETURN_TRANSACTIONS
-				transactionReceiver.add_pending(trans, i); 
+				transactionReceiver.add_pending(*trans, i); 
 #endif
 				trans=NULL;
 			}
 		}
-
-		(*memorySystem).update();
+		memorySystem->update();
 	}
 
 	traceFile.close();

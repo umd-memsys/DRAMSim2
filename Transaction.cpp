@@ -34,6 +34,7 @@
 //	Transaction is considered requests sent from the CPU to
 //	the memory controller (read, write, etc.)...
 
+#include "ConfigIniReader.h"
 #include "Transaction.h"
 #include "PrintMacros.h"
 
@@ -43,14 +44,16 @@ using std::dec;
 
 namespace DRAMSim {
 
-Transaction::Transaction(TransactionType transType, uint64_t addr, void *dat) :
+Transaction::Transaction(TransactionType transType, uint64_t addr, void *dat, Config &cfg_) :
+	cfg(cfg_),
 	transactionType(transType),
 	address(addr),
 	data(dat)
 {}
 
 Transaction::Transaction(const Transaction &t)
-	: transactionType(t.transactionType)
+	: cfg(t.cfg)
+	  , transactionType(t.transactionType)
 	  , address(t.address)
 	  , data(NULL)
 	  , timeAdded(t.timeAdded)
@@ -78,5 +81,46 @@ ostream &operator<<(ostream &os, const Transaction &t)
 	}
 	return os; 
 }
+
+BusPacketType Transaction::getBusPacketType()
+{
+	switch (transactionType)
+	{
+		case DATA_READ:
+			if (cfg.rowBufferPolicy == ClosePage)
+			{
+				return READ_P;
+			}
+			else if (cfg.rowBufferPolicy == OpenPage)
+			{
+				return READ; 
+			}
+			else
+			{
+				ERROR("Unknown row buffer policy");
+				abort();
+			}
+			break;
+		case DATA_WRITE:
+			if (cfg.rowBufferPolicy == ClosePage)
+			{
+				return WRITE_P;
+			}
+			else if (cfg.rowBufferPolicy == OpenPage)
+			{
+				return WRITE; 
+			}
+			else
+			{
+				ERROR("Unknown row buffer policy");
+				abort();
+			}
+			break;
+		default:
+			ERROR("This transaction type doesn't have a corresponding bus packet type");
+			abort();
+	}
+}
+
 }
 

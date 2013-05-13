@@ -37,24 +37,31 @@
 //
 //Header file for JEDEC memory system wrapper
 //
-
-#include "SimulatorObject.h"
-#include "SystemConfiguration.h"
-#include "MemoryController.h"
-#include "Rank.h"
-#include "Transaction.h"
-#include "Callback.h"
-#include "CSVWriter.h"
+#include <iostream>
 #include <deque>
+#include <vector>
+#include "Callback.h"
+#include "SimulatorObject.h"
+
+using std::ostream; 
+using std::deque; 
+using std::vector; 
 
 namespace DRAMSim
 {
+class Config; 
+class CSVWriter; 
+class Rank; 
+class Transaction; 
+class MemoryController;
+
+typedef void (*powerCallBack_t)(double bgpower, double burstpower, double refreshpower, double actprepower);
+
 class MemorySystem : public SimulatorObject
 {
-	ostream &dramsim_log;
 public:
 	//functions
-	MemorySystem(unsigned id, unsigned megsOfMemory, CSVWriter &csvOut_, ostream &dramsim_log_);
+	MemorySystem(unsigned id, unsigned megsOfMemory, Config &cfg_, CSVWriter &csvOut_, ostream &dramsim_log_);
 	virtual ~MemorySystem();
 	void update();
 	bool addTransaction(Transaction *trans);
@@ -67,6 +74,8 @@ public:
 	    void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
 
 	//fields
+	Config &cfg; 
+	ostream &dramsim_log;
 	MemoryController *memoryController;
 	vector<Rank *> *ranks;
 	deque<Transaction *> pendingTransactions; 

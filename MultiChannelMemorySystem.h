@@ -45,7 +45,7 @@ class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 {
 	public: 
 
-	MultiChannelMemorySystem(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut_, const IniReader::OverrideMap *paramOverrides=NULL);
+	MultiChannelMemorySystem(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut_, const OptionsMap *paramOverrides=NULL);
 		virtual ~MultiChannelMemorySystem();
 		uint64_t getCycle() { return currentClockCycle; }
 			bool addTransaction(Transaction *trans);
@@ -58,7 +58,7 @@ class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 			ostream &getLogFile();
 			void simulationDone();
 			float getUpdateClockPeriod() {
-				return tCK*1E-9;
+				return cfg.tCK*1E-9;
 			}
 			void registerCallbacks( 
 				TransactionCompleteCB *readDone,
@@ -72,6 +72,7 @@ class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 
 	//output file
 	ofstream dramsim_log; 
+	Config cfg; 
 
 	private:
 		void InitOutputFiles(string tracefilename);

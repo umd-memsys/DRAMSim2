@@ -36,12 +36,19 @@
  * provide all necessary functionality to talk to an external simulator
  */
 #include "Callback.h"
+#include <stdio.h> 
 #include <string>
+#include <map>
+#include <list> 
 
 using std::string;
 
 namespace DRAMSim 
 {
+
+	typedef std::map<std::string, std::string> OptionsMap;
+	typedef std::list<std::string> OptionsFailedToSet; 
+
 	class CSVWriter; 
 	class DRAMSimInterface {
 		public: 
@@ -60,7 +67,7 @@ namespace DRAMSim
 				TransactionCompleteCB *writeDone,
 				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower)) = 0 ;
 	};
-	DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut_);
+	DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut_, const OptionsMap *paramOverrides=NULL);
 }
 
 #endif

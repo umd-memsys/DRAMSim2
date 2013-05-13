@@ -28,18 +28,12 @@
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
 
-
-
-
-
-
-
-
 //BusPacket.cpp
 //
 //Class file for bus packet object
 //
 
+#include "ConfigIniReader.h"
 #include "BusPacket.h"
 
 using namespace DRAMSim;
@@ -47,8 +41,10 @@ using namespace std;
 
 BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr, 
 		unsigned col, unsigned rw, unsigned r, unsigned b, void *dat, 
-		ostream &dramsim_log_) :
+		ostream &dramsim_log_,
+		Config &cfg_) :
 	dramsim_log(dramsim_log_),
+	cfg(cfg_),
 	busPacketType(packtype),
 	column(col),
 	row(rw),
@@ -65,7 +61,7 @@ void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
 		return;
 	}
 
-	if (VERIFICATION_OUTPUT)
+	if (cfg.VERIFICATION_OUTPUT)
 	{
 		switch (busPacketType)
 		{

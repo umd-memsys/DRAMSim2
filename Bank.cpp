@@ -33,15 +33,18 @@
 //Class file for bank object
 //
 
+#include "SystemConfiguration.h"
+#include "ConfigIniReader.h"
 #include "Bank.h"
 #include "BusPacket.h"
 
 using namespace std;
-using namespace DRAMSim;
+namespace DRAMSim {
 
-Bank::Bank(ostream &dramsim_log_):
+Bank::Bank(Config &cfg_, ostream &dramsim_log_):
+		cfg(cfg_),
 		currentState(dramsim_log_), 
-		rowEntries(NUM_COLS),
+		rowEntries(cfg.NUM_COLS),
 		dramsim_log(dramsim_log_)
 {}
 
@@ -88,7 +91,7 @@ void Bank::read(BusPacket *busPacket)
 	{
 		// the row hasn't been written before, so it isn't in the list
 		//if(SHOW_SIM_OUTPUT) DEBUG("== Warning - Read from previously unwritten row " << busPacket->row);
-		void *garbage = calloc(BL * (JEDEC_DATA_BUS_BITS/8),1);
+		void *garbage = calloc(cfg.BL * (cfg.JEDEC_DATA_BUS_BITS/8),1);
 		((long *)garbage)[0] = 0xdeadbeef; // tracer value
 		busPacket->data = garbage;
 	}
@@ -107,7 +110,7 @@ void Bank::write(const BusPacket *busPacket)
 	//TODO: move all the error checking to BusPacket so once we have a bus packet,
 	//			we know the fields are all legal
 
-	if (busPacket->column >= NUM_COLS)
+	if (busPacket->column >= cfg.NUM_COLS)
 	{
 		ERROR("== Error - Bus Packet column "<< busPacket->column <<" out of bounds");
 		exit(-1);
@@ -133,7 +136,7 @@ void Bank::write(const BusPacket *busPacket)
 	{
 		// found it, just plaster in the new data
 		foundNode->data = busPacket->data;
-		if (DEBUG_BANKS)
+		if (cfg.DEBUG_BANKS)
 		{
 			PRINTN(" -- Bank "<<busPacket->bank<<" writing to physical address 0x" << hex << busPacket->physicalAddress<<dec<<":");
 			busPacket->printData();
@@ -141,4 +144,4 @@ void Bank::write(const BusPacket *busPacket)
 		}
 	}
 }
-
+} //namespace 
