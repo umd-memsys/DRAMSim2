@@ -50,8 +50,8 @@ class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 		uint64_t getCycle() { return currentClockCycle; }
 			bool addTransaction(Transaction *trans);
 			bool addTransaction(const Transaction &trans);
-			bool addTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64, unsigned linkIdx=100, unsigned coreID=0);
-			bool willAcceptTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64, unsigned linkIdx=100, unsigned coreID=0); 
+			bool addTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64, unsigned channelIdx=100, unsigned coreID=0);
+			bool willAcceptTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64, unsigned channelIdx=100, unsigned coreID=0); 
 			bool willAcceptTransaction(); 
 			void update();
 			void printStats(bool finalStats=false);
