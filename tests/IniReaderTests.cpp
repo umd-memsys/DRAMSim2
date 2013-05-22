@@ -35,8 +35,8 @@ TEST(ConfigOptions, setters_and_getters) {
 TEST(ConfigOptions, set_by_map) {
 	
 	DRAMSim::Config cfg; 
-	DRAMSim::Config::OptionsMap map; 
-	DRAMSim::Config::OptionsFailedToSet failures; 
+	DRAMSim::OptionsMap map; 
+	DRAMSim::OptionsFailedToSet failures; 
 
 
 	float tCK = cfg.tCK; 

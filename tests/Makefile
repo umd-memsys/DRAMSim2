@@ -1,7 +1,7 @@
-DRAMSIM_DIR=$(PWD)/../ 
+DRAMSIM_DIR=$(PWD)/../
 GTEST_PREFIX=${HOME}/software
-CXXFLAGS=-I${DRAMSIM_DIR} -I${GTEST_PREFIX}/include -g -Wall
-LDFLAGS=-L$(DRAMSIM_DIR) -ldramsim -lgtest -pthread -Wl,-rpath,$(DRAMSIM_DIR) -L${GTEST_PREFIX}/lib -Wl,-rpath,${GTEST_PREFIX}/lib 
+CXXFLAGS=-I${DRAMSIM_DIR}/include -I${GTEST_PREFIX}/include -g -Wall
+LDFLAGS=-L$(DRAMSIM_DIR)/lib -ldramsim -lgtest -pthread -Wl,-rpath,$(DRAMSIM_DIR)/lib -L${GTEST_PREFIX}/lib -Wl,-rpath,${GTEST_PREFIX}/lib 
 
 
 
@@ -10,7 +10,7 @@ OBJ = $(addsuffix .o, $(basename $(SRC)))
 
 
 RunTests: $(OBJ) 
-	$(MAKE) -C .. 
+	$(MAKE) -C .. install
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
 ../libdramsim.so:
@@ -26,4 +26,4 @@ refresh:
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 clean:
-	-rm tests *.o
+	-rm *.o RunTests
