@@ -387,6 +387,8 @@ bool MultiChannelMemorySystem::willAcceptTransaction()
 
 void MultiChannelMemorySystem::printStats(bool finalStats) {
 
+	// tCK is in ns, so 1e9 * 1e-6 = 1e3 = ms
+	// TODO: this is confusing -- just divide by 1E6 instead ... 
 	csvOut << "ms" <<currentClockCycle * cfg.tCK * 1E-6; 
 	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
