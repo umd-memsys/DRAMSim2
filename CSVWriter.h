@@ -138,6 +138,8 @@ namespace DRAMSim {
 		vector<string> fieldNames; 
 		bool finalized; 
 		unsigned idx; 
+		// This is a poor man's parity -- tag each known value (like int, float, etc) and then we know that a field name has to follow a real value, and if a string follows a field, it is actually a value. Might be able to just use the parity of idx to do this, but this seems to be a little safer. 
+		bool lastFieldWasValue;
 		public: 
 
 		// Functions
@@ -169,7 +171,7 @@ namespace DRAMSim {
 		}
 
 		// Constructor 
-		CSVWriter(ostream &_output) : output(_output), finalized(false), idx(0)
+		CSVWriter(ostream &_output) : output(_output), finalized(false), idx(0), lastFieldWasValue(true)
 		{}
 
 		bool isFinalized() {
@@ -178,32 +180,35 @@ namespace DRAMSim {
 		// Insertion operators for field names
 		CSVWriter &operator<<(const char *name)
 		{
+			//std::cout <<"Got string '"<<name<<"' finalized? "<<finalized<<" lastFieldValue?"<<lastFieldWasValue<<std::endl;
 			if (!finalized)
 			{
-//				cout <<"Adding "<<name<<endl;
-				fieldNames.push_back(string(name));
+				if (lastFieldWasValue) {
+					fieldNames.push_back(string(name));
+				}
 			}
+			else 
+			{
+				if (!lastFieldWasValue) {
+					output << name << ",";
+					idx++;
+				}
+				
+			}
+			lastFieldWasValue = !lastFieldWasValue;
 			return *this; 
 		}
 
 		CSVWriter &operator<<(const string &name)
 		{
-			if (!finalized)
-			{
-				fieldNames.push_back(string(name));
-			}
-			return *this; 
+			return (*this)<<name.c_str();
 		}
 		
 		CSVWriter &operator<<(const IndexedName &indexedName)
 		{
-			if (!finalized)
-			{
-//				cout <<"Adding "<<indexedName.str<<endl;
-				fieldNames.push_back(indexedName.str);
-			}
-			return *this; 
+			return (*this)<<indexedName.str.c_str();
 		}
+
 		// special case: when we want to actually just print a string to the field instead of the header
 		CSVWriter &operator<<(const CSVWriter::StringWrapper &s)
 		{
@@ -212,6 +217,7 @@ namespace DRAMSim {
 				output << s.s << ",";
 				idx++;
 			}
+			lastFieldWasValue=true;
 			return *this; 
 		}	
 
@@ -231,6 +237,7 @@ namespace DRAMSim {
 				output << value <<",";     \
 				idx++;                     \
 			}                             \
+			lastFieldWasValue=true;       \
 			return *this;                 \
 		}                      
 
