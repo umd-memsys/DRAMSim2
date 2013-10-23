@@ -1,4 +1,4 @@
-AC_INIT([DRAMSim2], [2.3.0], [dramninjas@gmail.com])
+AC_INIT([DRAMSim2], [2.4.0], [dramninjas@gmail.com])
 
 # Checks for programs.
 AC_PROG_CXX
@@ -14,6 +14,7 @@ AC_TYPE_UINT64_T
 # Checks for library functions.
 AC_FUNC_MALLOC
 
+# The old DRAMSim2 used to generate the files to the build directory -- keep that as the default behavior
 AC_PREFIX_DEFAULT($PWD)
 
 AC_CONFIG_FILES([Makefile])
