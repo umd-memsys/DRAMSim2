@@ -34,6 +34,7 @@
 #include "IniReader.h"
 #include "CSVWriter.h"
 #include "Util.h"
+#include <assert.h>
 
 
 
@@ -114,7 +115,9 @@ void MultiChannelMemorySystem::actual_update()
 
 	if (dumpInterval > 0 && currentClockCycle % dumpInterval == 0)
 	{
+		assert(CSVOut);
 		printStats(false); 
+		CSVOut->finalize();
 	}
 	
 	for (size_t i=0; i<cfg.NUM_CHANS; i++)
