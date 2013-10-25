@@ -9,9 +9,9 @@
 
 // Default System.ini parameters 
 
-// These will be reset by the code 
+// see the initialization code in ConfigIniReader::finalize() and in TraceBasedSim for how these are handled 
 PARAM(unsigned, NUM_RANKS, 0)
-PARAM(unsigned, NUM_DEVICES, 0)
+PARAM(unsigned, megsOfMemory, 4096)
 
 PARAM(unsigned,NUM_CHANS,2) // number of *logically independent* channels (i.e. each with a separate memory controller); should be a power of 2
 PARAM(unsigned,JEDEC_DATA_BUS_BITS,64) // Always 64 for DDRx; if you want multiple *ganged* channels, set this to N*64
@@ -44,6 +44,9 @@ PARAM(unsigned,NUM_BANKS,8)
 PARAM(unsigned,NUM_ROWS,16384)
 PARAM(unsigned,NUM_COLS,2048)
 PARAM(unsigned,DEVICE_WIDTH,4)
+
+// For power computation, we need the number of devices per rank 
+PARAM(unsigned, NUM_DEVICES, (JEDEC_DATA_BUS_BITS/DEVICE_WIDTH))
 
 
 //in nanoseconds
