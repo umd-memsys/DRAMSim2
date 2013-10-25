@@ -38,7 +38,6 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 {
 	uint64_t tempA, tempB;
 	unsigned transactionSize = (cfg.JEDEC_DATA_BUS_BITS/8)*cfg.BL; 
-	uint64_t transactionMask =  transactionSize - 1; //ex: (64 bit bus width) x (8 Burst Length) - 1 = 64 bytes - 1 = 63 = 0x3f mask
 	unsigned channelBitWidth = dramsim_log2(cfg.NUM_CHANS);
 	unsigned	rankBitWidth = dramsim_log2(cfg.NUM_RANKS);
 	unsigned	bankBitWidth = dramsim_log2(cfg.NUM_BANKS);
@@ -49,10 +48,13 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 	// Since we're assuming that a request is for BL*BUS_WIDTH, the bottom bits
 	// of this address *should* be all zeros if it's not, issue a warning
 
+#if WARN_ALIGNMENT
 	if ((physicalAddress & transactionMask) != 0)
 	{
-		DEBUG("WARNING: address 0x"<<std::hex<<physicalAddress<<std::dec<<" is not aligned to the request size of "<<transactionSize); 
+		uint64_t transactionMask =  transactionSize - 1; //ex: (64 bit bus width) x (8 Burst Length) - 1 = 64 bytes - 1 = 63 = 0x3f mask DEBUG("WARNING: address 0x"<<std::hex<<physicalAddress<<std::dec<<" is not aligned to the request size of "<<transactionSize); 
 	}
+#endif
+
 
 	// each burst will contain JEDEC_DATA_BUS_BITS/8 bytes of data, so the bottom bits (3 bits for a single channel DDR system) are
 	// 	thrown away before mapping the other bits
