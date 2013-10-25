@@ -168,6 +168,13 @@ void usage()
 }
 #endif
 
+// FIXME: eventually get rid of this shim 
+bool AddTransactionWrapper(DRAMSimInterface *memorySystem, Transaction *trans) {
+	bool isWrite = trans->transactionType == DATA_WRITE;
+	uint64_t addr = trans->address; 
+	return memorySystem->addTransaction(isWrite, addr); 
+}
+
 void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &transType, uint64_t &clockCycle, TraceType type, bool useClockCycle)
 {
 	size_t previousIndex=0;
@@ -567,12 +574,11 @@ int main(int argc, char **argv)
 				if (line.size() > 0)
 				{
 					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType,useClockCycle);
-					trans = new Transaction(transType, addr, data, cfg);
-					alignTransactionAddress(*trans); 
+					trans = new Transaction(transType, addr, data);
 
 					if (i>=clockCycle)
 					{
-						if (!memorySystem->addTransaction(trans))
+						if (!AddTransactionWrapper(memorySystem, trans)) 
 						{
 							pendingTrans = true;
 						}
@@ -605,7 +611,7 @@ int main(int argc, char **argv)
 
 		else if (pendingTrans && i >= clockCycle)
 		{
-			pendingTrans = !memorySystem->addTransaction(trans);
+			pendingTrans = AddTransactionWrapper(memorySystem, trans); 
 			if (!pendingTrans)
 			{
 #ifdef RETURN_TRANSACTIONS

@@ -114,7 +114,7 @@ bool MemorySystem::WillAcceptTransaction()
 bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
 {
 	TransactionType type = isWrite ? DATA_WRITE : DATA_READ;
-	Transaction *trans = new Transaction(type,addr,NULL,cfg);
+	Transaction *trans = new Transaction(type,addr,NULL);
 
 	if (memoryController->WillAcceptTransaction()) 
 	{
