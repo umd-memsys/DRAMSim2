@@ -12,8 +12,8 @@ installDynLibs	:=  $(libtool) --mode=install /usr/bin/install -p -m 755
 installDirs 	:=	/usr/bin/install -d
 installFiles	:=	/usr/bin/install -p -m 644
 
-COMPILE.cc = $(libtool) --mode=compile $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
-LINK.cc    = $(libtool) --mode=link $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
+COMPILE.cc = $(libtool) --mode=compile --tag=CXX $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
+LINK.cc    = $(libtool) --mode=link --tag=CXX $(CXX) $(CXXFLAGS) $(CPPFLAGS) $(LDFLAGS) $(TARGET_ARCH)
 
 vpath %.cpp $(srcDir)
 
