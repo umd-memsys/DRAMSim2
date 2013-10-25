@@ -94,6 +94,17 @@ class ConfigOption {
 		return *this; 
 	}
 
+	ostream &print(ostream &out) {
+		if (setAfterDefault) {
+			out << "[*] ";
+		}
+		else {
+			out << "    ";
+		}
+		out << getName() << "=" << value;
+		return out; 
+	}
+
 };
 
 
@@ -200,6 +211,16 @@ class Config {
 		}
 		return failures; 
 	}
+	ostream &print(ostream &out) {
+		out << " ==== Configuration parameters; [*] indicates a change from default ==== \n";
+
+#define PARAM(type, name,default_value) \
+		name.print(out); \
+		out << " (default="<< #default_value<<")\n";
+#include "params.def"
+#undef PARAM
+		return out; 
+	}
 
 	private:
 	bool set(const std::string &key, const std::string &value) {
@@ -282,7 +303,7 @@ class Config {
 			this->NUM_RANKS = this->megsOfMemory / (this->NUM_CHANS * megsOfStoragePerRank);
 			if (this->NUM_RANKS == 0)
 			{
-				std::cerr<<"WARNING: Cannot create memory system with "<<this->megsOfMemory<<"MB, defaulting to minimum rank size of "<<megsOfStoragePerRank<<"MB (total size="<<this->NUM_CHANS * megsOfStoragePerRank<<"MB\n";
+				std::cerr<<"WARNING: Cannot create memory system with "<<this->megsOfMemory<<"MB, defaulting to minimum rank size of "<<megsOfStoragePerRank<<"MB (total size="<<this->NUM_CHANS * megsOfStoragePerRank<<"MB) \n";
 				this->NUM_RANKS = 1;
 			}
 		}

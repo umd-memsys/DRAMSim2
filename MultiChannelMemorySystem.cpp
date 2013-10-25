@@ -264,6 +264,7 @@ namespace DRAMSim {
 		}
 
 		cfg.finalize();
+		cfg.print(logFile);
 
 		MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(cfg, logFile);
 		// tell the memory system to do its own dumping of stats (no explicit calls to dumpStats() are required)
