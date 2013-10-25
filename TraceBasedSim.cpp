@@ -42,10 +42,12 @@
 #include <map>
 #include <list>
 
+#include "DRAMSim.h"
 #include "SystemConfiguration.h"
 #include "MemorySystem.h"
 #include "MultiChannelMemorySystem.h"
 #include "Transaction.h"
+#include "ConfigIniReader.h"
 #include "IniReader.h"
 #include "CSVWriter.h"
 
@@ -167,6 +169,13 @@ void usage()
 	cout << "\t-v, --visfile \t\t\tVis output filename"<<endl;
 }
 #endif
+
+// FIXME: eventually get rid of this shim 
+bool AddTransactionWrapper(DRAMSimInterface *memorySystem, Transaction *trans) {
+	bool isWrite = trans->transactionType == DATA_WRITE;
+	uint64_t addr = trans->address; 
+	return memorySystem->addTransaction(isWrite, addr); 
+}
 
 void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &transType, uint64_t &clockCycle, TraceType type, bool useClockCycle)
 {
@@ -339,17 +348,6 @@ void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &tra
 
 #ifndef _SIM_
 
-void alignTransactionAddress(Transaction &trans)
-{
-	Config &cfg = trans.cfg; 
-	// zero out the low order bits which correspond to the size of a transaction
-
-	unsigned throwAwayBits = dramsim_log2((cfg.BL*cfg.JEDEC_DATA_BUS_BITS/8));
-
-	trans.address >>= throwAwayBits;
-	trans.address <<= throwAwayBits;
-}
-
 /** 
  * Override options can be specified on the command line as -o key1=value1,key2=value2
  * this method should parse the key-value pairs and put them into a map 
@@ -391,7 +389,6 @@ int main(int argc, char **argv)
 	string systemIniFilename("system.ini");
 	string deviceIniFilename;
 	string pwdString;
-	string visFilename("dramsim.vis");
 	unsigned megsOfMemory=2048;
 	bool useClockCycle=true;
 	
@@ -417,7 +414,7 @@ int main(int argc, char **argv)
 			{0, 0, 0, 0}
 		};
 		int option_index=0; //for getopt
-		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:v:qn", long_options, &option_index);
+		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:qn", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -468,9 +465,6 @@ int main(int argc, char **argv)
 		case 'o':
 			paramOverrides = parseParamOverrides(string(optarg)); 
 			break;
-		case 'v':
-			visFilename = string(optarg);
-			break;
 		case '?':
 			usage();
 			exit(-1);
@@ -513,22 +507,31 @@ int main(int argc, char **argv)
 
 	//ignore the pwd argument if the argument is an absolute path
 	if (pwdString.length() > 0 && traceFileName[0] != '/')
-	{
 		traceFileName = pwdString + "/" +traceFileName;
-	}
+	if (pwdString.length() > 0 && systemIniFilename[0] != '/')
+		systemIniFilename = pwdString + "/" + systemIniFilename;
+	if (pwdString.length() > 0 && deviceIniFilename[0] != '/')
+		deviceIniFilename = pwdString + "/" + deviceIniFilename; 
+
+	vector<std::string> iniFiles;
+	iniFiles.push_back(deviceIniFilename); 
+	iniFiles.push_back(systemIniFilename);
+
+	ostringstream oss; 
+	oss << megsOfMemory; 
+
+	paramOverrides["megsOfMemory"] = oss.str(); 
+	DRAMSimInterface *memorySystem = getMemorySystemInstance(iniFiles, "", &paramOverrides);
+
+
+	// set the frequency ratio to 1:1
+	memorySystem->setCPUClockSpeed(0); 
 
 	DEBUG("== Loading trace file '"<<traceFileName<<"' == ");
 
 	ifstream traceFile;
 	string line;
 
-
-	CSVWriter &CSVOut = CSVWriter::GetCSVWriterInstance(visFilename); 
-	MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(deviceIniFilename, systemIniFilename, pwdString, traceFileName, megsOfMemory, CSVOut, &paramOverrides);
-	// set the frequency ratio to 1:1
-	memorySystem->setCPUClockSpeed(0); 
-	std::ostream &dramsim_logfile = memorySystem->getLogFile(); 
-	Config &cfg = memorySystem->cfg;
 
 
 #ifdef RETURN_TRANSACTIONS
@@ -567,12 +570,11 @@ int main(int argc, char **argv)
 				if (line.size() > 0)
 				{
 					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType,useClockCycle);
-					trans = new Transaction(transType, addr, data, cfg);
-					alignTransactionAddress(*trans); 
+					trans = new Transaction(transType, addr, data);
 
 					if (i>=clockCycle)
 					{
-						if (!memorySystem->addTransaction(trans))
+						if (!AddTransactionWrapper(memorySystem, trans)) 
 						{
 							pendingTrans = true;
 						}
@@ -605,7 +607,7 @@ int main(int argc, char **argv)
 
 		else if (pendingTrans && i >= clockCycle)
 		{
-			pendingTrans = !memorySystem->addTransaction(trans);
+			pendingTrans = !AddTransactionWrapper(memorySystem, trans); 
 			if (!pendingTrans)
 			{
 #ifdef RETURN_TRANSACTIONS
@@ -615,15 +617,14 @@ int main(int argc, char **argv)
 			}
 		}
 		memorySystem->update();
-	}
+	} // end main loop 
 
 	traceFile.close();
-	memorySystem->printStats(true);
+	memorySystem->simulationDone();
 	// make valgrind happy
 	if (trans)
 	{
 		delete trans;
 	}
-	delete(memorySystem);
 }
 #endif

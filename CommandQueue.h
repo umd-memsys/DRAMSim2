@@ -56,7 +56,7 @@ class CommandQueue : public SimulatorObject
 {
 	CommandQueue();
 	ostream &dramsim_log;
-	Config &cfg;
+	const Config &cfg;
 public:
 	//typedefs
 	typedef vector<BusPacket *> BusPacket1D;
@@ -64,7 +64,7 @@ public:
 	typedef vector<BusPacket2D> BusPacket3D;
 
 	//functions
-	CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log, Config &cfg_);
+	CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log, const Config &cfg_);
 	virtual ~CommandQueue(); 
 
 	void enqueue(BusPacket *newBusPacket);

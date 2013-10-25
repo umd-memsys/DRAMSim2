@@ -27,238 +27,62 @@
 *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
-#include <errno.h> 
-#include <sstream> //stringstream
-#include <stdlib.h> // getenv()
-// for directory operations 
-#include <sys/stat.h>
-#include <sys/types.h>
-
 #include "MultiChannelMemorySystem.h"
 #include "AddressMapping.h"
-#include "ConfigIniReader.h"
+#include "MemorySystem.h"
+#include "Transaction.h"
+#include "IniReader.h"
 #include "CSVWriter.h"
+#include "Util.h"
+#include <assert.h>
 
 
 
-namespace DRAMSim {
+using namespace DRAMSim;
 
 
-
-MultiChannelMemorySystem::MultiChannelMemorySystem(
-		const string &deviceIniFilename_, 
-		const string &systemIniFilename_, 
-		const string &pwd_, 
-		const string &traceFilename_, 
-		unsigned megsOfMemory_, 
-		CSVWriter &csvOut_, 
-		const OptionsMap *paramOverrides)
-
-	:	megsOfMemory(megsOfMemory_), 
-	deviceIniFilename(deviceIniFilename_),
-	systemIniFilename(systemIniFilename_), 
-	traceFilename(traceFilename_),
-	pwd(pwd_),
-	clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update)),
-	csvOut(csvOut_)
+/**
+ * Constructor. 
+ * @param cfg a Config object that should be allocated on the heap. DRAMSim2 will take ownership of this object and be responsible for freeing it. For safety, once passed to this constructor, a config struct will never be changed.
+ */ 
+MultiChannelMemorySystem::MultiChannelMemorySystem(const Config &cfg_, ostream &logFile_)
+	: cfg(cfg_) 
+	, clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update))
+	, CSVOut(NULL)
+	, dumpInterval(0)
+	, dramsim_log(logFile_) 
 {
-	if (!isPowerOfTwo(megsOfMemory))
+
+	// A few sanity checks before we begin 
+	if (!isPowerOfTwo(cfg.megsOfMemory))
 	{
 		ERROR("Please specify a power of 2 memory size"); 
 		abort(); 
 	}
-	printf("PWD is '%s'\n",pwd.c_str());
-	if (pwd.length() > 0)
-	{
-		//ignore the pwd argument if the argument is an absolute path
-		if (deviceIniFilename[0] != '/')
-		{
-			deviceIniFilename = pwd + "/" + deviceIniFilename;
-		}
-
-		if (systemIniFilename[0] != '/')
-		{
-			systemIniFilename = pwd + "/" + systemIniFilename;
-		}
-	}
-
-
-	DEBUG("== Loading device model file '"<<deviceIniFilename<<"' == ");
-	OptionsMap deviceParameters = IniReader::ReadIniFile(deviceIniFilename);
-	DEBUG("== Loading system model file '"<<systemIniFilename<<"' == ");
-	OptionsMap systemParameters = IniReader::ReadIniFile(systemIniFilename);
-
-	// If we have any overrides, set them now before creating all of the memory objects
-	cfg.set(deviceParameters); 
-	cfg.set(systemParameters); 
-	if (paramOverrides) {
-		OptionsFailedToSet failedOpts = cfg.set(*paramOverrides);
-		DEBUG("Setting overrides: "<<failedOpts.size()<<" Failed out of "<<paramOverrides->size()<< "\n"); 
-	}
-
 
 	if (cfg.NUM_CHANS == 0) 
 	{
 		ERROR("Zero channels"); 
 		abort(); 
 	}
+
 	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
-		MemorySystem *channel = new MemorySystem(i, megsOfMemory/cfg.NUM_CHANS, cfg, csvOut, dramsim_log);
+		MemorySystem *channel = new MemorySystem(i, cfg.megsOfMemory/cfg.NUM_CHANS, cfg, dramsim_log);
 		channels.push_back(channel);
 	}
 }
-/* Initialize the ClockDomainCrosser to use the CPU speed 
-	If cpuClkFreqHz == 0, then assume a 1:1 ratio (like for TraceBasedSim)
-	*/
+
+/**
+ * Initialize the ClockDomainCrosser to use the CPU speed If cpuClkFreqHz == 0,
+ * then assume a 1:1 ratio (like for TraceBasedSim) 
+ **/
 void MultiChannelMemorySystem::setCPUClockSpeed(uint64_t cpuClkFreqHz)
 {
-
-	uint64_t dramsimClkFreqHz = (uint64_t)(1.0/(cfg.tCK*1e-9));
+	uint64_t dramsimClkFreqHz = static_cast<uint64_t>(1.0/(cfg.tCK*1e-9));
 	clockDomainCrosser.clock1 = dramsimClkFreqHz; 
 	clockDomainCrosser.clock2 = (cpuClkFreqHz == 0) ? dramsimClkFreqHz : cpuClkFreqHz; 
 }
-
-bool fileExists(string &path)
-{
-	struct stat stat_buf;
-	if (stat(path.c_str(), &stat_buf) != 0) 
-	{
-		if (errno == ENOENT)
-		{
-			return false; 
-		}
-		ERROR("Warning: some other kind of error happened with stat(), should probably check that"); 
-	}
-	return true;
-}
-
-string FilenameWithNumberSuffix(const string &filename, const string &extension, unsigned maxNumber=100)
-{
-	string currentFilename = filename+extension;
-	if (!fileExists(currentFilename))
-	{
-		return currentFilename;
-	}
-
-	// otherwise, add the suffixes and test them out until we find one that works
-	stringstream tmpNum; 
-	tmpNum<<"."<<1; 
-	for (unsigned i=1; i<maxNumber; i++)
-	{
-		currentFilename = filename+tmpNum.str()+extension;
-		if (fileExists(currentFilename))
-		{
-			currentFilename = filename; 
-			tmpNum.seekp(0);
-			tmpNum << "." << i;
-		}
-		else 
-		{
-			return currentFilename;
-		}
-	}
-	// if we can't find one, just give up and return whatever is the current filename
-	ERROR("Warning: Couldn't find a suitable suffix for "<<filename); 
-	return currentFilename; 
-}
-/**
- * This function creates up to 3 output files: 
- * 	- The .log file if LOG_OUTPUT is set
- * 	- the .tmp file if verification output is enabled
- * The results directory is setup to be in PWD/TRACEFILENAME.[SIM_DESC]/DRAM_PARTNAME/PARAMS.vis
- * The environment variable SIM_DESC is also appended to output files/directories
- *
- * TODO: verification info needs to be generated per channel so it has to be
- * moved back to MemorySystem
- **/
-void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
-{
-	string sim_description_str;
-	string deviceName;
-	
-	char *sim_description = getenv("SIM_DESC");
-	if (sim_description)
-	{
-			sim_description_str = string(sim_description);
-	}
-
-
-	// create a properly named verification output file if need be and open it
-	// as the stream 'cmd_verify_out'
-	if (cfg.VERIFICATION_OUTPUT)
-	{
-		string basefilename = deviceIniFilename.substr(deviceIniFilename.find_last_of("/")+1);
-		string verify_filename =  "sim_out_"+basefilename;
-		if (sim_description != NULL)
-		{
-			verify_filename += "."+sim_description_str;
-		}
-		verify_filename += ".tmp";
-		cmd_verify_out.open(verify_filename.c_str());
-		if (!cmd_verify_out)
-		{
-			ERROR("Cannot open "<< verify_filename);
-			abort(); 
-		}
-	}
-
-#ifdef LOG_OUTPUT
-	string dramsimLogFilename("dramsim");
-	if (sim_description != NULL)
-	{
-		dramsimLogFilename += "."+sim_description_str; 
-	}
-	
-	dramsimLogFilename = FilenameWithNumberSuffix(dramsimLogFilename, ".log"); 
-
-	dramsim_log.open(dramsimLogFilename.c_str(), ios_base::out | ios_base::trunc );
-
-	if (!dramsim_log) 
-	{
-	ERROR("Cannot open "<< dramsimLogFilename);
-	//	exit(-1); 
-	}
-#endif
-
-}
-
-
-void MultiChannelMemorySystem::mkdirIfNotExist(string path)
-{
-	struct stat stat_buf;
-	// check if the directory exists
-	if (stat(path.c_str(), &stat_buf) != 0) // nonzero return value on error, check errno
-	{
-		if (errno == ENOENT) 
-		{
-//			DEBUG("\t directory doesn't exist, trying to create ...");
-
-			// set permissions dwxr-xr-x on the results directories
-			mode_t mode = (S_IXOTH | S_IXGRP | S_IXUSR | S_IROTH | S_IRGRP | S_IRUSR | S_IWUSR) ;
-			if (mkdir(path.c_str(), mode) != 0)
-			{
-				perror("Error Has occurred while trying to make directory: ");
-				cerr << path << endl;
-				abort();
-			}
-		}
-		else
-		{
-			perror("Something else when wrong: "); 
-			abort();
-		}
-	}
-	else // directory already exists
-	{
-		if (!S_ISDIR(stat_buf.st_mode))
-		{
-			ERROR(path << "is not a directory");
-			abort();
-		}
-	}
-}
-
 
 MultiChannelMemorySystem::~MultiChannelMemorySystem()
 {
@@ -268,11 +92,8 @@ MultiChannelMemorySystem::~MultiChannelMemorySystem()
 	}
 	channels.clear(); 
 
-// flush our streams and close them up
-#ifdef LOG_OUTPUT
 	dramsim_log.flush();
-	dramsim_log.close();
-#endif
+
 	/*
 	if (VIS_FILE_OUTPUT) 
 	{	
@@ -289,20 +110,20 @@ void MultiChannelMemorySystem::actual_update()
 {
 	if (currentClockCycle == 0)
 	{
-		InitOutputFiles(traceFilename);
 		DEBUG("DRAMSim2 Clock Frequency ="<<clockDomainCrosser.clock1<<"Hz, CPU Clock Frequency="<<clockDomainCrosser.clock2<<"Hz"); 
 	}
 
-	if (currentClockCycle % cfg.EPOCH_LENGTH == 0)
+	if (dumpInterval > 0 && currentClockCycle % dumpInterval == 0)
 	{
-//		printStats(false); 
+		assert(CSVOut);
+		printStats(false); 
+		CSVOut->finalize();
 	}
 	
 	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
 		channels[i]->update(); 
 	}
-
 
 	currentClockCycle++; 
 }
@@ -332,12 +153,8 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 	//DEBUG("Channel idx = "<<channelNumber<<" totalbits="<<totalBits<<" channelbits="<<channelBits); 
 
 	return channelNumber;
+}
 
-}
-ostream &MultiChannelMemorySystem::getLogFile()
-{
-	return dramsim_log; 
-}
 bool MultiChannelMemorySystem::addTransaction(const Transaction &trans)
 {
 	// copy the transaction and send the pointer to the new transaction 
@@ -387,17 +204,22 @@ bool MultiChannelMemorySystem::willAcceptTransaction()
 
 void MultiChannelMemorySystem::printStats(bool finalStats) {
 
+	if (!CSVOut) {
+		DEBUG("WARNING: printStats called even though no CSVWriter was given");
+		return; 
+	}
+
 	// tCK is in ns, so 1e9 * 1e-6 = 1e3 = ms
 	// TODO: this is confusing -- just divide by 1E6 instead ... 
-	csvOut << "ms" <<currentClockCycle * cfg.tCK * 1E-6; 
+	(*CSVOut) << "ms" <<currentClockCycle * cfg.tCK * 1E-6; 
 	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
 		PRINT("==== Channel ["<<i<<"] ====");
-		channels[i]->printStats(finalStats); 
+		channels[i]->printStats(CSVOut, finalStats); 
 		PRINT("//// Channel ["<<i<<"] ////");
 	}
-//	csvOut.finalize();
 }
+
 void MultiChannelMemorySystem::registerCallbacks( 
 		TransactionCompleteCB *readDone,
 		TransactionCompleteCB *writeDone,
@@ -412,8 +234,46 @@ void MultiChannelMemorySystem::simulationDone() {
 	printStats(true); 
 }
 
-DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut, const OptionsMap *paramOverrides) 
-{
-	return new MultiChannelMemorySystem(dev, sys, pwd, trc, megsOfMemory, csvOut, paramOverrides);
+namespace DRAMSim {
+	/**
+	 * Get a default DRAMSimInterface instance. The instance parameters will be set from the list of iniFiles and from the options map. The output file names will be DRAMSim.[simDesc].{csv,log}. 
+	 * @param iniFiles A list of ini file names to load. Note, the way the iniReader works, files later in the list will override files earlier in the list 
+	 * @param simDesc A description that will be appended to output files (.log, .csv, etc) 
+	 * @param paramOverride An list of any options to manually override (will be applied after loading ini files)
+	 */
+	DRAMSimInterface *getMemorySystemInstance(const vector<std::string> &iniFiles, const string simDesc, const OptionsMap *paramOverrides) 
+	{
+		string baseName = ""; 
+		if (simDesc.length() > 0 ) {
+			baseName="."+simDesc; 
+		}
+
+		// setup the filenames for output files 
+		// TODO: add number suffixes to avoid overwriting old ones? 
+		const string visFilenamePrefix("DRAMSim"); 
+		const string visFilenameSuffix(".csv");
+		const string logFilenamePrefix("DRAMSim");
+		const string logFilenameSuffix(".log");
+		string visFilename = visFilenamePrefix + baseName + visFilenameSuffix; 
+		string logFilename = logFilenamePrefix + baseName + logFilenameSuffix; 
+		
+		CSVWriter &CSVOut = CSVWriter::GetCSVWriterInstance(visFilename); 
+		std::ostream &logFile = *(new std::ofstream(logFilename.c_str()));
+		
+		Config &cfg = (*new Config()); 
+		for (size_t i=0; i < iniFiles.size(); i++) {
+			cfg.set(IniReader::ReadIniFile(iniFiles[i]));
+		}
+		if (paramOverrides) {
+			cfg.set(*paramOverrides);
+		}
+
+		cfg.finalize();
+		cfg.print(logFile);
+
+		MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(cfg, logFile);
+		// tell the memory system to do its own dumping of stats (no explicit calls to dumpStats() are required)
+		memorySystem->enableStatsDump(&CSVOut, cfg.EPOCH_LENGTH);
+		return memorySystem;
+	}
 }
-} // namespace 

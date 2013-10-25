@@ -1,10 +1,10 @@
 DRAMSim2: A cycle accurate DRAM Simulator
 ================================================================================
-Elliott Cooper-Balis
-Paul Rosenfeld
-Bruce Jacob
-University of Maryland
-dramninjas [at] gmail [dot] com
+* Elliott Cooper-Balis
+* Paul Rosenfeld
+* Bruce Jacob
+* University of Maryland
+* dramninjas [at] gmail [dot] com
 
 
 About DRAMSim2

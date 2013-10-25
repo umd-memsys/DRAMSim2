@@ -50,7 +50,7 @@ class Rank : public SimulatorObject
 {
 private:
 	MemoryController &memoryController;
-	Config &cfg; 
+	const Config &cfg; 
 	int id;
 	ostream &dramsim_log; 
 	unsigned incomingWriteBank;

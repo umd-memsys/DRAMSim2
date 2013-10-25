@@ -44,16 +44,14 @@ using std::dec;
 
 namespace DRAMSim {
 
-Transaction::Transaction(TransactionType transType, uint64_t addr, void *dat, Config &cfg_) :
-	cfg(cfg_),
+Transaction::Transaction(TransactionType transType, uint64_t addr, void *dat) :
 	transactionType(transType),
 	address(addr),
 	data(dat)
 {}
 
 Transaction::Transaction(const Transaction &t)
-	: cfg(t.cfg)
-	  , transactionType(t.transactionType)
+	: transactionType(t.transactionType)
 	  , address(t.address)
 	  , data(NULL)
 	  , timeAdded(t.timeAdded)
@@ -82,7 +80,7 @@ ostream &operator<<(ostream &os, const Transaction &t)
 	return os; 
 }
 
-BusPacketType Transaction::getBusPacketType()
+BusPacketType Transaction::getBusPacketType(const Config &cfg) const
 {
 	switch (transactionType)
 	{

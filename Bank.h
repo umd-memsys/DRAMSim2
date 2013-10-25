@@ -62,12 +62,12 @@ class Bank
 
 public:
 	//functions
-	Bank(Config &cfg_, ostream &dramsim_log_);
+	Bank(const Config &cfg_, ostream &dramsim_log_);
 	void read(BusPacket *busPacket);
 	void write(const BusPacket *busPacket);
 
 	//fields
-	Config &cfg;
+	const Config &cfg;
 	BankState currentState;
 
 private:

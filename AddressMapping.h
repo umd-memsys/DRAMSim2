@@ -32,7 +32,7 @@
 namespace DRAMSim
 {
 	class Config; 
-	void addressMapping(uint64_t physicalAddress, unsigned &channel, unsigned &rank, unsigned &bank, unsigned &row, unsigned &col, Config &cfg);
+	void addressMapping(uint64_t physicalAddress, unsigned &channel, unsigned &rank, unsigned &bank, unsigned &row, unsigned &col, const Config &cfg);
 }
 
 #endif

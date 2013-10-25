@@ -53,84 +53,20 @@ namespace DRAMSim {
 
 powerCallBack_t MemorySystem::ReportPower = NULL;
 
-MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, Config &cfg_, CSVWriter &csvOut_, ostream &dramsim_log_) :
+MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, const Config &cfg_, ostream &dramsim_log_) :
 		cfg(cfg_),
 		dramsim_log(dramsim_log_),
 		ReturnReadData(NULL),
 		WriteDataDone(NULL),
-		systemID(id),
-		csvOut(csvOut_)
+		systemID(id)
 {
 	DEBUG("===== MemorySystem "<<systemID<<" =====");
+	DEBUG("CH. " <<systemID<<" TOTAL_STORAGE : "<< cfg.megsOfMemory << "MB | "<<cfg.NUM_RANKS<<" Ranks | "<< cfg.NUM_DEVICES <<" Devices per rank");
 
+	// FIXME: can also just make this straight inside the class instead of as a pointer
+	memoryController = new MemoryController(this, dramsim_log);
 
-	//calculate the total storage based on the devices the user selected and the number of
-
-	//calculate number of devices
-	/************************
-	  This code has always been problematic even though it's pretty simple. I'll try to explain it 
-	  for my own sanity. 
-
-	  There are two main variables here that we could let the user choose:
-	  NUM_RANKS or TOTAL_STORAGE.  Since the density and width of the part is
-	  fixed by the device ini file, the only variable that is really
-	  controllable is the number of ranks. Users care more about choosing the
-	  total amount of storage, but with a fixed device they might choose a total
-	  storage that isn't possible. In that sense it's not as good to allow them
-	  to choose TOTAL_STORAGE (because any NUM_RANKS value >1 will be valid).
-
-	  However, users don't care (or know) about ranks, they care about total
-	  storage, so maybe it's better to let them choose and just throw an error
-	  if they choose something invalid. 
-
-	  A bit of background: 
-
-	  Each column contains DEVICE_WIDTH bits. A row contains NUM_COLS columns.
-	  Each bank contains NUM_ROWS rows. Therefore, the total storage per DRAM device is: 
-	  		PER_DEVICE_STORAGE = NUM_ROWS*NUM_COLS*DEVICE_WIDTH*NUM_BANKS (in bits)
-
-	 A rank *must* have a 64 bit output bus (JEDEC standard), so each rank must have:
-	  		NUM_DEVICES_PER_RANK = 64/DEVICE_WIDTH  
-			(note: if you have multiple channels ganged together, the bus width is 
-			effectively NUM_CHANS * 64/DEVICE_WIDTH)
-	 
-	If we multiply these two numbers to get the storage per rank (in bits), we get:
-			PER_RANK_STORAGE = PER_DEVICE_STORAGE*NUM_DEVICES_PER_RANK = NUM_ROWS*NUM_COLS*NUM_BANKS*64 
-
-	Finally, to get TOTAL_STORAGE, we need to multiply by NUM_RANKS
-			TOTAL_STORAGE = PER_RANK_STORAGE*NUM_RANKS (total storage in bits)
-
-	So one could compute this in reverse -- compute NUM_DEVICES,
-	PER_DEVICE_STORAGE, and PER_RANK_STORAGE first since all these parameters
-	are set by the device ini. Then, TOTAL_STORAGE/PER_RANK_STORAGE = NUM_RANKS 
-
-	The only way this could run into problems is if TOTAL_STORAGE < PER_RANK_STORAGE,
-	which could happen for very dense parts.
-	*********************/
-
-	// number of bytes per rank
-	unsigned long megsOfStoragePerRank = ((((long long)cfg.NUM_ROWS * (cfg.NUM_COLS * cfg.DEVICE_WIDTH) * cfg.NUM_BANKS) * ((long long)cfg.JEDEC_DATA_BUS_BITS / cfg.DEVICE_WIDTH)) / 8UL) >> 20UL;
-
-	// If this is set, effectively override the number of ranks
-	if (megsOfMemory != 0)
-	{
-		cfg.NUM_RANKS = megsOfMemory / megsOfStoragePerRank;
-		if (cfg.NUM_RANKS == 0)
-		{
-			PRINT("WARNING: Cannot create memory system with "<<megsOfMemory<<"MB, defaulting to minimum size of "<<megsOfStoragePerRank<<"MB");
-			cfg.NUM_RANKS=1;
-		}
-	}
-
-	cfg.NUM_DEVICES = cfg.JEDEC_DATA_BUS_BITS/cfg.DEVICE_WIDTH;
-	unsigned totalStorage = (cfg.NUM_RANKS * megsOfStoragePerRank); 
-
-	DEBUG("CH. " <<systemID<<" TOTAL_STORAGE : "<< totalStorage << "MB | "<<cfg.NUM_RANKS<<" Ranks | "<< cfg.NUM_DEVICES <<" Devices per rank");
-
-
-	memoryController = new MemoryController(this, csvOut, dramsim_log);
-
-	// TODO: change to other vector constructor?
+	// FIXME: no reason to have ranks be a vector<...> *, just put it straight in  
 	ranks = new vector<Rank *>();
 
 	for (size_t i=0; i<cfg.NUM_RANKS; i++)
@@ -177,7 +113,7 @@ bool MemorySystem::WillAcceptTransaction()
 bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
 {
 	TransactionType type = isWrite ? DATA_WRITE : DATA_READ;
-	Transaction *trans = new Transaction(type,addr,NULL,cfg);
+	Transaction *trans = new Transaction(type,addr,NULL);
 
 	if (memoryController->WillAcceptTransaction()) 
 	{
@@ -196,9 +132,9 @@ bool MemorySystem::addTransaction(Transaction *trans)
 }
 
 //prints statistics
-void MemorySystem::printStats(bool finalStats)
+void MemorySystem::printStats(CSVWriter *CSVOut, bool finalStats)
 {
-	memoryController->printStats(finalStats);
+	memoryController->printStats(CSVOut, finalStats);
 }
 
 

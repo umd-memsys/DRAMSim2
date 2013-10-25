@@ -45,7 +45,7 @@
 
 using namespace DRAMSim;
 
-MemoryController::MemoryController(MemorySystem *parent, CSVWriter &csvOut_, ostream &dramsim_log_) :
+MemoryController::MemoryController(MemorySystem *parent, ostream &dramsim_log_) :
 		parentMemorySystem(parent),
 		cfg(parent->cfg),
 		lastDumpCycle(0),
@@ -53,7 +53,6 @@ MemoryController::MemoryController(MemorySystem *parent, CSVWriter &csvOut_, ost
 		bankStates(cfg.NUM_RANKS, vector<BankState>(cfg.NUM_BANKS, dramsim_log)),
 		commandQueue(bankStates, dramsim_log_, cfg),
 		poppedBusPacket(NULL),
-		csvOut(csvOut_),
 		totalTransactions(0),
 		refreshRank(0)
 {
@@ -111,7 +110,7 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 	}
 
 	//add to return read data queue
-	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data, cfg));
+	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data));
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
 
 	// this delete statement saves a mindboggling amount of memory
@@ -272,7 +271,7 @@ void MemoryController::update()
 
 			writeDataToSend.push_back(new BusPacket(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,
 			                                    poppedBusPacket->row, poppedBusPacket->rank, poppedBusPacket->bank,
-			                                    poppedBusPacket->data, dramsim_log, cfg));
+			                                    poppedBusPacket->data, dramsim_log));
 			writeDataCountdown.push_back(cfg.WL);
 		}
 
@@ -516,13 +515,13 @@ void MemoryController::update()
 			//create activate command to the row we just translated
 			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
-					newTransactionBank, 0, dramsim_log,cfg);
+					newTransactionBank, 0, dramsim_log);
 
 			//create read or write command and enqueue it
-			BusPacketType bpType = transaction->getBusPacketType();
+			BusPacketType bpType = transaction->getBusPacketType(cfg);
 			BusPacket *command = new BusPacket(bpType, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
-					newTransactionBank, transaction->data, dramsim_log,cfg);
+					newTransactionBank, transaction->data, dramsim_log);
 
 
 
@@ -785,7 +784,7 @@ void MemoryController::resetStats()
 	}
 }
 //prints statistics at the end of an epoch or  simulation
-void MemoryController::printStats(bool finalStats)
+void MemoryController::printStats(CSVWriter *CSVOut, bool finalStats)
 {
 	unsigned myChannel = parentMemorySystem->systemID;
 
@@ -835,7 +834,6 @@ void MemoryController::printStats(bool finalStats)
 	double totalAggregateBandwidth = 0.0;	
 	for (size_t r=0;r<cfg.NUM_RANKS;r++)
 	{
-
 		PRINT( "      -Rank   "<<r<<" : ");
 		PRINTN( "        -Reads  : " << totalReadsPerRank[r]);
 		PRINT( " ("<<totalReadsPerRank[r] * bytesPerTransaction<<" bytes)");
@@ -864,30 +862,38 @@ void MemoryController::printStats(bool finalStats)
 		PRINT( "     -Act/Pre    (watts)     : " << actprePower[r] );
 		PRINT( "     -Burst      (watts)     : " << burstPower[r]);
 		PRINT( "     -Refresh    (watts)     : " << refreshPower[r] );
+		// FIXME: oh man, the manipulations with csvOut are really terrible
 		if (cfg.VIS_FILE_OUTPUT)
 		{
-		//	cout << "c="<<myChannel<< " r="<<r<<"writing to csv out on cycle "<< currentClockCycle<<endl;
+			//	cout << "c="<<myChannel<< " r="<<r<<"writing to csv out on cycle "<< currentClockCycle<<endl;
 			// write the vis file output
-			csvOut << CSVWriter::IndexedName("Background_Power",myChannel,r) <<backgroundPower[r];
-			csvOut << CSVWriter::IndexedName("ACT_PRE_Power",myChannel,r) << actprePower[r];
-			csvOut << CSVWriter::IndexedName("Burst_Power",myChannel,r) << burstPower[r];
-			csvOut << CSVWriter::IndexedName("Refresh_Power",myChannel,r) << refreshPower[r];
-			double totalRankBandwidth=0.0;
-			for (size_t b=0; b<cfg.NUM_BANKS; b++)
-			{
-				csvOut << CSVWriter::IndexedName("Bandwidth",myChannel,r,b) << bandwidth[SEQUENTIAL(r,b)];
-				totalRankBandwidth += bandwidth[SEQUENTIAL(r,b)];
-				totalAggregateBandwidth += bandwidth[SEQUENTIAL(r,b)];
-				csvOut << CSVWriter::IndexedName("Average_Latency",myChannel,r,b) << averageLatency[SEQUENTIAL(r,b)];
+			if (CSVOut) {
+				CSVWriter &csvOut = *CSVOut; 
+				csvOut << CSVWriter::IndexedName("Background_Power",myChannel,r) <<backgroundPower[r];
+				csvOut << CSVWriter::IndexedName("ACT_PRE_Power",myChannel,r) << actprePower[r];
+				csvOut << CSVWriter::IndexedName("Burst_Power",myChannel,r) << burstPower[r];
+				csvOut << CSVWriter::IndexedName("Refresh_Power",myChannel,r) << refreshPower[r];
+				double totalRankBandwidth=0.0;
+				for (size_t b=0; b<cfg.NUM_BANKS; b++)
+				{
+					csvOut << CSVWriter::IndexedName("Bandwidth",myChannel,r,b) << bandwidth[SEQUENTIAL(r,b)];
+					totalRankBandwidth += bandwidth[SEQUENTIAL(r,b)];
+					totalAggregateBandwidth += bandwidth[SEQUENTIAL(r,b)];
+					csvOut << CSVWriter::IndexedName("Average_Latency",myChannel,r,b) << averageLatency[SEQUENTIAL(r,b)];
+				}
+				csvOut << CSVWriter::IndexedName("Rank_Aggregate_Bandwidth",myChannel,r) << totalRankBandwidth; 
+				csvOut << CSVWriter::IndexedName("Rank_Average_Bandwidth",myChannel,r) << totalRankBandwidth/cfg.NUM_RANKS; 
 			}
-			csvOut << CSVWriter::IndexedName("Rank_Aggregate_Bandwidth",myChannel,r) << totalRankBandwidth; 
-			csvOut << CSVWriter::IndexedName("Rank_Average_Bandwidth",myChannel,r) << totalRankBandwidth/cfg.NUM_RANKS; 
 		}
 	}
 	if (cfg.VIS_FILE_OUTPUT)
 	{
-		csvOut << CSVWriter::IndexedName("Aggregate_Bandwidth",myChannel) << totalAggregateBandwidth;
-		csvOut << CSVWriter::IndexedName("Average_Bandwidth",myChannel) << totalAggregateBandwidth / (cfg.NUM_RANKS*cfg.NUM_BANKS);
+		if (CSVOut) {
+			CSVWriter &csvOut = *CSVOut; 
+
+			csvOut << CSVWriter::IndexedName("Aggregate_Bandwidth",myChannel) << totalAggregateBandwidth;
+			csvOut << CSVWriter::IndexedName("Average_Bandwidth",myChannel) << totalAggregateBandwidth / (cfg.NUM_RANKS*cfg.NUM_BANKS);
+		}
 	}
 
 	// only print the latency histogram at the end of the simulation since it clogs the output too much to print every epoch

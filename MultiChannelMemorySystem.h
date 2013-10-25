@@ -28,24 +28,28 @@
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
 
+#include <vector>
 #include "SimulatorObject.h"
 #include "DRAMSim.h"
-#include "Transaction.h"
 #include "SystemConfiguration.h"
-#include "MemorySystem.h"
-#include "IniReader.h"
+#include "ConfigIniReader.h"
 #include "ClockDomain.h"
+#include "Util.h"
 
 
+using std::vector;
 namespace DRAMSim {
 
+class MemorySystem;
+class Transaction;
 class CSVWriter; 
 
 class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 {
 	public: 
 
-	MultiChannelMemorySystem(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut_, const OptionsMap *paramOverrides=NULL);
+	MultiChannelMemorySystem(const Config &cfg_, ostream &logFile_=*(new onullstream())); 
+
 		virtual ~MultiChannelMemorySystem();
 		uint64_t getCycle() { return currentClockCycle; }
 			bool addTransaction(Transaction *trans);
@@ -55,10 +59,10 @@ class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 			bool willAcceptTransaction(); 
 			void update();
 			void printStats(bool finalStats=false);
-			ostream &getLogFile();
+			ostream *getLogFile();
 			void simulationDone();
 			float getUpdateClockPeriod() {
-				return cfg.tCK*1E-9;
+				return cfg.tCK;//*1E-9f;
 			}
 			void registerCallbacks( 
 				TransactionCompleteCB *readDone,
@@ -71,24 +75,26 @@ class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 	}
 
 	//output file
-	ofstream dramsim_log; 
-	Config cfg; 
+	
+
 
 	private:
-		void InitOutputFiles(string tracefilename);
+		const Config &cfg; 
+
 		unsigned findChannelNumber(uint64_t addr);
 		void actual_update(); 
 		vector<MemorySystem*> channels; 
-		unsigned megsOfMemory; 
-		string deviceIniFilename;
-		string systemIniFilename;
-		string traceFilename;
-		string pwd;
 		ClockDomain::ClockDomainCrosser clockDomainCrosser; 
-		static void mkdirIfNotExist(string path);
-		static bool fileExists(string path); 
-		CSVWriter &csvOut; 
+		CSVWriter *CSVOut; 
+		unsigned dumpInterval;
+		std::ostream &dramsim_log; 
+	public: 
 
+	void enableStatsDump(CSVWriter *CSVOut_, unsigned dumpInterval_=0) {
+		CSVOut = CSVOut_;
+		dumpInterval=dumpInterval_;
+	}
 
-	};
+};
+
 }
