@@ -231,7 +231,7 @@ void MultiChannelMemorySystem::simulationDone() {
 
 namespace DRAMSim {
 	/**
-	 * Get a default DRAMSimInterface instance. The instance parameters will be set from the list of iniFiles and from the options map. The output file names will have simDesc appended to them. 
+	 * Get a default DRAMSimInterface instance. The instance parameters will be set from the list of iniFiles and from the options map. The output file names will be DRAMSim.[simDesc].{csv,log}. 
 	 * @param iniFiles A list of ini file names to load. Note, the way the iniReader works, files later in the list will override files earlier in the list 
 	 * @param simDesc A description that will be appended to output files (.log, .csv, etc) 
 	 * @param paramOverride An list of any options to manually override (will be applied after loading ini files)
@@ -245,10 +245,10 @@ namespace DRAMSim {
 
 		// setup the filenames for output files 
 		// TODO: add number suffixes to avoid overwriting old ones? 
-		string visFilenamePrefix("DRAMSim"); 
-		string visFilenameSuffix(".vis");
-		string logFilenamePrefix("DRAMSim");
-		string logFilenameSuffix(".log");
+		const string visFilenamePrefix("DRAMSim"); 
+		const string visFilenameSuffix(".csv");
+		const string logFilenamePrefix("DRAMSim");
+		const string logFilenameSuffix(".log");
 		string visFilename = visFilenamePrefix + baseName + visFilenameSuffix; 
 		string logFilename = logFilenamePrefix + baseName + logFilenameSuffix; 
 		
