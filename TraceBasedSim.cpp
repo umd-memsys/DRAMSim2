@@ -521,7 +521,7 @@ int main(int argc, char **argv)
 	oss << megsOfMemory; 
 
 	paramOverrides["megsOfMemory"] = oss.str(); 
-	DRAMSimInterface *memorySystem = getMemorySystemInstance(iniFiles, traceFileName, &paramOverrides);
+	DRAMSimInterface *memorySystem = getMemorySystemInstance(iniFiles, "", &paramOverrides);
 
 
 	// set the frequency ratio to 1:1
