@@ -109,7 +109,6 @@ void MultiChannelMemorySystem::actual_update()
 {
 	if (currentClockCycle == 0)
 	{
-//		InitOutputFiles(traceFilename);
 		DEBUG("DRAMSim2 Clock Frequency ="<<clockDomainCrosser.clock1<<"Hz, CPU Clock Frequency="<<clockDomainCrosser.clock2<<"Hz"); 
 	}
 
