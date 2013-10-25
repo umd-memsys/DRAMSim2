@@ -607,7 +607,7 @@ int main(int argc, char **argv)
 
 		else if (pendingTrans && i >= clockCycle)
 		{
-			pendingTrans = AddTransactionWrapper(memorySystem, trans); 
+			pendingTrans = !AddTransactionWrapper(memorySystem, trans); 
 			if (!pendingTrans)
 			{
 #ifdef RETURN_TRANSACTIONS
