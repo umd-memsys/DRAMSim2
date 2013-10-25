@@ -112,9 +112,9 @@ void MultiChannelMemorySystem::actual_update()
 		DEBUG("DRAMSim2 Clock Frequency ="<<clockDomainCrosser.clock1<<"Hz, CPU Clock Frequency="<<clockDomainCrosser.clock2<<"Hz"); 
 	}
 
-	if (currentClockCycle % cfg.EPOCH_LENGTH == 0)
+	if (dumpInterval > 0 && currentClockCycle % dumpInterval == 0)
 	{
-//		printStats(false); 
+		printStats(false); 
 	}
 	
 	for (size_t i=0; i<cfg.NUM_CHANS; i++)
@@ -200,9 +200,13 @@ bool MultiChannelMemorySystem::willAcceptTransaction()
 
 
 void MultiChannelMemorySystem::printStats(bool finalStats) {
-	if (CSVOut) {
-		(*CSVOut) << "ms" <<currentClockCycle * cfg.tCK * 1E-6; 
+
+	if (!CSVOut) {
+		DEBUG("WARNING: printStats called even though no CSVWriter was given");
+		return; 
 	}
+
+	(*CSVOut) << "ms" <<currentClockCycle * cfg.tCK * 1E-6; 
 	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
 		PRINT("==== Channel ["<<i<<"] ====");
