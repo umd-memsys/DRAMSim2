@@ -27,13 +27,6 @@
 *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
-#include <errno.h> 
-#include <sstream> //stringstream
-#include <stdlib.h> // getenv()
-// for directory operations 
-#include <sys/stat.h>
-#include <sys/types.h>
-
 #include "MultiChannelMemorySystem.h"
 #include "AddressMapping.h"
 #include "MemorySystem.h"
@@ -89,89 +82,6 @@ void MultiChannelMemorySystem::setCPUClockSpeed(uint64_t cpuClkFreqHz)
 	clockDomainCrosser.clock1 = dramsimClkFreqHz; 
 	clockDomainCrosser.clock2 = (cpuClkFreqHz == 0) ? dramsimClkFreqHz : cpuClkFreqHz; 
 }
-
-/*
-bool fileExists(string &path)
-{
-	struct stat stat_buf;
-	if (stat(path.c_str(), &stat_buf) != 0) 
-	{
-		if (errno == ENOENT)
-		{
-			return false; 
-		}
-		ERROR("Warning: some other kind of error happened with stat(), should probably check that"); 
-	}
-	return true;
-}
-
-string FilenameWithNumberSuffix(const string &filename, const string &extension, unsigned maxNumber=100)
-{
-	string currentFilename = filename+extension;
-	if (!fileExists(currentFilename))
-	{
-		return currentFilename;
-	}
-
-	// otherwise, add the suffixes and test them out until we find one that works
-	stringstream tmpNum; 
-	tmpNum<<"."<<1; 
-	for (unsigned i=1; i<maxNumber; i++)
-	{
-		currentFilename = filename+tmpNum.str()+extension;
-		if (fileExists(currentFilename))
-		{
-			currentFilename = filename; 
-			tmpNum.seekp(0);
-			tmpNum << "." << i;
-		}
-		else 
-		{
-			return currentFilename;
-		}
-	}
-	// if we can't find one, just give up and return whatever is the current filename
-	ERROR("Warning: Couldn't find a suitable suffix for "<<filename); 
-	return currentFilename; 
-}
-
-
-void MultiChannelMemorySystem::mkdirIfNotExist(string path)
-{
-	struct stat stat_buf;
-	// check if the directory exists
-	if (stat(path.c_str(), &stat_buf) != 0) // nonzero return value on error, check errno
-	{
-		if (errno == ENOENT) 
-		{
-//			DEBUG("\t directory doesn't exist, trying to create ...");
-
-			// set permissions dwxr-xr-x on the results directories
-			mode_t mode = (S_IXOTH | S_IXGRP | S_IXUSR | S_IROTH | S_IRGRP | S_IRUSR | S_IWUSR) ;
-			if (mkdir(path.c_str(), mode) != 0)
-			{
-				perror("Error Has occurred while trying to make directory: ");
-				cerr << path << endl;
-				abort();
-			}
-		}
-		else
-		{
-			perror("Something else when wrong: "); 
-			abort();
-		}
-	}
-	else // directory already exists
-	{
-		if (!S_ISDIR(stat_buf.st_mode))
-		{
-			ERROR(path << "is not a directory");
-			abort();
-		}
-	}
-}
-
-*/
 
 MultiChannelMemorySystem::~MultiChannelMemorySystem()
 {

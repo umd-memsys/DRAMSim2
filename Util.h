@@ -7,6 +7,13 @@
  */
 #include <streambuf>
 #include <ostream>
+#include <string>
+#include <sstream>
+
+using std::string;
+using std::stringstream;
+
+namespace DRAMSim {
 
 template <class cT, class traits = std::char_traits<cT> >
 class basic_nullbuf: public std::basic_streambuf<cT, traits> {
@@ -31,4 +38,11 @@ class basic_onullstream: public std::basic_ostream<cT, traits> {
 };
 
 typedef basic_onullstream<char> onullstream;
+
+
+string FilenameWithNumberSuffix(const string &filename, const string &extension, unsigned maxNumber=100);
+bool fileExists(string &path);
+
+} // namespace
 #endif
+
