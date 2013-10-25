@@ -53,19 +53,18 @@ namespace DRAMSim {
 
 powerCallBack_t MemorySystem::ReportPower = NULL;
 
-MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, Config &cfg_, CSVWriter &csvOut_, ostream &dramsim_log_) :
+MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, const Config &cfg_, ostream &dramsim_log_) :
 		cfg(cfg_),
 		dramsim_log(dramsim_log_),
 		ReturnReadData(NULL),
 		WriteDataDone(NULL),
-		systemID(id),
-		csvOut(csvOut_)
+		systemID(id)
 {
 	DEBUG("===== MemorySystem "<<systemID<<" =====");
 	DEBUG("CH. " <<systemID<<" TOTAL_STORAGE : "<< cfg.megsOfMemory << "MB | "<<cfg.NUM_RANKS<<" Ranks | "<< cfg.NUM_DEVICES <<" Devices per rank");
 
 	// FIXME: can also just make this straight inside the class instead of as a pointer
-	memoryController = new MemoryController(this, csvOut, dramsim_log);
+	memoryController = new MemoryController(this, dramsim_log);
 
 	// FIXME: no reason to have ranks be a vector<...> *, just put it straight in  
 	ranks = new vector<Rank *>();
@@ -133,9 +132,9 @@ bool MemorySystem::addTransaction(Transaction *trans)
 }
 
 //prints statistics
-void MemorySystem::printStats(bool finalStats)
+void MemorySystem::printStats(CSVWriter *CSVOut, bool finalStats)
 {
-	memoryController->printStats(finalStats);
+	memoryController->printStats(CSVOut, finalStats);
 }
 
 

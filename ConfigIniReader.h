@@ -34,7 +34,6 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
-#include <string.h> //strndup
 #include <iostream>
 #include <string>
 //#include <CSVWriter.h>
@@ -51,6 +50,8 @@ class ConfigOption {
 	std::string optionName;
 	T value;
 	std::string optionValueString; 
+
+	// has this option been overridden from the default value? 
 	bool setAfterDefault; 
 	public:
 	ConfigOption(const std::string &name_, const T &value_) : 
@@ -81,10 +82,13 @@ class ConfigOption {
 	 *  foo();
 	 * }
 	 */
-	operator T() {
+	operator T() const {
 		return value; 
 	}
-	
+
+	/* this allows assignment from the primitive type to the option, such as: 
+	 * cfg.tCK=5.0; 
+	 */
 	ConfigOption<T> &operator=(const T &value_) {
 		this->value = value_; 
 		return *this; 
@@ -167,7 +171,8 @@ inline void ConfigOption<SchedulingPolicy>::set(const std::string &value_str) {
 		value=BankThenRankRoundRobin; 
 }
 
-struct Config {
+class Config {
+	public: 
 
 	/* Generate the member definitions */
 #define PARAM(type, name, default_value) \
@@ -182,7 +187,7 @@ struct Config {
 		name(#name, default_value),
 #include "params.def"
 #undef PARAM
-		// XXX: need some non-paramed initializer here to terminate the comma list 
+		// XXX: need some non-param'd initializer here to terminate the comma list (i.e., do not remove the next line)
 		finalized(false)
 	{}
 
@@ -293,6 +298,6 @@ struct Config {
 	Config(const Config &other); 
 	Config &operator=(const Config &other);
 };
-}
+} // namespace 
 
-#endif // _INIREADER_H_
+#endif // _CONFIGINIREADER_H_

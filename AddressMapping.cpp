@@ -34,7 +34,7 @@
 namespace DRAMSim
 {
 
-void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsigned &newTransactionRank, unsigned &newTransactionBank, unsigned &newTransactionRow, unsigned &newTransactionColumn, Config &cfg)
+void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsigned &newTransactionRank, unsigned &newTransactionBank, unsigned &newTransactionRow, unsigned &newTransactionColumn, const Config &cfg)
 {
 	uint64_t tempA, tempB;
 	unsigned transactionSize = (cfg.JEDEC_DATA_BUS_BITS/8)*cfg.BL; 

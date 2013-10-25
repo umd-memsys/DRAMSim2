@@ -41,7 +41,7 @@
 
 using namespace DRAMSim;
 
-CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log_, Config &cfg_) :
+CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim_log_, const Config &cfg_) :
 		dramsim_log(dramsim_log_),
 		cfg(cfg_),
 		bankStates(states),

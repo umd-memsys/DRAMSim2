@@ -38,6 +38,7 @@
 #include "Callback.h"
 #include <stdio.h> 
 #include <string>
+#include <vector>
 #include <map>
 #include <list> 
 
@@ -50,6 +51,8 @@ namespace DRAMSim
 	typedef std::list<std::string> OptionsFailedToSet; 
 
 	class CSVWriter; 
+	class Config; 
+
 	class DRAMSimInterface {
 		public: 
 			virtual uint64_t getCycle() = 0;
@@ -67,7 +70,8 @@ namespace DRAMSim
 				TransactionCompleteCB *writeDone,
 				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower)) = 0 ;
 	};
-	DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut_, const OptionsMap *paramOverrides=NULL);
+//	DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut_, const OptionsMap *paramOverrides=NULL);
+	DRAMSimInterface *getMemorySystemInstance(const std::vector<std::string> &iniFiles=std::vector<std::string>(), const string simDesc=string(""), const OptionsMap *paramOverrides=NULL); 
 }
 
 #endif

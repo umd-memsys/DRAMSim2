@@ -36,85 +36,56 @@
 
 #include "MultiChannelMemorySystem.h"
 #include "AddressMapping.h"
-#include "ConfigIniReader.h"
+#include "MemorySystem.h"
+#include "Transaction.h"
+#include "IniReader.h"
 #include "CSVWriter.h"
+#include "Util.h"
 
 
 
-namespace DRAMSim {
+using namespace DRAMSim;
 
 
-
-MultiChannelMemorySystem::MultiChannelMemorySystem(
-		const string &deviceIniFilename_, 
-		const string &systemIniFilename_, 
-		const string &pwd_, 
-		const string &traceFilename_, 
-		unsigned megsOfMemory_, 
-		CSVWriter &csvOut_, 
-		const OptionsMap *paramOverrides)
-
-	:	megsOfMemory(megsOfMemory_), 
-	deviceIniFilename(deviceIniFilename_),
-	systemIniFilename(systemIniFilename_), 
-	traceFilename(traceFilename_),
-	pwd(pwd_),
-	clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update)),
-	csvOut(csvOut_)
+/**
+ * Constructor. 
+ * @param cfg a Config object that should be allocated on the heap. DRAMSim2 will take ownership of this object and be responsible for freeing it. For safety, once passed to this constructor, a config struct will never be changed.
+ */ 
+MultiChannelMemorySystem::MultiChannelMemorySystem(const Config &cfg_, ostream &logFile_)
+	: cfg(cfg_) 
+	, clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update))
+	, CSVOut(NULL)
+	, dumpInterval(0)
+	, dramsim_log(logFile_) 
 {
-	if (!isPowerOfTwo(megsOfMemory))
+
+	// A few sanity checks before we begin 
+	if (!isPowerOfTwo(cfg.megsOfMemory))
 	{
 		ERROR("Please specify a power of 2 memory size"); 
 		abort(); 
 	}
-	printf("PWD is '%s'\n",pwd.c_str());
-	if (pwd.length() > 0)
-	{
-		//ignore the pwd argument if the argument is an absolute path
-		if (deviceIniFilename[0] != '/')
-		{
-			deviceIniFilename = pwd + "/" + deviceIniFilename;
-		}
-
-		if (systemIniFilename[0] != '/')
-		{
-			systemIniFilename = pwd + "/" + systemIniFilename;
-		}
-	}
-
-
-	DEBUG("== Loading device model file '"<<deviceIniFilename<<"' == ");
-	OptionsMap deviceParameters = IniReader::ReadIniFile(deviceIniFilename);
-	DEBUG("== Loading system model file '"<<systemIniFilename<<"' == ");
-	OptionsMap systemParameters = IniReader::ReadIniFile(systemIniFilename);
-
-	// If we have any overrides, set them now before creating all of the memory objects
-	cfg.set(deviceParameters); 
-	cfg.set(systemParameters); 
-	if (paramOverrides) {
-		OptionsFailedToSet failedOpts = cfg.set(*paramOverrides);
-		DEBUG("Setting overrides: "<<failedOpts.size()<<" Failed out of "<<paramOverrides->size()<< "\n"); 
-	}
-
 
 	if (cfg.NUM_CHANS == 0) 
 	{
 		ERROR("Zero channels"); 
 		abort(); 
 	}
+
 	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
-		MemorySystem *channel = new MemorySystem(i, megsOfMemory/cfg.NUM_CHANS, cfg, csvOut, dramsim_log);
+		MemorySystem *channel = new MemorySystem(i, cfg.megsOfMemory/cfg.NUM_CHANS, cfg, dramsim_log);
 		channels.push_back(channel);
 	}
 }
-/* Initialize the ClockDomainCrosser to use the CPU speed 
-	If cpuClkFreqHz == 0, then assume a 1:1 ratio (like for TraceBasedSim)
-	*/
+
+/**
+ * Initialize the ClockDomainCrosser to use the CPU speed If cpuClkFreqHz == 0,
+ * then assume a 1:1 ratio (like for TraceBasedSim) 
+ **/
 void MultiChannelMemorySystem::setCPUClockSpeed(uint64_t cpuClkFreqHz)
 {
-
-	uint64_t dramsimClkFreqHz = (uint64_t)(1.0/(cfg.tCK*1e-9));
+	uint64_t dramsimClkFreqHz = static_cast<uint64_t>(1.0/(cfg.tCK*1e-9));
 	clockDomainCrosser.clock1 = dramsimClkFreqHz; 
 	clockDomainCrosser.clock2 = (cpuClkFreqHz == 0) ? dramsimClkFreqHz : cpuClkFreqHz; 
 }
@@ -210,11 +181,8 @@ MultiChannelMemorySystem::~MultiChannelMemorySystem()
 	}
 	channels.clear(); 
 
-// flush our streams and close them up
-#ifdef LOG_OUTPUT
 	dramsim_log.flush();
-	dramsim_log.close();
-#endif
+
 	/*
 	if (VIS_FILE_OUTPUT) 
 	{	
@@ -245,7 +213,6 @@ void MultiChannelMemorySystem::actual_update()
 		channels[i]->update(); 
 	}
 
-
 	currentClockCycle++; 
 }
 unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
@@ -274,12 +241,8 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 	//DEBUG("Channel idx = "<<channelNumber<<" totalbits="<<totalBits<<" channelbits="<<channelBits); 
 
 	return channelNumber;
+}
 
-}
-ostream &MultiChannelMemorySystem::getLogFile()
-{
-	return dramsim_log; 
-}
 bool MultiChannelMemorySystem::addTransaction(const Transaction &trans)
 {
 	// copy the transaction and send the pointer to the new transaction 
@@ -328,16 +291,17 @@ bool MultiChannelMemorySystem::willAcceptTransaction()
 
 
 void MultiChannelMemorySystem::printStats(bool finalStats) {
-
-	csvOut << "ms" <<currentClockCycle * cfg.tCK * 1E-6; 
+	if (CSVOut) {
+		(*CSVOut) << "ms" <<currentClockCycle * cfg.tCK * 1E-6; 
+	}
 	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
 		PRINT("==== Channel ["<<i<<"] ====");
-		channels[i]->printStats(finalStats); 
+		channels[i]->printStats(CSVOut, finalStats); 
 		PRINT("//// Channel ["<<i<<"] ////");
 	}
-//	csvOut.finalize();
 }
+
 void MultiChannelMemorySystem::registerCallbacks( 
 		TransactionCompleteCB *readDone,
 		TransactionCompleteCB *writeDone,
@@ -352,8 +316,38 @@ void MultiChannelMemorySystem::simulationDone() {
 	printStats(true); 
 }
 
-DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut, const OptionsMap *paramOverrides) 
-{
-	return new MultiChannelMemorySystem(dev, sys, pwd, trc, megsOfMemory, csvOut, paramOverrides);
+namespace DRAMSim {
+	/**
+	 * Get a default DRAMSimInterface instance. The instance parameters will be set from the list of iniFiles and from the options map. The output file names will have simDesc appended to them. 
+	 * @param iniFiles A list of ini file names to load. Note, the way the iniReader works, files later in the list will override files earlier in the list 
+	 * @param simDesc A description that will be appended to output files (.log, .csv, etc) 
+	 * @param paramOverride An list of any options to manually override (will be applied after loading ini files)
+	 */
+	DRAMSimInterface *getMemorySystemInstance(const vector<std::string> &iniFiles, const string simDesc, const OptionsMap *paramOverrides) 
+	{
+		string baseName = ""; 
+		if (simDesc.length() > 0 ) {
+			baseName="."+simDesc; 
+		}
+
+		// setup the filenames for output files 
+		// TODO: add number suffixes to avoid overwriting old ones? 
+		string visFilenamePrefix("DRAMSim"); 
+		string visFilenameSuffix(".vis");
+		string logFilenamePrefix("DRAMSim");
+		string logFilenameSuffix(".log");
+		string visFilename = visFilenamePrefix + baseName + visFilenameSuffix; 
+		string logFilename = logFilenamePrefix + baseName + logFilenameSuffix; 
+		
+		CSVWriter &CSVOut = CSVWriter::GetCSVWriterInstance(visFilename); 
+		std::ostream &logFile = *(new std::ofstream(logFilename.c_str()));
+		
+		Config &cfg = (*new Config()); 
+		cfg.finalize();
+
+		MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(cfg, logFile);
+		// tell the memory system to do its own dumping of stats (no explicit calls to dumpStats() are required)
+		memorySystem->enableStatsDump(&CSVOut, cfg.EPOCH_LENGTH);
+		return memorySystem;
+	}
 }
-} // namespace 

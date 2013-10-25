@@ -61,12 +61,12 @@ class MemorySystem : public SimulatorObject
 {
 public:
 	//functions
-	MemorySystem(unsigned id, unsigned megsOfMemory, Config &cfg_, CSVWriter &csvOut_, ostream &dramsim_log_);
+	MemorySystem(unsigned id, unsigned megsOfMemory, const Config &cfg_, ostream &dramsim_log_);
 	virtual ~MemorySystem();
 	void update();
 	bool addTransaction(Transaction *trans);
 	bool addTransaction(bool isWrite, uint64_t addr);
-	void printStats(bool finalStats);
+	void printStats(CSVWriter *CSVOut, bool finalStats);
 	bool WillAcceptTransaction();
 	void RegisterCallbacks(
 	    Callback_t *readDone,
@@ -74,7 +74,7 @@ public:
 	    void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
 
 	//fields
-	Config &cfg; 
+	const Config &cfg; 
 	ostream &dramsim_log;
 	MemoryController *memoryController;
 	vector<Rank *> *ranks;
@@ -87,9 +87,6 @@ public:
 	//TODO: make this a functor as well?
 	static powerCallBack_t ReportPower;
 	unsigned systemID;
-
-private:
-	CSVWriter &csvOut;
 };
 }
 
