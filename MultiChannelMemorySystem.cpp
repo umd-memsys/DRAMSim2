@@ -119,6 +119,7 @@ void MultiChannelMemorySystem::setCPUClockSpeed(uint64_t cpuClkFreqHz)
 	clockDomainCrosser.clock2 = (cpuClkFreqHz == 0) ? dramsimClkFreqHz : cpuClkFreqHz; 
 }
 
+/*
 bool fileExists(string &path)
 {
 	struct stat stat_buf;
@@ -162,66 +163,6 @@ string FilenameWithNumberSuffix(const string &filename, const string &extension,
 	ERROR("Warning: Couldn't find a suitable suffix for "<<filename); 
 	return currentFilename; 
 }
-/**
- * This function creates up to 3 output files: 
- * 	- The .log file if LOG_OUTPUT is set
- * 	- the .tmp file if verification output is enabled
- * The results directory is setup to be in PWD/TRACEFILENAME.[SIM_DESC]/DRAM_PARTNAME/PARAMS.vis
- * The environment variable SIM_DESC is also appended to output files/directories
- *
- * TODO: verification info needs to be generated per channel so it has to be
- * moved back to MemorySystem
- **/
-void MultiChannelMemorySystem::InitOutputFiles(string traceFilename)
-{
-	string sim_description_str;
-	string deviceName;
-	
-	char *sim_description = getenv("SIM_DESC");
-	if (sim_description)
-	{
-			sim_description_str = string(sim_description);
-	}
-
-
-	// create a properly named verification output file if need be and open it
-	// as the stream 'cmd_verify_out'
-	if (cfg.VERIFICATION_OUTPUT)
-	{
-		string basefilename = deviceIniFilename.substr(deviceIniFilename.find_last_of("/")+1);
-		string verify_filename =  "sim_out_"+basefilename;
-		if (sim_description != NULL)
-		{
-			verify_filename += "."+sim_description_str;
-		}
-		verify_filename += ".tmp";
-		cmd_verify_out.open(verify_filename.c_str());
-		if (!cmd_verify_out)
-		{
-			ERROR("Cannot open "<< verify_filename);
-			abort(); 
-		}
-	}
-
-#ifdef LOG_OUTPUT
-	string dramsimLogFilename("dramsim");
-	if (sim_description != NULL)
-	{
-		dramsimLogFilename += "."+sim_description_str; 
-	}
-	
-	dramsimLogFilename = FilenameWithNumberSuffix(dramsimLogFilename, ".log"); 
-
-	dramsim_log.open(dramsimLogFilename.c_str(), ios_base::out | ios_base::trunc );
-
-	if (!dramsim_log) 
-	{
-	ERROR("Cannot open "<< dramsimLogFilename);
-	//	exit(-1); 
-	}
-#endif
-
-}
 
 
 void MultiChannelMemorySystem::mkdirIfNotExist(string path)
@@ -259,6 +200,7 @@ void MultiChannelMemorySystem::mkdirIfNotExist(string path)
 	}
 }
 
+*/
 
 MultiChannelMemorySystem::~MultiChannelMemorySystem()
 {
@@ -289,7 +231,7 @@ void MultiChannelMemorySystem::actual_update()
 {
 	if (currentClockCycle == 0)
 	{
-		InitOutputFiles(traceFilename);
+//		InitOutputFiles(traceFilename);
 		DEBUG("DRAMSim2 Clock Frequency ="<<clockDomainCrosser.clock1<<"Hz, CPU Clock Frequency="<<clockDomainCrosser.clock2<<"Hz"); 
 	}
 
