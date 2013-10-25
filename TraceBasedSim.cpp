@@ -520,9 +520,8 @@ int main(int argc, char **argv)
 	ostringstream oss; 
 	oss << megsOfMemory; 
 
-	OptionsMap overrides; 
-	overrides["megsOfMemory"] = oss.str(); 
-	DRAMSimInterface *memorySystem = getMemorySystemInstance(iniFiles, traceFileName, &overrides);
+	paramOverrides["megsOfMemory"] = oss.str(); 
+	DRAMSimInterface *memorySystem = getMemorySystemInstance(iniFiles, traceFileName, &paramOverrides);
 
 
 	// set the frequency ratio to 1:1
@@ -618,10 +617,10 @@ int main(int argc, char **argv)
 			}
 		}
 		memorySystem->update();
-	}
+	} // end main loop 
 
 	traceFile.close();
-	//memorySystem->printStats(true);
+	memorySystem->simulationDone();
 	// make valgrind happy
 	if (trans)
 	{

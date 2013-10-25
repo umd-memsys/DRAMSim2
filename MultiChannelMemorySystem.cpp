@@ -252,6 +252,13 @@ namespace DRAMSim {
 		std::ostream &logFile = *(new std::ofstream(logFilename.c_str()));
 		
 		Config &cfg = (*new Config()); 
+		for (size_t i=0; i < iniFiles.size(); i++) {
+			cfg.set(IniReader::ReadIniFile(iniFiles[i]));
+		}
+		if (paramOverrides) {
+			cfg.set(*paramOverrides);
+		}
+
 		cfg.finalize();
 
 		MultiChannelMemorySystem *memorySystem = new MultiChannelMemorySystem(cfg, logFile);
