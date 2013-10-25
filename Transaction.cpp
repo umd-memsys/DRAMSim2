@@ -80,9 +80,9 @@ ostream &operator<<(ostream &os, const Transaction &t)
 	return os; 
 }
 
-BusPacketType Transaction::getBusPacketType(const Transaction *trans)
+BusPacketType Transaction::getBusPacketType(const Config &cfg) const
 {
-	switch (trans->transactionType)
+	switch (transactionType)
 	{
 		case DATA_READ:
 			if (cfg.rowBufferPolicy == ClosePage)

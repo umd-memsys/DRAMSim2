@@ -56,7 +56,6 @@ class BusPacket
 {
 	BusPacket();
 	ostream &dramsim_log; 
-	Config &cfg; 
 public:
 	//Fields
 	BusPacketType busPacketType;
@@ -68,7 +67,7 @@ public:
 	void *data;
 
 	//Functions
-	BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, void *dat, ostream &dramsim_log_, Config &cfg);
+	BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, void *dat, ostream &dramsim_log_);
 
 	void print();
 	void print(uint64_t currentClockCycle, bool dataStart);

@@ -346,6 +346,7 @@ void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &tra
 
 #ifndef _SIM_
 
+#if 0 
 void alignTransactionAddress(Transaction &trans)
 {
 	Config &cfg = trans.cfg; 
@@ -356,6 +357,7 @@ void alignTransactionAddress(Transaction &trans)
 	trans.address >>= throwAwayBits;
 	trans.address <<= throwAwayBits;
 }
+#endif
 
 /** 
  * Override options can be specified on the command line as -o key1=value1,key2=value2
@@ -535,7 +537,7 @@ int main(int argc, char **argv)
 	// set the frequency ratio to 1:1
 	memorySystem->setCPUClockSpeed(0); 
 	std::ostream &dramsim_logfile = memorySystem->getLogFile(); 
-	Config &cfg = memorySystem->cfg;
+	//Config &cfg = memorySystem->cfg;
 
 
 #ifdef RETURN_TRANSACTIONS

@@ -66,7 +66,7 @@ public:
 	Transaction(TransactionType transType, uint64_t addr, void *data);
 	Transaction(const Transaction &t);
 
-	BusPacketType getBusPacketType();
+	BusPacketType getBusPacketType(const Config &cfg) const;
 };
 
 }

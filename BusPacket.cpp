@@ -41,10 +41,8 @@ using namespace std;
 
 BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr, 
 		unsigned col, unsigned rw, unsigned r, unsigned b, void *dat, 
-		ostream &dramsim_log_,
-		Config &cfg_) :
+		ostream &dramsim_log_) :
 	dramsim_log(dramsim_log_),
-	cfg(cfg_),
 	busPacketType(packtype),
 	column(col),
 	row(rw),
@@ -56,6 +54,9 @@ BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr,
 
 void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
 {
+	// FIXME: move this out of BP 
+	abort();
+#if 0 
 	if (this == NULL)
 	{
 		return;
@@ -94,6 +95,8 @@ void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
 			exit(-1);
 		}
 	}
+#endif 
+
 }
 void BusPacket::print()
 {
