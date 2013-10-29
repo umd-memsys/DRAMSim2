@@ -40,7 +40,7 @@
 #include <sstream>
 #include <getopt.h>
 #include <map>
-#include <list>
+#include <deque>
 
 #include "DRAMSim.h"
 #include "SystemConfiguration.h"
@@ -50,6 +50,7 @@
 #include "ConfigIniReader.h"
 #include "IniReader.h"
 #include "CSVWriter.h"
+#include <assert.h>
 
 enum TraceType
 {
@@ -71,8 +72,8 @@ ofstream visDataOut; //mostly used in MemoryController
 class TransactionReceiver
 {
 	private: 
-		map<uint64_t, list<uint64_t> > pendingReadRequests; 
-		map<uint64_t, list<uint64_t> > pendingWriteRequests; 
+		map<uint64_t, deque<uint64_t> > pendingReadRequests; 
+		map<uint64_t, deque<uint64_t> > pendingWriteRequests; 
 		unsigned numReads, numWrites; 
 	
 	public: 
@@ -81,28 +82,24 @@ class TransactionReceiver
 
 
 		}
-		void add_pending(const Transaction &t, uint64_t cycle)
+		void add_pending(bool isWrite, uint64_t address, uint64_t cycle)
 		{
-			// C++ lists are ordered, so the list will always push to the back and
+			//DEBUG("Adding "<<std::hex<<address<<" on cycle "<<std::dec<<cycle<<"\n");
+			// C++ deques are ordered, so the deque will always push to the back and
 			// remove at the front to ensure ordering
-			if (t.transactionType == DATA_READ)
+			if (isWrite)
 			{
-				pendingReadRequests[t.address].push_back(cycle); 
+				pendingWriteRequests[address].push_back(cycle); 
 			}
-			else if (t.transactionType == DATA_WRITE)
+			else 
 			{
-				pendingWriteRequests[t.address].push_back(cycle); 
-			}
-			else
-			{
-				ERROR("This should never happen"); 
-				exit(-1);
+				pendingReadRequests[address].push_back(cycle); 
 			}
 		}
 
 		void read_complete(unsigned id, uint64_t address, uint64_t done_cycle)
 		{
-			map<uint64_t, list<uint64_t> >::iterator it;
+			map<uint64_t, deque<uint64_t> >::iterator it;
 			it = pendingReadRequests.find(address); 
 			if (it == pendingReadRequests.end())
 			{
@@ -123,11 +120,11 @@ class TransactionReceiver
 
 			pendingReadRequests[address].pop_front();
 			numReads++;
-			cout << "Read Callback: #"<<numReads<<": 0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
+			//cout << "Read Callback: #"<<numReads<<": 0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
 		}
 		void write_complete(unsigned id, uint64_t address, uint64_t done_cycle)
 		{
-			map<uint64_t, list<uint64_t> >::iterator it;
+			map<uint64_t, deque<uint64_t> >::iterator it;
 			it = pendingWriteRequests.find(address); 
 			if (it == pendingWriteRequests.end())
 			{
@@ -148,9 +145,15 @@ class TransactionReceiver
 
 			pendingWriteRequests[address].pop_front();
 			numWrites++;
-			cout << "Write Callback: #"<<numWrites<<" 0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
+			//cout << "Write Callback: #"<<numWrites<<" 0x"<< std::hex << address << std::dec << " latency="<<latency<<"cycles ("<< done_cycle<< "->"<<added_cycle<<")"<<endl;
+		}
+		void simulationDone(uint64_t cycles) {
+			DEBUG("Transaction receiver got back "<<numReads<<" reads and "<<numWrites<<" writes in "<<cycles<<" cycles\n");
 		}
 };
+
+TransactionReceiver transactionReceiver; 
+
 #endif
 
 void usage()
@@ -170,14 +173,7 @@ void usage()
 }
 #endif
 
-// FIXME: eventually get rid of this shim 
-bool AddTransactionWrapper(DRAMSimInterface *memorySystem, Transaction *trans) {
-	bool isWrite = trans->transactionType == DATA_WRITE;
-	uint64_t addr = trans->address; 
-	return memorySystem->addTransaction(isWrite, addr); 
-}
-
-void *parseTraceFileLine(string &line, uint64_t &addr, enum TransactionType &transType, uint64_t &clockCycle, TraceType type, bool useClockCycle)
+void *parseTraceFileLine(const string &line, uint64_t &addr, enum TransactionType &transType, uint64_t &clockCycle, TraceType type, bool useClockCycle)
 {
 	size_t previousIndex=0;
 	size_t spaceIndex=0;
@@ -380,6 +376,28 @@ OptionsMap parseParamOverrides(const string &kv_str)
 	}
 	return kv_map; 
 }
+bool parseLineAndTryAdd(const string &line, TraceType traceType, DRAMSimInterface *memorySystem, uint64_t currentClockCycle, bool useClockCycle) {
+	DRAMSimTransaction *trans=NULL;
+	uint64_t addr=0;
+	uint64_t clockCycle=0;
+	enum TransactionType transType;
+
+	//DEBUG("LINE='"<<line<<"'\n");
+	parseTraceFileLine(line, addr, transType,clockCycle, traceType,useClockCycle);
+	bool isWrite = (transType == DATA_WRITE);
+	trans = memorySystem->makeTransaction(isWrite, addr, 64); 
+
+	if (trans && currentClockCycle >= clockCycle)
+	{
+		bool accepted = memorySystem->addTransaction(trans);
+		assert(accepted);
+#ifdef RETURN_TRANSACTIONS
+		transactionReceiver.add_pending(isWrite, addr, currentClockCycle); 
+#endif
+		return true; 
+	}
+	return false;
+}
 
 int main(int argc, char **argv)
 {
@@ -535,7 +553,6 @@ int main(int argc, char **argv)
 
 
 #ifdef RETURN_TRANSACTIONS
-	TransactionReceiver transactionReceiver; 
 	/* create and register our callback functions */
 	Callback_t *read_cb = new Callback<TransactionReceiver, void, unsigned, uint64_t, uint64_t>(&transactionReceiver, &TransactionReceiver::read_complete);
 	Callback_t *write_cb = new Callback<TransactionReceiver, void, unsigned, uint64_t, uint64_t>(&transactionReceiver, &TransactionReceiver::write_complete);
@@ -543,14 +560,9 @@ int main(int argc, char **argv)
 #endif
 
 
-	uint64_t addr;
-	uint64_t clockCycle=0;
-	enum TransactionType transType;
-
-	void *data = NULL;
 	int lineNumber = 0;
-	Transaction *trans=NULL;
-	bool pendingTrans = false;
+	bool lastTransactionSucceeded=true; 
+
 
 	traceFile.open(traceFileName.c_str());
 
@@ -561,59 +573,25 @@ int main(int argc, char **argv)
 	}
 	for (size_t i=0;i<numCycles;i++)
 	{
-		if (!pendingTrans)
-		{
+		// if the last transaction failed, try to re-add the previous line
+		if (!lastTransactionSucceeded) {
+			lastTransactionSucceeded = parseLineAndTryAdd(line, traceType,  memorySystem, i, useClockCycle);
+		}
+		// otherwise, grab the next line from the trace and try to send it
+		else {
 			if (!traceFile.eof())
 			{
-				getline(traceFile, line);
-
-				if (line.size() > 0)
-				{
-					data = parseTraceFileLine(line, addr, transType,clockCycle, traceType,useClockCycle);
-					trans = new Transaction(transType, addr, data);
-
-					if (i>=clockCycle)
-					{
-						if (!AddTransactionWrapper(memorySystem, trans)) 
-						{
-							pendingTrans = true;
-						}
-						else
-						{
-#ifdef RETURN_TRANSACTIONS
-							transactionReceiver.add_pending(*trans, i); 
-#endif
-							// the memory system accepted our request so now it takes ownership of it
-							trans = NULL; 
-						}
-					}
-					else
-					{
-						pendingTrans = true;
+				// skip any blank lines in the trace 
+				while (true) {
+					getline(traceFile, line);
+					lineNumber++;
+					if (line.length() == 0) {
+						DEBUG("Skipping blank line "<<lineNumber<<"\n");
+					} else {
+						break;
 					}
 				}
-				else
-				{
-					DEBUG("WARNING: Skipping line "<<lineNumber<< " ('" << line << "') in tracefile");
-				}
-				lineNumber++;
-			}
-			else
-			{
-				//we're out of trace, set pending=false and let the thing spin without adding transactions
-				pendingTrans = false; 
-			}
-		}
-
-		else if (pendingTrans && i >= clockCycle)
-		{
-			pendingTrans = !AddTransactionWrapper(memorySystem, trans); 
-			if (!pendingTrans)
-			{
-#ifdef RETURN_TRANSACTIONS
-				transactionReceiver.add_pending(*trans, i); 
-#endif
-				trans=NULL;
+				lastTransactionSucceeded = parseLineAndTryAdd(line, traceType, memorySystem, i, useClockCycle);
 			}
 		}
 		memorySystem->update();
@@ -621,10 +599,6 @@ int main(int argc, char **argv)
 
 	traceFile.close();
 	memorySystem->simulationDone();
-	// make valgrind happy
-	if (trans)
-	{
-		delete trans;
-	}
+	transactionReceiver.simulationDone(numCycles);
 }
 #endif

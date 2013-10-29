@@ -46,17 +46,24 @@ class CSVWriter;
 
 class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 {
+	private: 
+		bool willAcceptTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64);
+
 	public: 
 
 	MultiChannelMemorySystem(const Config &cfg_, ostream &logFile_=*(new onullstream())); 
 
 		virtual ~MultiChannelMemorySystem();
 		uint64_t getCycle() { return currentClockCycle; }
+		DRAMSimTransaction *makeTransaction(bool isWrite, uint64_t addr, unsigned requestSize);
+		void deleteTransaction(DRAMSimTransaction *t);
+		bool addTransaction(DRAMSimTransaction *t); 
+		/*
 			bool addTransaction(Transaction *trans);
 			bool addTransaction(const Transaction &trans);
 			bool addTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64, unsigned channelIdx=100, unsigned coreID=0);
-			bool willAcceptTransaction(bool isWrite, uint64_t addr, unsigned requestSize=64, unsigned channelIdx=100, unsigned coreID=0); 
 			bool willAcceptTransaction(); 
+			*/
 			void update();
 			void printStats(bool finalStats=false);
 			ostream *getLogFile();

@@ -155,51 +155,44 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 	return channelNumber;
 }
 
-bool MultiChannelMemorySystem::addTransaction(const Transaction &trans)
-{
-	// copy the transaction and send the pointer to the new transaction 
-	return addTransaction(new Transaction(trans)); 
+/**
+ * This function returns an opaque pointer to a transaction if DRAMSim2 will accept the transaction. 
+ * This pointer can be stored by the requester and used at some later point. 
+ * The simulator should issue the transactions in the order they are created with this function. 
+ *
+ * The problem with the old willAccept/addTransaction solution is that some simulators (like MARSS) need to know if a request will be accepted by the memory long before the request is added. 
+ * This means that willAccept transaction has to give the same answer as addTransaction but at different points in time -- sometimes this gets kind of messy. 
+ * With this method, makeTransaction effectively provides a token that confirms that DRAMSim2 has agreed to accept the transaction and arbitrary data can be stored in the opaque pointer. 
+ *
+ * @param isWrite is the request a write? 
+ * @param addr address where to send the request
+ * @param size of the data (in bytes) of the request. 
+ *
+ */ 
+DRAMSimTransaction *MultiChannelMemorySystem::makeTransaction(bool isWrite, uint64_t addr, unsigned requestSize) {
+	if (willAcceptTransaction(isWrite, addr)) {
+		TransactionType type = isWrite ? DATA_WRITE : DATA_READ; 
+		return (DRAMSimTransaction *)(new Transaction(type, addr, NULL)); 
+	}
+	return NULL; 
 }
 
-bool MultiChannelMemorySystem::addTransaction(Transaction *trans)
-{
+void MultiChannelMemorySystem::deleteTransaction(DRAMSimTransaction *t) {
+	Transaction *trans = (Transaction*)t; 
+	delete(trans);
+}
+
+bool MultiChannelMemorySystem::addTransaction(DRAMSimTransaction *t) {
+	Transaction *trans = (Transaction *)(t);
 	unsigned channelNumber = findChannelNumber(trans->address); 
 	return channels[channelNumber]->addTransaction(trans); 
 }
 
-bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr, unsigned, unsigned, unsigned)
+bool MultiChannelMemorySystem::willAcceptTransaction(bool isWrite, uint64_t addr, unsigned requestSize)
 {
-	unsigned channelNumber = findChannelNumber(addr); 
-	return channels[channelNumber]->addTransaction(isWrite, addr); 
+	unsigned channel = findChannelNumber(addr);
+	return channels[channel]->WillAcceptTransaction(); 
 }
-
-/*
-	This function has two flavors: one with and without the address. 
-	If the simulator won't give us an address and we have multiple channels, 
-	we have to assume the worst and return false if any channel won't accept. 
-
-	However, if the address is given, we can just map the channel and check just
-	that memory controller
-*/
-
-bool MultiChannelMemorySystem::willAcceptTransaction(bool isWrite, uint64_t addr, unsigned, unsigned, unsigned)
-{
-	unsigned chan, rank,bank,row,col; 
-	addressMapping(addr, chan, rank, bank, row, col,cfg); 
-	return channels[chan]->WillAcceptTransaction(); 
-}
-
-bool MultiChannelMemorySystem::willAcceptTransaction()
-{
-	for (size_t c=0; c<cfg.NUM_CHANS; c++) {
-		if (!channels[c]->WillAcceptTransaction())
-		{
-			return false; 
-		}
-	}
-	return true; 
-}
-
 
 
 void MultiChannelMemorySystem::printStats(bool finalStats) {
