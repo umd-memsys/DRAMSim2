@@ -620,6 +620,8 @@ vector<BusPacket *> &CommandQueue::getCommandQueue(unsigned rank, unsigned bank)
 //checks if busPacket is allowed to be issued
 bool CommandQueue::isIssuable(BusPacket *busPacket)
 {
+	// FIXME: pull BankState& out to make this more readable
+	// FIXME: const-ness
 	switch (busPacket->busPacketType)
 	{
 	case REFRESH:
