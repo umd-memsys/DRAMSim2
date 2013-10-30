@@ -29,8 +29,8 @@
 *********************************************************************************/
 
 
-#ifndef DRAMSIM_H
-#define DRAMSIM_H
+#ifndef _DRAMSIM_H_
+#define _DRAMSIM_H_
 /*
  * This is a public header for DRAMSim including this along with libdramsim.so should
  * provide all necessary functionality to talk to an external simulator
@@ -76,7 +76,7 @@ namespace DRAMSim
 				TransactionCompleteCB *writeDone,
 				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower)) = 0 ;
 	};
-//	DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, CSVWriter &csvOut_, const OptionsMap *paramOverrides=NULL);
+	DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory);
 	DRAMSimInterface *getMemorySystemInstance(const std::vector<std::string> &iniFiles=std::vector<std::string>(), const string simDesc=string(""), const OptionsMap *paramOverrides=NULL); 
 }
 

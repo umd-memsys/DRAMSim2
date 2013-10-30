@@ -178,11 +178,13 @@ DRAMSimTransaction *MultiChannelMemorySystem::makeTransaction(bool isWrite, uint
 }
 
 void MultiChannelMemorySystem::deleteTransaction(DRAMSimTransaction *t) {
+	assert(t);
 	Transaction *trans = (Transaction*)t; 
 	delete(trans);
 }
 
 bool MultiChannelMemorySystem::addTransaction(DRAMSimTransaction *t) {
+	assert(t);
 	Transaction *trans = (Transaction *)(t);
 	unsigned channelNumber = findChannelNumber(trans->address); 
 	return channels[channelNumber]->addTransaction(trans); 
@@ -228,6 +230,28 @@ void MultiChannelMemorySystem::simulationDone() {
 }
 
 namespace DRAMSim {
+
+	DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory) {
+		OptionsMap paramOverrides;
+
+		string systemIniFilename = sys; 
+		string deviceIniFilename = dev;
+		if (pwd.length() > 0 && sys[0] != '/')
+			systemIniFilename = pwd + "/" + sys;
+		if (pwd.length() > 0 && dev[0] != '/')
+			deviceIniFilename = pwd + "/" + dev; 
+
+		vector<std::string> iniFiles;
+		iniFiles.push_back(deviceIniFilename); 
+		iniFiles.push_back(systemIniFilename);
+
+		ostringstream oss; 
+		oss << megsOfMemory; 
+
+		paramOverrides["megsOfMemory"] = oss.str(); 
+		return getMemorySystemInstance(iniFiles, trc, &paramOverrides);
+	}
+
 	/**
 	 * Get a default DRAMSimInterface instance. The instance parameters will be set from the list of iniFiles and from the options map. The output file names will be DRAMSim.[simDesc].{csv,log}. 
 	 * @param iniFiles A list of ini file names to load. Note, the way the iniReader works, files later in the list will override files earlier in the list 
