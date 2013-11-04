@@ -599,6 +599,8 @@ int main(int argc, char **argv)
 
 	traceFile.close();
 	memorySystem->simulationDone();
+#ifdef RETURN_TRANSACTIONS
 	transactionReceiver.simulationDone(numCycles);
+#endif
 }
 #endif
