@@ -51,6 +51,7 @@ OptionsMap IniReader::ReadIniFile(string filename)
 	iniFile.open(filename.c_str());
 	if (iniFile.is_open())
 	{
+		std::cerr << "Reading ini file '"<<filename<<"'\n";
 		while (!iniFile.eof())
 		{
 			lineNumber++;

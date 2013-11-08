@@ -58,11 +58,11 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 
 	//use numBankQueus below to create queue structure
 	size_t numBankQueues;
-	if (cfg.queuingStructure==PerRank)
+	if (cfg.QUEUING_STRUCTURE==PerRank)
 	{
 		numBankQueues = 1;
 	}
-	else if (cfg.queuingStructure==PerRankPerBank)
+	else if (cfg.QUEUING_STRUCTURE==PerRankPerBank)
 	{
 		numBankQueues = cfg.NUM_BANKS;
 	}
@@ -108,7 +108,7 @@ CommandQueue::~CommandQueue()
 {
 	//ERROR("COMMAND QUEUE destructor");
 	size_t bankMax = cfg.NUM_RANKS;
-	if (cfg.queuingStructure == PerRank) {
+	if (cfg.QUEUING_STRUCTURE == PerRank) {
 		bankMax = 1; 
 	}
 	for (size_t r=0; r< cfg.NUM_RANKS; r++)
@@ -128,7 +128,7 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
 {
 	unsigned rank = newBusPacket->rank;
 	unsigned bank = newBusPacket->bank;
-	if (cfg.queuingStructure==PerRank)
+	if (cfg.QUEUING_STRUCTURE==PerRank)
 	{
 		queues[rank][0].push_back(newBusPacket);
 		if (queues[rank][0].size()>cfg.CMD_QUEUE_DEPTH)
@@ -138,7 +138,7 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
 			exit(0);
 		}
 	}
-	else if (cfg.queuingStructure==PerRankPerBank)
+	else if (cfg.QUEUING_STRUCTURE==PerRankPerBank)
 	{
 		queues[rank][bank].push_back(newBusPacket);
 		if (queues[rank][bank].size()>cfg.CMD_QUEUE_DEPTH)
@@ -187,7 +187,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 		 Otherwise, it starts looking for rows to close (in open page)
 	*/
 
-	if (cfg.rowBufferPolicy==ClosePage)
+	if (cfg.ROW_BUFFER_POLICY==ClosePage)
 	{
 		bool sendingREF = false;
 		//if the memory controller set the flags signaling that we need to issue a refresh
@@ -259,7 +259,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 				//		refresh logic above has sent one out (ie, letting banks close)
 				if (!queue.empty() && !((nextRank == refreshRank) && refreshWaiting))
 				{
-					if (cfg.queuingStructure == PerRank)
+					if (cfg.QUEUING_STRUCTURE == PerRank)
 					{
 
 						//search from beginning to find first issuable bus packet
@@ -298,7 +298,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 				if (foundIssuable) break;
 
 				//rank round robin
-				if (cfg.queuingStructure == PerRank)
+				if (cfg.QUEUING_STRUCTURE == PerRank)
 				{
 					nextRank = (nextRank + 1) % cfg.NUM_RANKS;
 					if (startingRank == nextRank)
@@ -321,7 +321,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			if (!foundIssuable) return false;
 		}
 	}
-	else if (cfg.rowBufferPolicy==OpenPage)
+	else if (cfg.ROW_BUFFER_POLICY==OpenPage)
 	{
 		bool sendingREForPRE = false;
 		if (refreshWaiting)
@@ -459,7 +459,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 				if (foundIssuable) break;
 
 				//rank round robin
-				if (cfg.queuingStructure == PerRank)
+				if (cfg.QUEUING_STRUCTURE == PerRank)
 				{
 					nextRank = (nextRank + 1) % cfg.NUM_RANKS;
 					if (startingRank == nextRank)
@@ -560,7 +560,7 @@ bool CommandQueue::hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned 
 //prints the contents of the command queue
 void CommandQueue::print()
 {
-	if (cfg.queuingStructure==PerRank)
+	if (cfg.QUEUING_STRUCTURE==PerRank)
 	{
 		PRINT(endl << "== Printing Per Rank Queue" );
 		for (size_t i=0;i<cfg.NUM_RANKS;i++)
@@ -573,7 +573,7 @@ void CommandQueue::print()
 			}
 		}
 	}
-	else if (cfg.queuingStructure==PerRankPerBank)
+	else if (cfg.QUEUING_STRUCTURE==PerRankPerBank)
 	{
 		PRINT("\n== Printing Per Rank, Per Bank Queue" );
 
@@ -601,11 +601,11 @@ void CommandQueue::print()
  */
 vector<BusPacket *> &CommandQueue::getCommandQueue(unsigned rank, unsigned bank)
 {
-	if (cfg.queuingStructure == PerRankPerBank)
+	if (cfg.QUEUING_STRUCTURE == PerRankPerBank)
 	{
 		return queues[rank][bank];
 	}
-	else if (cfg.queuingStructure == PerRank)
+	else if (cfg.QUEUING_STRUCTURE == PerRank)
 	{
 		return queues[rank][0];
 	}
@@ -690,11 +690,11 @@ bool CommandQueue::isIssuable(BusPacket *busPacket)
 //figures out if a rank's queue is empty
 bool CommandQueue::isEmpty(unsigned rank)
 {
-	if (cfg.queuingStructure == PerRank)
+	if (cfg.QUEUING_STRUCTURE == PerRank)
 	{
 		return queues[rank][0].empty();
 	}
-	else if (cfg.queuingStructure == PerRankPerBank)
+	else if (cfg.QUEUING_STRUCTURE == PerRankPerBank)
 	{
 		for (size_t i=0;i<cfg.NUM_BANKS;i++)
 		{
@@ -718,7 +718,7 @@ void CommandQueue::needRefresh(unsigned rank)
 
 void CommandQueue::nextRankAndBank(unsigned &rank, unsigned &bank)
 {
-	if (cfg.schedulingPolicy == RankThenBankRoundRobin)
+	if (cfg.SCHEDULING_POLICY == RankThenBankRoundRobin)
 	{
 		rank++;
 		if (rank == cfg.NUM_RANKS)
@@ -732,7 +732,7 @@ void CommandQueue::nextRankAndBank(unsigned &rank, unsigned &bank)
 		}
 	}
 	//bank-then-rank round robin
-	else if (cfg.schedulingPolicy == BankThenRankRoundRobin)
+	else if (cfg.SCHEDULING_POLICY == BankThenRankRoundRobin)
 	{
 		bank++;
 		if (bank == cfg.NUM_BANKS)

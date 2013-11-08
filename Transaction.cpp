@@ -85,11 +85,11 @@ BusPacketType Transaction::getBusPacketType(const Config &cfg) const
 	switch (transactionType)
 	{
 		case DATA_READ:
-			if (cfg.rowBufferPolicy == ClosePage)
+			if (cfg.ROW_BUFFER_POLICY == ClosePage)
 			{
 				return READ_P;
 			}
-			else if (cfg.rowBufferPolicy == OpenPage)
+			else if (cfg.ROW_BUFFER_POLICY == OpenPage)
 			{
 				return READ; 
 			}
@@ -100,11 +100,11 @@ BusPacketType Transaction::getBusPacketType(const Config &cfg) const
 			}
 			break;
 		case DATA_WRITE:
-			if (cfg.rowBufferPolicy == ClosePage)
+			if (cfg.ROW_BUFFER_POLICY == ClosePage)
 			{
 				return WRITE_P;
 			}
-			else if (cfg.rowBufferPolicy == OpenPage)
+			else if (cfg.ROW_BUFFER_POLICY == OpenPage)
 			{
 				return WRITE; 
 			}

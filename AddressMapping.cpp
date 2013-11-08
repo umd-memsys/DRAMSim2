@@ -90,7 +90,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 	}
 
 	//perform various address mapping schemes
-	if (cfg.addressMappingScheme == Scheme1)
+	if (cfg.ADDRESS_MAPPING_SCHEME == Scheme1)
 	{
 		//chan:rank:row:col:bank
 		tempA = physicalAddress;
@@ -119,7 +119,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		newTransactionChan = tempA ^ tempB;
 
 	}
-	else if (cfg.addressMappingScheme == Scheme2)
+	else if (cfg.ADDRESS_MAPPING_SCHEME == Scheme2)
 	{
 		//chan:row:col:bank:rank
 		tempA = physicalAddress;
@@ -148,7 +148,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		newTransactionChan = tempA ^ tempB;
 
 	}
-	else if (cfg.addressMappingScheme == Scheme3)
+	else if (cfg.ADDRESS_MAPPING_SCHEME == Scheme3)
 	{
 		//chan:rank:bank:col:row
 		tempA = physicalAddress;
@@ -177,7 +177,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		newTransactionChan = tempA ^ tempB;
 
 	}
-	else if (cfg.addressMappingScheme == Scheme4)
+	else if (cfg.ADDRESS_MAPPING_SCHEME == Scheme4)
 	{
 		//chan:rank:bank:row:col
 		tempA = physicalAddress;
@@ -206,7 +206,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 		newTransactionChan = tempA ^ tempB;
 
 	}
-	else if (cfg.addressMappingScheme == Scheme5)
+	else if (cfg.ADDRESS_MAPPING_SCHEME == Scheme5)
 	{
 		//chan:row:col:rank:bank
 
@@ -237,7 +237,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 
 
 	}
-	else if (cfg.addressMappingScheme == Scheme6)
+	else if (cfg.ADDRESS_MAPPING_SCHEME == Scheme6)
 	{
 		//chan:row:bank:rank:col
 
@@ -269,7 +269,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 
 	}
 	// clone of scheme 5, but channel moved to lower bits
-	else if (cfg.addressMappingScheme == Scheme7)
+	else if (cfg.ADDRESS_MAPPING_SCHEME == Scheme7)
 	{
 		//row:col:rank:bank:chan
 		tempA = physicalAddress;

@@ -34,6 +34,7 @@
 #include "IniReader.h"
 #include "CSVWriter.h"
 #include "Util.h"
+#include "DRAMSim.h"
 #include <assert.h>
 
 
@@ -279,7 +280,11 @@ namespace DRAMSim {
 		
 		Config &cfg = (*new Config()); 
 		for (size_t i=0; i < iniFiles.size(); i++) {
-			cfg.set(IniReader::ReadIniFile(iniFiles[i]));
+			OptionsFailedToSet failures = cfg.set(IniReader::ReadIniFile(iniFiles[i]));
+			std::cerr << "Failed to set:\n";
+			for (OptionsFailedToSet::const_iterator it = failures.begin(); it != failures.end(); it++) {
+				std::cerr << "\t "<<*it<<endl;
+			}
 		}
 		if (paramOverrides) {
 			cfg.set(*paramOverrides);
