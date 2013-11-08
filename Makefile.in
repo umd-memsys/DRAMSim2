@@ -31,7 +31,7 @@ CXXFLAGS+=$(OPTFLAGS)
 
 EXE_NAME:= DRAMSim
 LIB_NAME:= libdramsim.la
-includes:= $(srcDir)/DRAMSim.h $(srcDir)/CSVWriter.h 
+includes:= $(srcDir)/DRAMSim.h $(srcDir)/CSVWriter.h $(srcDir)/Callback.h
 SRC     := $(filter-out TraceBasedSim.cpp,$(notdir $(wildcard $(srcDir)/*.cpp)))
 OBJ     := $(patsubst %.cpp, %.o, $(SRC))
 
