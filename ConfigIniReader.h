@@ -135,6 +135,8 @@ inline void ConfigOption<AddressMappingScheme>::set(const std::string &value_str
 		value=Scheme6; 
 	else if (value_str == "Scheme7")
 		value=Scheme7; 
+	else 
+		std::cerr << "WARNING: Unknown value '"<< value_str<<"' for option "<<getName()<<", using default\n";
 }
 
 // Template specialization for enums setters from strings 
@@ -148,10 +150,12 @@ enum QueuingStructure
 
 template <>
 inline void ConfigOption<QueuingStructure>::set(const std::string &value_str) {
-	if (value_str == "per_rank")
+	if (value_str == "PerRank")
 		value=PerRank; 
-	else if (value_str == "per_rank_per_bank")
+	else if (value_str == "PerRankPerBank")
 		value=PerRankPerBank; 
+	else 
+		std::cerr << "WARNING: Unknown value '"<< value_str<<"' for option "<<getName()<<", using default\n";
 }
 
 enum RowBufferPolicy
@@ -162,10 +166,12 @@ enum RowBufferPolicy
 
 template <>
 inline void ConfigOption<RowBufferPolicy>::set(const std::string &value_str) {
-	if (value_str == "close_page")
+	if (value_str == "ClosePage")
 		value=ClosePage; 
-	else if (value_str == "open_page")
+	else if (value_str == "OpenPage")
 		value=OpenPage; 
+	else 
+		std::cerr << "WARNING: Unknown value '"<< value_str<<"' for option "<<getName()<<", using default\n";
 }
 
 enum SchedulingPolicy
@@ -176,10 +182,12 @@ enum SchedulingPolicy
 
 template <>
 inline void ConfigOption<SchedulingPolicy>::set(const std::string &value_str) {
-	if (value_str == "rank_then_bank_round_robin")
+	if (value_str == "RankThenBankRoundRobin")
 		value=RankThenBankRoundRobin; 
-	else if (value_str == "bank_then_rank_round_robin")
+	else if (value_str == "BankThenRankRoundRobin")
 		value=BankThenRankRoundRobin; 
+	else 
+		std::cerr << "WARNING: Unknown value '"<< value_str<<"' for option "<<getName()<<", using default\n";
 }
 
 class Config {
