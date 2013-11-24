@@ -42,6 +42,7 @@
 #include <vector>
 #include "Callback.h"
 #include "SimulatorObject.h"
+#include "MemoryController.h"
 
 using std::ostream; 
 using std::deque; 
@@ -53,7 +54,6 @@ class Config;
 class CSVWriter; 
 class Rank; 
 class Transaction; 
-class MemoryController;
 
 
 class MemorySystem : public SimulatorObject
@@ -72,7 +72,7 @@ public:
 	//fields
 	const Config &cfg; 
 	ostream &dramsim_log;
-	MemoryController *memoryController;
+	MemoryController memoryController;
 	vector<Rank *> *ranks;
 	deque<Transaction *> pendingTransactions; 
 	unsigned systemID;

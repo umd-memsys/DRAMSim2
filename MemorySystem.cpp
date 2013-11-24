@@ -39,7 +39,6 @@
 #include "MemorySystem.h"
 #include <unistd.h>
 
-#include "MemoryController.h"
 #include "Rank.h"
 #include "Transaction.h"
 #include "ConfigIniReader.h"
@@ -54,25 +53,22 @@ namespace DRAMSim {
 MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, const Config &cfg_, ostream &dramsim_log_) :
 		cfg(cfg_),
 		dramsim_log(dramsim_log_),
+		memoryController(this, dramsim_log),
 		systemID(id)
 {
 	DEBUG("===== MemorySystem "<<systemID<<" =====");
 	DEBUG("CH. " <<systemID<<" TOTAL_STORAGE : "<< cfg.megsOfMemory << "MB | "<<cfg.NUM_RANKS<<" Ranks | "<< cfg.NUM_DEVICES <<" Devices per rank");
 
-	// FIXME: can also just make this straight inside the class instead of as a pointer
-	memoryController = new MemoryController(this, dramsim_log);
-
-	// FIXME: no reason to have ranks be a vector<...> *, just put it straight in  
 	ranks = new vector<Rank *>();
 
 	for (size_t i=0; i<cfg.NUM_RANKS; i++)
 	{
-		Rank *r = new Rank(*memoryController, dramsim_log);
+		Rank *r = new Rank(memoryController, dramsim_log);
 		r->setId(i);
 		ranks->push_back(r);
 	}
 
-	memoryController->attachRanks(ranks);
+	memoryController.attachRanks(ranks);
 
 }
 
@@ -83,9 +79,6 @@ MemorySystem::~MemorySystem()
 	/* the MemorySystem should exist for all time, nothing should be destroying it */  
 //	ERROR("MEMORY SYSTEM DESTRUCTOR with ID "<<systemID);
 //	abort();
-
-	delete(memoryController);
-	memoryController=NULL; 
 
 	for (size_t i=0; i<cfg.NUM_RANKS; i++)
 	{
@@ -103,7 +96,7 @@ MemorySystem::~MemorySystem()
 
 bool MemorySystem::WillAcceptTransaction()
 {
-	return memoryController->WillAcceptTransaction();
+	return memoryController.WillAcceptTransaction();
 }
 
 bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
@@ -111,9 +104,9 @@ bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
 	TransactionType type = isWrite ? DATA_WRITE : DATA_READ;
 	Transaction *trans = new Transaction(type,addr,NULL);
 
-	if (memoryController->WillAcceptTransaction()) 
+	if (memoryController.WillAcceptTransaction()) 
 	{
-		return memoryController->addTransaction(trans);
+		return memoryController.addTransaction(trans);
 	}
 	else
 	{
@@ -124,13 +117,13 @@ bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
 
 bool MemorySystem::addTransaction(Transaction *trans)
 {
-	return memoryController->addTransaction(trans);
+	return memoryController.addTransaction(trans);
 }
 
 //prints statistics
 void MemorySystem::printStats(CSVWriter *CSVOut, bool finalStats)
 {
-	memoryController->printStats(CSVOut, finalStats);
+	memoryController.printStats(CSVOut, finalStats);
 }
 
 
@@ -148,25 +141,25 @@ void MemorySystem::update()
 	}
 
 	//pendingTransactions will only have stuff in it if MARSS is adding stuff
-	if (pendingTransactions.size() > 0 && memoryController->WillAcceptTransaction())
+	if (pendingTransactions.size() > 0 && memoryController.WillAcceptTransaction())
 	{
-		memoryController->addTransaction(pendingTransactions.front());
+		memoryController.addTransaction(pendingTransactions.front());
 		pendingTransactions.pop_front();
 	}
-	memoryController->update();
+	memoryController.update();
 
 	//simply increments the currentClockCycle field for each object
 	for (size_t i=0;i<cfg.NUM_RANKS;i++)
 	{
 		(*ranks)[i]->step();
 	}
-	memoryController->step();
+	memoryController.step();
 	this->step();
 
 }
 void MemorySystem::registerCallbacks( TransactionCompleteCB* readCB, TransactionCompleteCB* writeCB, PowerCallback_t *reportPower)
 {
-	memoryController->registerCallbacks(readCB, writeCB, reportPower);
+	memoryController.registerCallbacks(readCB, writeCB, reportPower);
 }
 
 } /*namespace DRAMSim */

@@ -226,6 +226,7 @@ void MultiChannelMemorySystem::registerCallbacks(
 		channels[i]->registerCallbacks(readDone, writeDone, reportPower); 
 	}
 }
+
 void MultiChannelMemorySystem::simulationDone() {
 	printStats(true); 
 }
