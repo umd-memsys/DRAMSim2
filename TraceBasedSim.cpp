@@ -554,8 +554,8 @@ int main(int argc, char **argv)
 
 #ifdef RETURN_TRANSACTIONS
 	/* create and register our callback functions */
-	Callback_t *read_cb = new Callback<TransactionReceiver, void, unsigned, uint64_t, uint64_t>(&transactionReceiver, &TransactionReceiver::read_complete);
-	Callback_t *write_cb = new Callback<TransactionReceiver, void, unsigned, uint64_t, uint64_t>(&transactionReceiver, &TransactionReceiver::write_complete);
+	TransactionCompleteCB *read_cb = new Callback<TransactionReceiver, void, unsigned, uint64_t, uint64_t>(&transactionReceiver, &TransactionReceiver::read_complete);
+	TransactionCompleteCB *write_cb = new Callback<TransactionReceiver, void, unsigned, uint64_t, uint64_t>(&transactionReceiver, &TransactionReceiver::write_complete);
 	memorySystem->registerCallbacks(read_cb, write_cb, NULL);
 #endif
 

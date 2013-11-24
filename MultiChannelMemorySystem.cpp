@@ -219,11 +219,11 @@ void MultiChannelMemorySystem::printStats(bool finalStats) {
 void MultiChannelMemorySystem::registerCallbacks( 
 		TransactionCompleteCB *readDone,
 		TransactionCompleteCB *writeDone,
-		void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower))
+		PowerCallback_t *reportPower)
 {
 	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
-		channels[i]->RegisterCallbacks(readDone, writeDone, reportPower); 
+		channels[i]->registerCallbacks(readDone, writeDone, reportPower); 
 	}
 }
 void MultiChannelMemorySystem::simulationDone() {

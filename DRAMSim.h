@@ -74,7 +74,7 @@ namespace DRAMSim
 			virtual void registerCallbacks(
 				TransactionCompleteCB *readDone,
 				TransactionCompleteCB *writeDone,
-				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower)) = 0 ;
+				PowerCallback_t *powerCB)=0;
 	};
 	DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory);
 	DRAMSimInterface *getMemorySystemInstance(const std::vector<std::string> &iniFiles=std::vector<std::string>(), const string simDesc=string(""), const OptionsMap *paramOverrides=NULL); 

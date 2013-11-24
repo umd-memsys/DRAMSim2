@@ -55,7 +55,6 @@ class Rank;
 class Transaction; 
 class MemoryController;
 
-typedef void (*powerCallBack_t)(double bgpower, double burstpower, double refreshpower, double actprepower);
 
 class MemorySystem : public SimulatorObject
 {
@@ -68,10 +67,7 @@ public:
 	bool addTransaction(bool isWrite, uint64_t addr);
 	void printStats(CSVWriter *CSVOut, bool finalStats);
 	bool WillAcceptTransaction();
-	void RegisterCallbacks(
-	    Callback_t *readDone,
-	    Callback_t *writeDone,
-	    void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
+	void registerCallbacks( TransactionCompleteCB *readDone, TransactionCompleteCB *writeDone, PowerCallback_t *powerCB);
 
 	//fields
 	const Config &cfg; 
@@ -79,13 +75,6 @@ public:
 	MemoryController *memoryController;
 	vector<Rank *> *ranks;
 	deque<Transaction *> pendingTransactions; 
-
-
-	//function pointers
-	Callback_t* ReturnReadData;
-	Callback_t* WriteDataDone;
-	//TODO: make this a functor as well?
-	static powerCallBack_t ReportPower;
 	unsigned systemID;
 };
 }

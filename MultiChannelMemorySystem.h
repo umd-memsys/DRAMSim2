@@ -71,10 +71,7 @@ class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 			float getUpdateClockPeriod() {
 				return cfg.tCK;//*1E-9f;
 			}
-			void registerCallbacks( 
-				TransactionCompleteCB *readDone,
-				TransactionCompleteCB *writeDone,
-				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
+			void registerCallbacks( TransactionCompleteCB *readDone, TransactionCompleteCB *writeDone, PowerCallback_t *powerCB);
 
 	void setCPUClockSpeed(uint64_t cpuClkFreqHz);
 	void dumpStats(CSVWriter &CSVOut) {

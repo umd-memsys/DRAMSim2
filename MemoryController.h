@@ -69,6 +69,7 @@ public:
 	void update();
 	void printStats(CSVWriter *CSVOut, bool finalStats = false);
 	void resetStats(); 
+	void registerCallbacks(TransactionCompleteCB *readCB, TransactionCompleteCB *writeCB, PowerCallback_t *powerCB);
 
 
 	//fields
@@ -85,6 +86,9 @@ private:
 	vector< vector <BankState> > bankStates;
 
 	//fields
+	TransactionCompleteCB *readCB;
+	TransactionCompleteCB *writeCB; 
+	PowerCallback_t *powerCB;
 
 	CommandQueue commandQueue;
 	BusPacket *poppedBusPacket;

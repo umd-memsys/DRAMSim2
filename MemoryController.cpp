@@ -51,6 +51,9 @@ MemoryController::MemoryController(MemorySystem *parent, ostream &dramsim_log_) 
 		lastDumpCycle(0),
 		dramsim_log(dramsim_log_),
 		bankStates(cfg.NUM_RANKS, vector<BankState>(cfg.NUM_BANKS, dramsim_log)),
+		readCB(NULL), 
+		writeCB(NULL),
+		powerCB(NULL), 
 		commandQueue(bankStates, dramsim_log_, cfg),
 		poppedBusPacket(NULL),
 		powerDown(cfg.NUM_RANKS,false),
@@ -120,9 +123,9 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 //sends read data back to the CPU
 void MemoryController::returnReadData(const Transaction *trans)
 {
-	if (parentMemorySystem->ReturnReadData!=NULL)
+	if (readCB != NULL)
 	{
-		(*parentMemorySystem->ReturnReadData)(parentMemorySystem->systemID, trans->address, currentClockCycle);
+		(*readCB)(parentMemorySystem->systemID, trans->address, currentClockCycle);
 	}
 }
 
@@ -192,9 +195,9 @@ void MemoryController::update()
 		if (dataCyclesLeft == 0)
 		{
 			//inform upper levels that a write is done
-			if (parentMemorySystem->WriteDataDone!=NULL)
+			if (writeCB!=NULL)
 			{
-				(*parentMemorySystem->WriteDataDone)(parentMemorySystem->systemID,outgoingDataPacket->physicalAddress, currentClockCycle);
+				(*writeCB)(parentMemorySystem->systemID,outgoingDataPacket->physicalAddress, currentClockCycle);
 			}
 
 			(*ranks)[outgoingDataPacket->rank]->receiveFromBus(outgoingDataPacket);
@@ -851,9 +854,9 @@ void MemoryController::printStats(CSVWriter *CSVOut, bool finalStats)
 		actprePower[r] = ((double)actpreEnergy[r] / (double)(cyclesElapsed)) * cfg.Vdd / 1000.0;
 		averagePower[r] = ((backgroundEnergy[r] + burstEnergy[r] + refreshEnergy[r] + actpreEnergy[r]) / (double)cyclesElapsed) * cfg.Vdd / 1000.0;
 
-		if ((*parentMemorySystem->ReportPower)!=NULL)
+		if (powerCB != NULL)
 		{
-			(*parentMemorySystem->ReportPower)(backgroundPower[r],burstPower[r],refreshPower[r],actprePower[r]);
+			(*powerCB)(backgroundPower[r],burstPower[r],refreshPower[r],actprePower[r]);
 		}
 
 		PRINT( " == Power Data for Rank        " << r );
@@ -962,6 +965,11 @@ MemoryController::~MemoryController()
 		delete returnTransaction[i];
 	}
 
+}
+void MemoryController::registerCallbacks(TransactionCompleteCB *readCB_, TransactionCompleteCB *writeCB_, PowerCallback_t *powerCB_) {
+	readCB = readCB_; 
+	writeCB = writeCB_;
+	powerCB = powerCB_; 
 }
 //inserts a latency into the latency histogram
 void MemoryController::insertHistogram(unsigned latencyValue, unsigned rank, unsigned bank)

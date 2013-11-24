@@ -51,13 +51,9 @@ ofstream cmd_verify_out; //used in Rank.cpp and MemoryController.cpp if VERIFICA
 
 namespace DRAMSim {
 
-powerCallBack_t MemorySystem::ReportPower = NULL;
-
 MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, const Config &cfg_, ostream &dramsim_log_) :
 		cfg(cfg_),
 		dramsim_log(dramsim_log_),
-		ReturnReadData(NULL),
-		WriteDataDone(NULL),
 		systemID(id)
 {
 	DEBUG("===== MemorySystem "<<systemID<<" =====");
@@ -168,14 +164,9 @@ void MemorySystem::update()
 	this->step();
 
 }
-
-void MemorySystem::RegisterCallbacks( Callback_t* readCB, Callback_t* writeCB,
-                                      void (*reportPower)(double bgpower, double burstpower,
-                                                          double refreshpower, double actprepower))
+void MemorySystem::registerCallbacks( TransactionCompleteCB* readCB, TransactionCompleteCB* writeCB, PowerCallback_t *reportPower)
 {
-	ReturnReadData = readCB;
-	WriteDataDone = writeCB;
-	ReportPower = reportPower;
+	memoryController->registerCallbacks(readCB, writeCB, reportPower);
 }
 
 } /*namespace DRAMSim */
