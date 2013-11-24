@@ -53,7 +53,13 @@ MemoryController::MemoryController(MemorySystem *parent, ostream &dramsim_log_) 
 		bankStates(cfg.NUM_RANKS, vector<BankState>(cfg.NUM_BANKS, dramsim_log)),
 		commandQueue(bankStates, dramsim_log_, cfg),
 		poppedBusPacket(NULL),
+		powerDown(cfg.NUM_RANKS,false),
 		totalTransactions(0),
+		grandTotalBankAccesses(cfg.NUM_RANKS*cfg.NUM_BANKS,0),
+		totalReadsPerBank(cfg.NUM_RANKS*cfg.NUM_BANKS,0),
+		totalWritesPerBank(cfg.NUM_RANKS*cfg.NUM_BANKS,0),
+		totalReadsPerRank(cfg.NUM_RANKS,0),
+		totalWritesPerRank(cfg.NUM_RANKS,0),
 		refreshRank(0)
 {
 	//bus related fields
@@ -67,12 +73,6 @@ MemoryController::MemoryController(MemorySystem *parent, ostream &dramsim_log_) 
 
 	//reserve memory for vectors
 	transactionQueue.reserve(cfg.TRANS_QUEUE_DEPTH);
-	powerDown = vector<bool>(cfg.NUM_RANKS,false);
-	grandTotalBankAccesses = vector<uint64_t>(cfg.NUM_RANKS*cfg.NUM_BANKS,0);
-	totalReadsPerBank = vector<uint64_t>(cfg.NUM_RANKS*cfg.NUM_BANKS,0);
-	totalWritesPerBank = vector<uint64_t>(cfg.NUM_RANKS*cfg.NUM_BANKS,0);
-	totalReadsPerRank = vector<uint64_t>(cfg.NUM_RANKS,0);
-	totalWritesPerRank = vector<uint64_t>(cfg.NUM_RANKS,0);
 
 	writeDataCountdown.reserve(cfg.NUM_RANKS);
 	writeDataToSend.reserve(cfg.NUM_RANKS);
