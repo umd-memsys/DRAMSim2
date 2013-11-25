@@ -51,6 +51,10 @@
 #include "IniReader.h"
 #include "CSVWriter.h"
 #include <assert.h>
+#include "config.h"
+#ifdef HAS_GPERF 
+#include <gperftools/profiler.h>
+#endif 
 
 enum TraceType
 {
@@ -170,6 +174,9 @@ void usage()
 	cout << "\t-S, --size=# \t\t\tSize of the memory system in megabytes [default=2048M]"<<endl;
 	cout << "\t-n, --notiming \t\t\tDo not use the clock cycle information in the trace file"<<endl;
 	cout << "\t-v, --visfile \t\t\tVis output filename"<<endl;
+#if HAS_GPERF
+	cout << "\t-P, --profiler \t\t\tEnable gperf profiling"<<endl;
+#endif
 }
 #endif
 
@@ -409,6 +416,9 @@ int main(int argc, char **argv)
 	string pwdString;
 	unsigned megsOfMemory=2048;
 	bool useClockCycle=true;
+#ifdef HAS_GPERF
+	bool enableCPUprofiler=false; 
+#endif
 	
 	OptionsMap paramOverrides; 
 
@@ -432,7 +442,7 @@ int main(int argc, char **argv)
 			{0, 0, 0, 0}
 		};
 		int option_index=0; //for getopt
-		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:qn", long_options, &option_index);
+		c = getopt_long (argc, argv, "t:s:c:d:o:p:S:qnP", long_options, &option_index);
 		if (c == -1)
 		{
 			break;
@@ -482,6 +492,13 @@ int main(int argc, char **argv)
 			break;
 		case 'o':
 			paramOverrides = parseParamOverrides(string(optarg)); 
+			break;
+		case 'P':
+#ifdef HAS_GPERF
+			enableCPUprofiler=true;
+#else
+			std::cerr << "No gperf support detected, ignoring flag\n"; 
+#endif
 			break;
 		case '?':
 			usage();
@@ -563,6 +580,10 @@ int main(int argc, char **argv)
 	int lineNumber = 0;
 	bool lastTransactionSucceeded=true; 
 
+#if HAS_GPERF
+	static const char *gperf_filename = "DRAMSim.gperf.prof";
+	ProfilerStart(gperf_filename);
+#endif
 
 	traceFile.open(traceFileName.c_str());
 
@@ -599,6 +620,9 @@ int main(int argc, char **argv)
 
 	traceFile.close();
 	memorySystem->simulationDone();
+#ifdef HAS_GPERF
+	ProfilerStop();
+#endif 
 #ifdef RETURN_TRANSACTIONS
 	transactionReceiver.simulationDone(numCycles);
 #endif
