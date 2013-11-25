@@ -249,7 +249,7 @@ void MemoryController::update()
 	// else pop from command queue if it's not empty
 	if (refreshCountdown[refreshRank]==0)
 	{
-		commandQueue.needRefresh(refreshRank);
+		commandQueue.setRefreshNeeded(refreshRank);
 		(*ranks)[refreshRank]->refreshWaiting = true;
 		refreshCountdown[refreshRank] =	 cfg.REFRESH_PERIOD/cfg.tCK;
 		refreshRank++;

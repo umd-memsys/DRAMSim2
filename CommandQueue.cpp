@@ -552,12 +552,12 @@ bool CommandQueue::pop(BusPacket **busPacket)
 //check if a rank/bank queue has room for a certain number of bus packets
 bool CommandQueue::hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned bank)
 {
-	vector<BusPacket *> &queue = getCommandQueue(rank, bank); 
+	const vector<BusPacket *> &queue = getCommandQueue(rank, bank); 
 	return (cfg.CMD_QUEUE_DEPTH - queue.size() >= numberToEnqueue);
 }
 
 //prints the contents of the command queue
-void CommandQueue::print()
+void CommandQueue::print() const
 {
 	if (cfg.QUEUING_STRUCTURE==PerRank)
 	{
@@ -657,7 +657,7 @@ bool CommandQueue::isIssuable(const BusPacket *busPacket) const
 }
 
 //figures out if a rank's queue is empty
-bool CommandQueue::isEmpty(unsigned rank)
+bool CommandQueue::isEmpty(unsigned rank) const
 {
 	if (cfg.QUEUING_STRUCTURE == PerRank)
 	{
@@ -679,7 +679,7 @@ bool CommandQueue::isEmpty(unsigned rank)
 }
 
 //tells the command queue that a particular rank is in need of a refresh
-void CommandQueue::needRefresh(unsigned rank)
+void CommandQueue::setRefreshNeeded(unsigned rank)
 {
 	refreshWaiting = true;
 	refreshRank = rank;

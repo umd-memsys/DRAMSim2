@@ -71,19 +71,18 @@ public:
 	bool pop(BusPacket **busPacket);
 	bool hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned bank);
 	bool isIssuable(const BusPacket *busPacket) const;
-	bool isEmpty(unsigned rank);
-	void needRefresh(unsigned rank);
-	void print();
+	bool isEmpty(unsigned rank) const;
+	void setRefreshNeeded(unsigned rank);
+	void print() const;
 	void update(); //SimulatorObject requirement
+private:
+	void nextRankAndBank(unsigned &rank, unsigned &bank);
 	vector<BusPacket *> &getCommandQueue(unsigned rank, unsigned bank);
 
 	//fields
 	
 	BusPacket3D queues; // 3D array of BusPacket pointers
 	vector< vector<BankState> > &bankStates;
-private:
-	void nextRankAndBank(unsigned &rank, unsigned &bank);
-	//fields
 	unsigned nextBank;
 	unsigned nextRank;
 
