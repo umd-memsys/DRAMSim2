@@ -19,7 +19,7 @@ vpath %.cpp $(srcDir)
 
 # specific to the project
 CPPFLAGS    :=  -MMD -DNO_STORAGE -DDEBUG_BUILD -DLOG_OUTPUT
-CXXFLAGS    :=  -Wall
+CXXFLAGS    :=  -Wall -g
 OPTFLAGS    :=  -O3 -march=native
 
 ifdef DEBUG
