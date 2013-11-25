@@ -954,6 +954,9 @@ void MemoryController::printStats(CSVWriter *CSVOut, bool finalStats)
 }
 MemoryController::~MemoryController()
 {
+	for (size_t i=0; i<ranks->size(); i++) {
+		delete (*ranks)[i];
+	}
 	//ERROR("MEMORY CONTROLLER DESTRUCTOR");
 	//abort();
 	for (size_t i=0; i<pendingReadTransactions.size(); i++)
