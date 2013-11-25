@@ -64,9 +64,13 @@ public:
 	friend ostream &operator<<(ostream &os, const Transaction &t);
 	//functions
 	Transaction(TransactionType transType, uint64_t addr, void *data);
-	Transaction(const Transaction &t);
 
 	BusPacketType getBusPacketType(const Config &cfg) const;
+private:
+	// make non-copyable
+	Transaction(const Transaction &other);
+	Transaction &operator=(const Transaction &other);
+
 };
 
 }
