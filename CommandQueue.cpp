@@ -97,7 +97,6 @@ CommandQueue::CommandQueue(vector< vector<BankState> > &states, ostream &dramsim
 	//
 	//countdown vector will have decrementing counters starting at tFAW
 	//  when the 0th element reaches 0, remove it
-	tFAWCountdown.reserve(cfg.NUM_RANKS);
 	for (size_t i=0;i<cfg.NUM_RANKS;i++)
 	{
 		//init the empty vectors here so we don't seg fault later
@@ -618,67 +617,37 @@ vector<BusPacket *> &CommandQueue::getCommandQueue(unsigned rank, unsigned bank)
 }
 
 //checks if busPacket is allowed to be issued
-bool CommandQueue::isIssuable(BusPacket *busPacket)
+bool CommandQueue::isIssuable(const BusPacket *busPacket) const
 {
-	// FIXME: pull BankState& out to make this more readable
-	// FIXME: const-ness
+	unsigned rank = busPacket->rank;
+	unsigned bank = busPacket->bank;
+	BankState &bankState = bankStates[rank][bank];
+
 	switch (busPacket->busPacketType)
 	{
 	case REFRESH:
-
+		
 		break;
 	case ACTIVATE:
-		if ((bankStates[busPacket->rank][busPacket->bank].currentBankState == Idle ||
-		        bankStates[busPacket->rank][busPacket->bank].currentBankState == Refreshing) &&
-		        currentClockCycle >= bankStates[busPacket->rank][busPacket->bank].nextActivate &&
-		        tFAWCountdown[busPacket->rank].size() < 4)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-		break;
+		return ((bankState.currentBankState == Idle ||
+		        bankState.currentBankState == Refreshing) &&
+		        currentClockCycle >= bankState.nextActivate &&
+		        tFAWCountdown[rank].size() < 4);
 	case WRITE:
 	case WRITE_P:
-		if (bankStates[busPacket->rank][busPacket->bank].currentBankState == RowActive &&
-		        currentClockCycle >= bankStates[busPacket->rank][busPacket->bank].nextWrite &&
-		        busPacket->row == bankStates[busPacket->rank][busPacket->bank].openRowAddress &&
-		        rowAccessCounters[busPacket->rank][busPacket->bank] < cfg.TOTAL_ROW_ACCESSES)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-		break;
+		return (bankState.currentBankState == RowActive &&
+		        currentClockCycle >= bankState.nextWrite &&
+		        busPacket->row == bankState.openRowAddress &&
+		        rowAccessCounters[rank][bank] < cfg.TOTAL_ROW_ACCESSES);
 	case READ_P:
 	case READ:
-		if (bankStates[busPacket->rank][busPacket->bank].currentBankState == RowActive &&
-		        currentClockCycle >= bankStates[busPacket->rank][busPacket->bank].nextRead &&
-		        busPacket->row == bankStates[busPacket->rank][busPacket->bank].openRowAddress &&
-		        rowAccessCounters[busPacket->rank][busPacket->bank] < cfg.TOTAL_ROW_ACCESSES)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-		break;
+		return (bankState.currentBankState == RowActive &&
+		        currentClockCycle >= bankState.nextRead &&
+		        busPacket->row == bankState.openRowAddress &&
+		        rowAccessCounters[rank][bank] < cfg.TOTAL_ROW_ACCESSES);
 	case PRECHARGE:
-		if (bankStates[busPacket->rank][busPacket->bank].currentBankState == RowActive &&
-		        currentClockCycle >= bankStates[busPacket->rank][busPacket->bank].nextPrecharge)
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-		break;
+		return (bankState.currentBankState == RowActive &&
+		        currentClockCycle >= bankState.nextPrecharge);
 	default:
 		ERROR("== Error - Trying to issue a crazy bus packet type : ");
 		busPacket->print();

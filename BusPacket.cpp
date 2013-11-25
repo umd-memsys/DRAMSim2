@@ -98,7 +98,7 @@ void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
 #endif 
 
 }
-void BusPacket::print()
+void BusPacket::print() const
 {
 	if (this == NULL) //pointer use makes this a necessary precaution
 	{

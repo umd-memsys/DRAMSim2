@@ -69,7 +69,7 @@ public:
 	//Functions
 	BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, void *dat, ostream &dramsim_log_);
 
-	void print();
+	void print() const;
 	void print(uint64_t currentClockCycle, bool dataStart);
 	void printData() const;
 

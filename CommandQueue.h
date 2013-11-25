@@ -70,7 +70,7 @@ public:
 	void enqueue(BusPacket *newBusPacket);
 	bool pop(BusPacket **busPacket);
 	bool hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned bank);
-	bool isIssuable(BusPacket *busPacket);
+	bool isIssuable(const BusPacket *busPacket) const;
 	bool isEmpty(unsigned rank);
 	void needRefresh(unsigned rank);
 	void print();
