@@ -44,7 +44,7 @@ Rank::Rank(MemoryController &memoryController_, ostream &dramsim_log_) :
 	refreshWaiting(false),
 	readReturnCountdown(0),
 	banks(cfg.NUM_BANKS, Bank(cfg, dramsim_log_)),
-	bankStates(cfg.NUM_BANKS, BankState(dramsim_log_))
+	bankStates(cfg.NUM_BANKS)
 
 {
 	outgoingDataPacket = NULL;
@@ -70,8 +70,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 {
 	if (cfg.DEBUG_BUS)
 	{
-		PRINTN(" -- R" << this->id << " Receiving On Bus    : ");
-		packet->print();
+		PRINT(" -- R" << this->id << " Receiving On Bus    : " << *packet);
 	}
 	if (cfg.VERIFICATION_OUTPUT)
 	{
@@ -86,7 +85,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 		        currentClockCycle < bankStates[packet->bank].nextRead ||
 		        packet->row != bankStates[packet->bank].openRowAddress)
 		{
-			packet->print();
+			PRINT(*packet);
 			ERROR("== Error - Rank " << id << " received a READ when not allowed");
 			exit(0);
 		}
@@ -144,9 +143,8 @@ void Rank::receiveFromBus(BusPacket *packet)
 		        currentClockCycle < bankStates[packet->bank].nextWrite ||
 		        packet->row != bankStates[packet->bank].openRowAddress)
 		{
-			ERROR("== Error - Rank " << id << " received a WRITE when not allowed");
-			bankStates[packet->bank].print();
-			exit(0);
+			ERROR("== Error - Rank " << id << " received a WRITE when not allowed: "<< bankStates[packet->bank]);
+			abort();
 		}
 
 		//update state table
@@ -193,10 +191,8 @@ void Rank::receiveFromBus(BusPacket *packet)
 		if (bankStates[packet->bank].currentBankState != Idle ||
 		        currentClockCycle < bankStates[packet->bank].nextActivate)
 		{
-			ERROR("== Error - Rank " << id << " received an ACT when not allowed");
-			packet->print();
-			bankStates[packet->bank].print();
-			exit(0);
+			ERROR("== Error - Rank " << id << " received an ACT when not allowed" << *packet << bankStates[packet->bank] << "\n");
+			abort();
 		}
 
 		bankStates[packet->bank].currentBankState = RowActive;
@@ -320,9 +316,7 @@ void Rank::update()
 
 		if (cfg.DEBUG_BUS)
 		{
-			PRINTN(" -- R" << this->id << " Issuing On Data Bus : ");
-			outgoingDataPacket->print();
-			PRINT("");
+			PRINT(" -- R" << this->id << " Issuing On Data Bus : " << *outgoingDataPacket);
 		}
 
 	}

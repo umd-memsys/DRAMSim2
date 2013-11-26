@@ -50,7 +50,7 @@ MemoryController::MemoryController(MemorySystem *parent, ostream &dramsim_log_) 
 		cfg(parent->cfg),
 		lastDumpCycle(0),
 		dramsim_log(dramsim_log_),
-		bankStates(cfg.NUM_RANKS, vector<BankState>(cfg.NUM_BANKS, dramsim_log)),
+		bankStates(cfg.NUM_RANKS, vector<BankState>(cfg.NUM_BANKS)),
 		readCB(NULL), 
 		writeCB(NULL),
 		powerCB(NULL), 
@@ -101,15 +101,13 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 {
 	if (bpacket->busPacketType != DATA)
 	{
-		ERROR("== Error - Memory Controller received a non-DATA bus packet from rank");
-		bpacket->print();
+		ERROR("== Error - Memory Controller received a non-DATA bus packet from rank" << *bpacket << "\n");
 		exit(0);
 	}
 
 	if (cfg.DEBUG_BUS)
 	{
-		PRINTN(" -- MC Receiving From Data Bus : ");
-		bpacket->print();
+		PRINTN(" -- MC Receiving From Data Bus : " << *bpacket << "\n");
 	}
 
 	//add to return read data queue
@@ -223,8 +221,7 @@ void MemoryController::update()
 			//send to bus and print debug stuff
 			if (cfg.DEBUG_BUS)
 			{
-				PRINTN(" -- MC Issuing On Data Bus    : ");
-				writeDataToSend[0]->print();
+				PRINT(" -- MC Issuing On Data Bus    : " << *writeDataToSend[0]);
 			}
 
 			// queue up the packet to be sent
@@ -274,7 +271,7 @@ void MemoryController::update()
 
 			writeDataToSend.push_back(new BusPacket(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,
 			                                    poppedBusPacket->row, poppedBusPacket->rank, poppedBusPacket->bank,
-			                                    poppedBusPacket->data, dramsim_log));
+			                                    poppedBusPacket->data));
 			writeDataCountdown.push_back(cfg.WL);
 		}
 
@@ -460,8 +457,7 @@ void MemoryController::update()
 		//issue on bus and print debug
 		if (cfg.DEBUG_BUS)
 		{
-			PRINTN(" -- MC Issuing On Command Bus : ");
-			poppedBusPacket->print();
+			PRINTN(" -- MC Issuing On Command Bus : " << *poppedBusPacket << "\n");
 		}
 
 		//check for collision on bus
@@ -518,13 +514,13 @@ void MemoryController::update()
 			//create activate command to the row we just translated
 			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
-					newTransactionBank, 0, dramsim_log);
+					newTransactionBank, 0);
 
 			//create read or write command and enqueue it
 			BusPacketType bpType = transaction->getBusPacketType(cfg);
 			BusPacket *command = new BusPacket(bpType, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
-					newTransactionBank, transaction->data, dramsim_log);
+					newTransactionBank, transaction->data);
 
 
 

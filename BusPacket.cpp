@@ -34,16 +34,15 @@
 //
 
 #include "ConfigIniReader.h"
+#include "PrintMacros.h"
 #include "BusPacket.h"
 
 using namespace DRAMSim;
 using namespace std;
 
 BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr, 
-		unsigned col, unsigned rw, unsigned r, unsigned b, void *dat, 
-		ostream &dramsim_log_) :
-	dramsim_log(dramsim_log_),
-	busPacketType(packtype),
+		unsigned col, unsigned rw, unsigned r, unsigned b, void *dat)
+	: busPacketType(packtype),
 	column(col),
 	row(rw),
 	bank(b),
@@ -98,60 +97,64 @@ void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
 #endif 
 
 }
-void BusPacket::print() const
-{
-	if (this == NULL) //pointer use makes this a necessary precaution
+
+ostream &BusPacket::print(ostream &out) const {
+	out << "BP [";
+	switch (busPacketType)
 	{
-		return;
-	}
-	else
-	{
-		switch (busPacketType)
-		{
 		case READ:
-			PRINT("BP [READ] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			out << "READ";
 			break;
 		case READ_P:
-			PRINT("BP [READ_P] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
-			break;
+			out << "READ_P";
+			break; 
 		case WRITE:
-			PRINT("BP [WRITE] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			out << "WRITE";
 			break;
 		case WRITE_P:
-			PRINT("BP [WRITE_P] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			out << "WRITE_P"; 
 			break;
 		case ACTIVATE:
-			PRINT("BP [ACT] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			out << "ACT"; 
 			break;
 		case PRECHARGE:
-			PRINT("BP [PRE] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			out << "PRE";
 			break;
 		case REFRESH:
-			PRINT("BP [REF] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]");
+			out << "REF";
 			break;
 		case DATA:
-			PRINTN("BP [DATA] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"] data["<<data<<"]=");
-			printData();
-			PRINT("");
+			out << "DATA"; 
 			break;
 		default:
 			ERROR("Trying to print unknown kind of bus packet");
 			exit(-1);
-		}
 	}
+	out << "] pa[0x"<<hex<<physicalAddress<<dec<<"] r["<<rank<<"] b["<<bank<<"] row["<<row<<"] col["<<column<<"]";
+	if (busPacketType == DATA) {
+		out << " ";
+		printData(out);
+	}
+	return out;
 }
 
-void BusPacket::printData() const 
+ostream &BusPacket::printData(ostream &out) const 
 {
-	if (data == NULL)
-	{
-		PRINTN("NO DATA");
-		return;
+	if (data == NULL) {
+		out << "NO DATA";
+		return out; 
 	}
-	PRINTN("'" << hex);
-	for (int i=0; i < 4; i++)
-	{
-		PRINTN(((uint64_t *)data)[i]);
+
+	out << "'" << hex;
+	for (int i=0; i < 4; i++) {
+		out << ((uint64_t *)data)[i];
 	}
-	PRINTN("'" << dec);
+	out << dec << "'";
+	return out; 
+}
+
+namespace DRAMSim {
+	ostream &operator<<(ostream &out, const BusPacket &bp) {
+		return bp.print(out);
+	}
 }

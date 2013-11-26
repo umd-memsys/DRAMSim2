@@ -46,8 +46,7 @@ using namespace std;
 using namespace DRAMSim;
 
 //All banks start precharged
-BankState::BankState(ostream &dramsim_log_):
-		dramsim_log(dramsim_log_),
+BankState::BankState():
 		currentBankState(Idle),
 		openRowAddress(0),
 		nextRead(0),
@@ -59,30 +58,31 @@ BankState::BankState(ostream &dramsim_log_):
 		stateChangeCountdown(0)
 {}
 
-void BankState::print()
+ostream &BankState::print(ostream &out) const
 {
-	PRINT(" == Bank State ");
+	out << " == Bank State \n";
+	out << "    State : ";
 	if (currentBankState == Idle)
-	{
-		PRINT("    State : Idle" );
-	}
+		out << "Idle";
 	else if (currentBankState == RowActive)
-	{
-		PRINT("    State : Active" );
-	}
+		out << "Active";
 	else if (currentBankState == Refreshing)
-	{
-		PRINT("    State : Refreshing" );
-	}
+		out << "Refreshing";
 	else if (currentBankState == PowerDown)
-	{
-		PRINT("    State : Power Down" );
-	}
+		out << "Power Down";
+	out <<"\n";
 
-	PRINT("    OpenRowAddress : " << openRowAddress );
-	PRINT("    nextRead       : " << nextRead );
-	PRINT("    nextWrite      : " << nextWrite );
-	PRINT("    nextActivate   : " << nextActivate );
-	PRINT("    nextPrecharge  : " << nextPrecharge );
-	PRINT("    nextPowerUp    : " << nextPowerUp );
+	out << "    OpenRowAddress : " << openRowAddress <<"\n";
+	out << "    nextRead       : " << nextRead <<"\n";
+	out << "    nextWrite      : " << nextWrite <<"\n";
+	out << "    nextActivate   : " << nextActivate <<"\n";
+	out << "    nextPrecharge  : " << nextPrecharge <<"\n";
+	out << "    nextPowerUp    : " << nextPowerUp <<"\n";
+	return out;
+}
+
+namespace DRAMSim {
+	ostream &operator<<(ostream &out, const BankState &bankState) {
+		return bankState.print(out);
+	}
 }

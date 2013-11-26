@@ -236,7 +236,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			//	reset flags and rank pointer
 			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
 			{
-				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, dramsim_log);
+				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0);
 				refreshRank = -1;
 				refreshWaiting = false;
 				sendingREF = true;
@@ -370,7 +370,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 					if (closeRow && currentClockCycle >= bankStates[refreshRank][b].nextPrecharge)
 					{
 						rowAccessCounters[refreshRank][b]=0;
-						*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, refreshRank, b, 0, dramsim_log);
+						*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, refreshRank, b, 0);
 						sendingREForPRE = true;
 					}
 					break;
@@ -389,7 +389,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			//	reset flags and rank pointer
 			if (sendREF && bankStates[refreshRank][0].currentBankState != PowerDown)
 			{
-				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0, dramsim_log);
+				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0);
 				refreshRank = -1;
 				refreshWaiting = false;
 				sendingREForPRE = true;
@@ -511,7 +511,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 							{
 								sendingPRE = true;
 								rowAccessCounters[nextRankPRE][nextBankPRE] = 0;
-								*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, nextRankPRE, nextBankPRE, 0, dramsim_log);
+								*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, nextRankPRE, nextBankPRE, 0);
 								break;
 							}
 						}
@@ -567,8 +567,7 @@ void CommandQueue::print() const
 			PRINT(" = Rank " << i << "  size : " << queues[i][0].size() );
 			for (size_t j=0;j<queues[i][0].size();j++)
 			{
-				PRINTN("    "<< j << "]");
-				queues[i][0][j]->print();
+				PRINTN("    "<< j << "]" << *queues[i][0][j]);
 			}
 		}
 	}
@@ -585,8 +584,7 @@ void CommandQueue::print() const
 
 				for (size_t k=0;k<queues[i][j].size();k++)
 				{
-					PRINTN("       " << k << "]");
-					queues[i][j][k]->print();
+					PRINTN("       " << k << "]" << (*queues[i][j][k]));
 				}
 			}
 		}
@@ -649,9 +647,8 @@ bool CommandQueue::isIssuable(const BusPacket *busPacket) const
 		return (bankState.currentBankState == RowActive &&
 		        currentClockCycle >= bankState.nextPrecharge);
 	default:
-		ERROR("== Error - Trying to issue a crazy bus packet type : ");
-		busPacket->print();
-		exit(0);
+		ERROR("== Error - Trying to issue a crazy bus packet type : " << *busPacket);
+		abort();
 	}
 	return false;
 }

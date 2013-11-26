@@ -43,7 +43,7 @@ namespace DRAMSim {
 
 Bank::Bank(const Config &cfg_, ostream &dramsim_log_):
 		cfg(cfg_),
-		currentState(dramsim_log_), 
+		currentState(), 
 		rowEntries(cfg.NUM_COLS),
 		dramsim_log(dramsim_log_)
 {}
@@ -139,7 +139,9 @@ void Bank::write(const BusPacket *busPacket)
 		if (cfg.DEBUG_BANKS)
 		{
 			PRINTN(" -- Bank "<<busPacket->bank<<" writing to physical address 0x" << hex << busPacket->physicalAddress<<dec<<":");
+#ifndef NO_STORAGE
 			busPacket->printData();
+#endif
 			PRINT("");
 		}
 	}
