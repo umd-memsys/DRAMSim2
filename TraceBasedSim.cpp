@@ -53,7 +53,7 @@
 #include <assert.h>
 #include "config.h"
 #ifdef HAS_GPERF 
-#include <gperftools/profiler.h>
+#include <google/profiler.h>
 #endif 
 
 enum TraceType

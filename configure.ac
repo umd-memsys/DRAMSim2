@@ -1,5 +1,8 @@
 AC_INIT([DRAMSim2], [2.4.0], [dramninjas@gmail.com])
+AM_INIT_AUTOMAKE([1.9.6 foreign])
 
+LT_INIT([shared])
+AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_HEADERS([config.h])
 # Checks for programs.
 AC_PROG_CXX
@@ -22,10 +25,11 @@ AC_CONFIG_FILES([Makefile])
 
 # check for google perftools 
 has_gperf=1
-AC_CHECK_HEADERS([gperftools/profiler.h], [], [has_gperf=0])
-AC_CHECK_LIB(profiler, ProfilerStart, [], has_gperf=0)
+AC_CHECK_HEADERS([google/profiler.h], [], [has_gperf=0])
+AC_CHECK_LIB([profiler], [ProfilerStart], [], [has_gperf=0])
 AS_IF([test "$has_gperf" = "1"], 
 		[LIBS="$LIBS -lprofiler"
+		 AC_MSG_NOTICE([Found gperf!])
 		 AC_DEFINE([HAS_GPERF], [1], [1 if found gperf library])
 		 ])
 
