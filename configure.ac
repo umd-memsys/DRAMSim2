@@ -25,12 +25,13 @@ AC_CONFIG_FILES([Makefile])
 
 # check for google perftools 
 has_gperf=1
+saved_LIBS = "$LIBS"
 AC_CHECK_HEADERS([google/profiler.h], [], [has_gperf=0])
 AC_CHECK_LIB([profiler], [ProfilerStart], [], [has_gperf=0])
 AS_IF([test "$has_gperf" = "1"], 
-		[LIBS="$LIBS -lprofiler"
-		 AC_MSG_NOTICE([Found gperf!])
+		[AC_MSG_NOTICE([Found gperf!])
 		 AC_DEFINE([HAS_GPERF], [1], [1 if found gperf library])
-		 ])
+		 ], 
+		 [LIBS="$saved_LIBS"])
 
 AC_OUTPUT
