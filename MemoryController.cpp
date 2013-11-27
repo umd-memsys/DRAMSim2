@@ -356,12 +356,10 @@ void MemoryController::update()
 				}
 				refreshEnergy[rank] += (cfg.IDD5 - cfg.IDD3N) * cfg.tRFC * cfg.NUM_DEVICES;
 
+				// FIXME: this results in an extra call to updateState since we already did it for one of the banks above, but, not a big deal 
 				for (size_t i=0;i<cfg.NUM_BANKS;i++)
 				{
-					bankStates[rank][i].nextActivate = currentClockCycle + cfg.tRFC;
-					bankStates[rank][i].currentBankState = Refreshing;
-					bankStates[rank][i].lastCommand = REFRESH;
-					bankStates[rank][i].stateChangeCountdown = cfg.tRFC;
+					bankStates[rank][i].updateState(*poppedBusPacket, currentClockCycle);
 				}
 
 				break;

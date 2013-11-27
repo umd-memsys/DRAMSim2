@@ -84,6 +84,7 @@ Bank::DataStruct *Bank::searchForRow(unsigned row, DataStruct *head)
 
 void Bank::read(BusPacket *busPacket)
 {
+#ifndef NO_STORAGE
 	DataStruct *rowHeadNode = rowEntries[busPacket->column];
 	DataStruct *foundNode = NULL;
 
@@ -102,11 +103,13 @@ void Bank::read(BusPacket *busPacket)
 
 	//the return packet should be a data packet, not a read packet
 	busPacket->busPacketType = DATA;
+#endif
 }
 
 
 void Bank::write(const BusPacket *busPacket)
 {
+#ifndef NO_STORAGE
 	//TODO: move all the error checking to BusPacket so once we have a bus packet,
 	//			we know the fields are all legal
 
@@ -139,11 +142,10 @@ void Bank::write(const BusPacket *busPacket)
 		if (cfg.DEBUG_BANKS)
 		{
 			PRINTN(" -- Bank "<<busPacket->bank<<" writing to physical address 0x" << hex << busPacket->physicalAddress<<dec<<":");
-#ifndef NO_STORAGE
 			busPacket->printData();
-#endif
 			PRINT("");
 		}
 	}
+#endif
 }
 } //namespace 

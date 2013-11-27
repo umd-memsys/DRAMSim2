@@ -41,11 +41,12 @@
 #include "BankState.h"
 
 using namespace std;
-using namespace DRAMSim;
 
 namespace DRAMSim
 {
-class MemoryController; //forward declaration
+
+class MemoryController; 
+
 class Rank : public SimulatorObject
 {
 private:
@@ -79,8 +80,10 @@ public:
 	vector<unsigned> readReturnCountdown;
 	vector<Bank> banks;
 	vector<BankState> bankStates;
+private: 
+	bool isTimingValid(BusPacket *packet) const;
 
 };
-}
+} //namespace 
 #endif
 
