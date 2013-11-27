@@ -50,7 +50,7 @@ MemoryController::MemoryController(MemorySystem *parent, ostream &dramsim_log_) 
 		cfg(parent->cfg),
 		lastDumpCycle(0),
 		dramsim_log(dramsim_log_),
-		bankStates(cfg.NUM_RANKS, vector<BankState>(cfg.NUM_BANKS)),
+		bankStates(cfg.NUM_RANKS, vector<BankState>(cfg.NUM_BANKS, cfg)),
 		readCB(NULL), 
 		writeCB(NULL),
 		powerCB(NULL), 
@@ -140,37 +140,11 @@ void MemoryController::update()
 	//PRINT(" ------------------------- [" << currentClockCycle << "] -------------------------");
 
 	//update bank states
-	for (size_t i=0;i<cfg.NUM_RANKS;i++)
+	for (size_t r=0;r<cfg.NUM_RANKS;r++)
 	{
-		for (size_t j=0;j<cfg.NUM_BANKS;j++)
+		for (size_t b=0;b<cfg.NUM_BANKS;b++)
 		{
-			if (bankStates[i][j].stateChangeCountdown>0)
-			{
-				//decrement counters
-				bankStates[i][j].stateChangeCountdown--;
-
-				//if counter has reached 0, change state
-				if (bankStates[i][j].stateChangeCountdown == 0)
-				{
-					switch (bankStates[i][j].lastCommand)
-					{
-						//only these commands have an implicit state change
-					case WRITE_P:
-					case READ_P:
-						bankStates[i][j].currentBankState = Precharging;
-						bankStates[i][j].lastCommand = PRECHARGE;
-						bankStates[i][j].stateChangeCountdown = cfg.tRP;
-						break;
-
-					case REFRESH:
-					case PRECHARGE:
-						bankStates[i][j].currentBankState = Idle;
-						break;
-					default:
-						break;
-					}
-				}
-			}
+			bankStates[r][b].updateStateChange();
 		}
 	}
 
@@ -275,12 +249,14 @@ void MemoryController::update()
 			writeDataCountdown.push_back(cfg.WL);
 		}
 
-		//
-		//update each bank's state based on the command that was just popped out of the command queue
-		//
-		//for readability's sake
 		unsigned rank = poppedBusPacket->rank;
 		unsigned bank = poppedBusPacket->bank;
+		/**
+		 * PR: Moved all code related to updating the "current" bank state into BankState.
+		 * This code now only focuses on updating the state of all the other banks that are not the current one.
+		 */
+		bankStates[rank][bank].updateState(*poppedBusPacket, currentClockCycle);
+
 		switch (poppedBusPacket->busPacketType)
 		{
 			case READ_P:
@@ -291,71 +267,35 @@ void MemoryController::update()
 					PRINT(" ++ Adding Read energy to total energy");
 				}
 				burstEnergy[rank] += (cfg.IDD4R - cfg.IDD3N) * cfg.BL/2 * cfg.NUM_DEVICES;
-				if (poppedBusPacket->busPacketType == READ_P) 
-				{
-					//Don't bother setting next read or write times because the bank is no longer active
-					//bankStates[rank][bank].currentBankState = Idle;
-					bankStates[rank][bank].nextActivate = max(currentClockCycle + cfg.READ_AUTOPRE_DELAY,
-							bankStates[rank][bank].nextActivate);
-					bankStates[rank][bank].lastCommand = READ_P;
-					bankStates[rank][bank].stateChangeCountdown = cfg.READ_TO_PRE_DELAY;
-				}
-				else if (poppedBusPacket->busPacketType == READ)
-				{
-					bankStates[rank][bank].nextPrecharge = max(currentClockCycle + cfg.READ_TO_PRE_DELAY,
-							bankStates[rank][bank].nextPrecharge);
-					bankStates[rank][bank].lastCommand = READ;
-
-				}
 
 				for (size_t i=0;i<cfg.NUM_RANKS;i++)
 				{
 					for (size_t j=0;j<cfg.NUM_BANKS;j++)
 					{
-						if (i!=poppedBusPacket->rank)
+						BankState &bankState = bankStates[i][j];
+						if (i != rank)
 						{
-							//check to make sure it is active before trying to set (save's time?)
-							if (bankStates[i][j].currentBankState == RowActive)
+							//check to make sure it is active before trying to set (saves time?)
+							if (bankState.currentBankState == RowActive)
 							{
-								bankStates[i][j].nextRead = max(currentClockCycle + cfg.BL/2 + cfg.tRTRS, bankStates[i][j].nextRead);
-								bankStates[i][j].nextWrite = max(currentClockCycle + cfg.READ_TO_WRITE_DELAY,
-										bankStates[i][j].nextWrite);
+								bankState.nextRead = max(currentClockCycle + cfg.BL/2 + cfg.tRTRS, bankState.nextRead);
+								bankState.nextWrite = max(currentClockCycle + cfg.READ_TO_WRITE_DELAY,
+										bankState.nextWrite);
 							}
 						}
 						else
 						{
-							bankStates[i][j].nextRead = max(currentClockCycle + max((unsigned)cfg.tCCD, cfg.BL/2), bankStates[i][j].nextRead);
-							bankStates[i][j].nextWrite = max(currentClockCycle + cfg.READ_TO_WRITE_DELAY,
-									bankStates[i][j].nextWrite);
+							bankState.nextRead = max(currentClockCycle + max((unsigned)cfg.tCCD, cfg.BL/2), bankState.nextRead);
+							bankState.nextWrite = max(currentClockCycle + cfg.READ_TO_WRITE_DELAY,
+									bankState.nextWrite);
 						}
 					}
 				}
 
-				if (poppedBusPacket->busPacketType == READ_P)
-				{
-					//set read and write to nextActivate so the state table will prevent a read or write
-					//  being issued (in cq.isIssuable())before the bank state has been changed because of the
-					//  auto-precharge associated with this command
-					bankStates[rank][bank].nextRead = bankStates[rank][bank].nextActivate;
-					bankStates[rank][bank].nextWrite = bankStates[rank][bank].nextActivate;
-				}
 
 				break;
 			case WRITE_P:
 			case WRITE:
-				if (poppedBusPacket->busPacketType == WRITE_P) 
-				{
-					bankStates[rank][bank].nextActivate = max(currentClockCycle + cfg.WRITE_AUTOPRE_DELAY,
-							bankStates[rank][bank].nextActivate);
-					bankStates[rank][bank].lastCommand = WRITE_P;
-					bankStates[rank][bank].stateChangeCountdown = cfg.WRITE_TO_PRE_DELAY;
-				}
-				else if (poppedBusPacket->busPacketType == WRITE)
-				{
-					bankStates[rank][bank].nextPrecharge = max(currentClockCycle + cfg.WRITE_TO_PRE_DELAY,
-							bankStates[rank][bank].nextPrecharge);
-					bankStates[rank][bank].lastCommand = WRITE;
-				}
 
 
 				//add energy to account for total
@@ -387,14 +327,6 @@ void MemoryController::update()
 					}
 				}
 
-				//set read and write to nextActivate so the state table will prevent a read or write
-				//  being issued (in cq.isIssuable())before the bank state has been changed because of the
-				//  auto-precharge associated with this command
-				if (poppedBusPacket->busPacketType == WRITE_P)
-				{
-					bankStates[rank][bank].nextRead = bankStates[rank][bank].nextActivate;
-					bankStates[rank][bank].nextWrite = bankStates[rank][bank].nextActivate;
-				}
 
 				break;
 			case ACTIVATE:
@@ -404,17 +336,6 @@ void MemoryController::update()
 					PRINT(" ++ Adding Activate and Precharge energy to total energy");
 				}
 				actpreEnergy[rank] += ((cfg.IDD0 * cfg.tRC) - ((cfg.IDD3N * cfg.tRAS) + (cfg.IDD2N * (cfg.tRC - cfg.tRAS)))) * cfg.NUM_DEVICES;
-
-				bankStates[rank][bank].currentBankState = RowActive;
-				bankStates[rank][bank].lastCommand = ACTIVATE;
-				bankStates[rank][bank].openRowAddress = poppedBusPacket->row;
-				bankStates[rank][bank].nextActivate = max(currentClockCycle + cfg.tRC, bankStates[rank][bank].nextActivate);
-				bankStates[rank][bank].nextPrecharge = max(currentClockCycle + cfg.tRAS, bankStates[rank][bank].nextPrecharge);
-
-				//if we are using posted-CAS, the next column access can be sooner than normal operation
-
-				bankStates[rank][bank].nextRead = max(currentClockCycle + (cfg.tRCD-cfg.AL), bankStates[rank][bank].nextRead);
-				bankStates[rank][bank].nextWrite = max(currentClockCycle + (cfg.tRCD-cfg.AL), bankStates[rank][bank].nextWrite);
 
 				for (size_t i=0;i<cfg.NUM_BANKS;i++)
 				{
@@ -426,11 +347,6 @@ void MemoryController::update()
 
 				break;
 			case PRECHARGE:
-				bankStates[rank][bank].currentBankState = Precharging;
-				bankStates[rank][bank].lastCommand = PRECHARGE;
-				bankStates[rank][bank].stateChangeCountdown = cfg.tRP;
-				bankStates[rank][bank].nextActivate = max(currentClockCycle + cfg.tRP, bankStates[rank][bank].nextActivate);
-
 				break;
 			case REFRESH:
 				//add energy to account for total

@@ -29,19 +29,8 @@
 *********************************************************************************/
 
 
-
-
-
-
-
-
 #ifndef BANKSTATE_H
 #define BANKSTATE_H
-
-//BankState.h
-//
-//Header file for bank state class
-//
 
 #include "SystemConfiguration.h"
 #include "BusPacket.h"
@@ -71,9 +60,14 @@ public:
 
 	BusPacketType lastCommand;
 	unsigned stateChangeCountdown;
+	
+	const Config &cfg;
 
 	//Functions
-	BankState();
+	BankState(const Config &cfg_);
+	void updateStateChange();
+	void updateState(const BusPacket &bp, uint64_t currentClockCycle);
+
 	ostream &print(ostream &) const;
 };
 ostream &operator<<(ostream &out, const BankState &bankState);

@@ -44,7 +44,7 @@ Rank::Rank(MemoryController &memoryController_, ostream &dramsim_log_) :
 	refreshWaiting(false),
 	readReturnCountdown(0),
 	banks(cfg.NUM_BANKS, Bank(cfg, dramsim_log_)),
-	bankStates(cfg.NUM_BANKS)
+	bankStates(cfg.NUM_BANKS, cfg)
 
 {
 	outgoingDataPacket = NULL;

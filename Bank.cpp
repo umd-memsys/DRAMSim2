@@ -43,7 +43,7 @@ namespace DRAMSim {
 
 Bank::Bank(const Config &cfg_, ostream &dramsim_log_):
 		cfg(cfg_),
-		currentState(), 
+		currentState(cfg_), 
 		rowEntries(cfg.NUM_COLS),
 		dramsim_log(dramsim_log_)
 {}

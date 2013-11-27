@@ -29,24 +29,15 @@
 *********************************************************************************/
 
 
-
-
-
-
-
-
-//BankState.cpp
-//
-//Class file for bank state object
-//
-
+#include "ConfigIniReader.h"
 #include "BankState.h"
 
 using namespace std;
 using namespace DRAMSim;
 
 //All banks start precharged
-BankState::BankState():
+BankState::BankState(const Config &cfg_)
+	: cfg(cfg_),
 		currentBankState(Idle),
 		openRowAddress(0),
 		nextRead(0),
@@ -57,6 +48,103 @@ BankState::BankState():
 		lastCommand(READ),
 		stateChangeCountdown(0)
 {}
+
+void BankState::updateState(const BusPacket &bp, uint64_t currentClockCycle) {
+
+	lastCommand = bp.busPacketType;
+
+	if (bp.busPacketType == READ_P) {
+		nextActivate = max(currentClockCycle + cfg.READ_AUTOPRE_DELAY, nextActivate);
+		stateChangeCountdown = cfg.READ_TO_PRE_DELAY;
+
+		//set read and write to nextActivate so the state table will prevent a read or write
+		//  being issued (in cq.isIssuable())before the bank state has been changed because of the
+		//  auto-precharge associated with this command
+		nextRead = nextActivate;
+		nextWrite = nextActivate;
+	}
+
+	else if (bp.busPacketType == READ) {
+		nextPrecharge = max(currentClockCycle + cfg.READ_TO_PRE_DELAY, nextPrecharge);
+	}
+
+	else if (bp.busPacketType == WRITE_P) {
+		nextActivate = max(currentClockCycle + cfg.WRITE_AUTOPRE_DELAY, nextActivate);
+		stateChangeCountdown = cfg.WRITE_TO_PRE_DELAY;
+
+		//set read and write to nextActivate so the state table will prevent a read or write
+		//  being issued (in cq.isIssuable())before the bank state has been changed because of the
+		//  auto-precharge associated with this command
+		nextRead = nextActivate;
+		nextWrite = nextActivate;
+	}
+
+	else if (bp.busPacketType == WRITE) {
+		nextPrecharge = max(currentClockCycle + cfg.WRITE_TO_PRE_DELAY, nextPrecharge);
+	}
+
+	else if (bp.busPacketType == ACTIVATE) {
+		currentBankState = RowActive;
+		openRowAddress = bp.row;
+		nextActivate = max(currentClockCycle + cfg.tRC, nextActivate);
+		nextPrecharge = max(currentClockCycle + cfg.tRAS, nextPrecharge);
+
+		//if we are using posted-CAS, the next column access can be sooner than normal operation
+
+		nextRead = max(currentClockCycle + (cfg.tRCD-cfg.AL), nextRead);
+		nextWrite = max(currentClockCycle + (cfg.tRCD-cfg.AL), nextWrite);
+	}
+
+	else if (bp.busPacketType == PRECHARGE) {
+		currentBankState = Precharging;
+		stateChangeCountdown = cfg.tRP;
+		nextActivate = max(currentClockCycle + cfg.tRP, nextActivate);
+	}
+	else if (bp.busPacketType == REFRESH) {
+		nextActivate = currentClockCycle + cfg.tRFC;
+		currentBankState = Refreshing;
+		stateChangeCountdown = cfg.tRFC;
+	}
+
+	else if (bp.busPacketType == DATA) {
+		// no-op 
+	}
+
+	else {
+		ERROR("== Error - Popped a command we shouldn't have of type : " << bp);
+		abort();
+	}
+}
+
+void BankState::updateStateChange() {
+	if (stateChangeCountdown>0)
+	{
+		//decrement counters
+		stateChangeCountdown--;
+
+		//if counter has reached 0, change state
+		if (stateChangeCountdown == 0)
+		{
+			switch (lastCommand)
+			{
+				//only these commands have an implicit state change
+				case WRITE_P:
+				case READ_P:
+					currentBankState = Precharging;
+					lastCommand = PRECHARGE;
+					stateChangeCountdown = cfg.tRP;
+					break;
+
+				case REFRESH:
+				case PRECHARGE:
+					currentBankState = Idle;
+					break;
+				default:
+					break;
+			}
+		}
+	}
+}
 
 ostream &BankState::print(ostream &out) const
 {
