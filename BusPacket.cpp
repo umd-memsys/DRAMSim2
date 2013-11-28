@@ -36,6 +36,7 @@
 #include "ConfigIniReader.h"
 #include "PrintMacros.h"
 #include "BusPacket.h"
+#include "Transaction.h"
 
 using namespace DRAMSim;
 using namespace std;
@@ -48,7 +49,8 @@ BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr,
 	bank(b),
 	rank(r),
 	physicalAddress(physicalAddr),
-	data(dat)
+	data(dat), 
+	sourceTransaction(NULL)
 {}
 
 void BusPacket::print(uint64_t currentClockCycle, bool dataStart)

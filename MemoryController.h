@@ -63,7 +63,7 @@ public:
 
 	bool addTransaction(Transaction *trans);
 	bool WillAcceptTransaction();
-	void returnReadData(const Transaction *trans);
+	bool returnReadData(const Transaction *trans);
 	void receiveFromBus(BusPacket *bpacket);
 	void attachRanks(vector<Rank *> *ranks);
 	void update();
@@ -96,8 +96,7 @@ private:
 	vector<unsigned>refreshCountdown;
 	vector<BusPacket *> writeDataToSend;
 	vector<unsigned> writeDataCountdown;
-	vector<Transaction *> returnTransaction;
-	vector<Transaction *> pendingReadTransactions;
+	vector<Transaction *> returnTransactions;
 	map<unsigned,unsigned> latencies; // latencyValue -> latencyCount
 	vector<bool> powerDown;
 

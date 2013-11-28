@@ -110,9 +110,11 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 	{
 		PRINTN(" -- MC Receiving From Data Bus : " << *bpacket << "\n");
 	}
+	Transaction *transactionForBusPacket = bpacket->sourceTransaction;
+	assert(transactionForBusPacket);
+	transactionForBusPacket->transactionType = RETURN_DATA;
 
-	//add to return read data queue
-	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, addressMapper, bpacket->data));
+	returnTransactions.push_back(transactionForBusPacket); 
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
 
 	// this delete statement saves a mindboggling amount of memory
@@ -120,12 +122,13 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 }
 
 //sends read data back to the CPU
-void MemoryController::returnReadData(const Transaction *trans)
+bool MemoryController::returnReadData(const Transaction *trans)
 {
 	if (readCB != NULL)
 	{
 		(*readCB)(parentMemorySystem->systemID, trans->address, currentClockCycle);
 	}
+	return true; 
 }
 
 //gives the memory controller a handle on the rank objects
@@ -243,10 +246,11 @@ void MemoryController::update()
 	{
 		if (poppedBusPacket->busPacketType == WRITE || poppedBusPacket->busPacketType == WRITE_P)
 		{
-
-			writeDataToSend.push_back(new BusPacket(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,
+			BusPacket *dataPacket = new BusPacket(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,
 			                                    poppedBusPacket->row, poppedBusPacket->rank, poppedBusPacket->bank,
-			                                    poppedBusPacket->data));
+			                                    poppedBusPacket->data);
+			dataPacket->setSourceTransaction(poppedBusPacket->sourceTransaction);
+			writeDataToSend.push_back(dataPacket);
 			writeDataCountdown.push_back(cfg.WL);
 		}
 
@@ -431,29 +435,29 @@ void MemoryController::update()
 			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
 					newTransactionBank, 0);
+			ACTcommand->setSourceTransaction(transaction);
 
 			//create read or write command and enqueue it
 			BusPacketType bpType = transaction->getBusPacketType(cfg);
 			BusPacket *command = new BusPacket(bpType, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
 					newTransactionBank, transaction->data);
-
+			command->setSourceTransaction(transaction);
 
 
 			commandQueue.enqueue(ACTcommand);
 			commandQueue.enqueue(command);
 
-			// If we have a read, save the transaction so when the data comes back
-			// in a bus packet, we can staple it back into a transaction and return it
-			if (transaction->transactionType == DATA_READ)
+			/**
+			 * Keep the READ transactions around; we will need them later on for
+			 * when their bus packets come back to the MC; all others don't need a
+			 * response
+			 */
+			if (transaction->transactionType != DATA_READ)
 			{
-				pendingReadTransactions.push_back(transaction);
-			}
-			else
-			{
-				// just delete the transaction now that it's a buspacket
 				delete transaction; 
 			}
+
 			/* only allow one transaction to be scheduled per cycle -- this should
 			 * be a reasonable assumption considering how much logic would be
 			 * required to schedule multiple entries per cycle (parallel data
@@ -557,45 +561,21 @@ void MemoryController::update()
 	}
 
 	//check for outstanding data to return to the CPU
-	if (returnTransaction.size()>0)
+	if (returnTransactions.size()>0)
 	{
+		Transaction *returnTransaction = returnTransactions[0];
+
 		if (cfg.DEBUG_BUS)
 		{
-			PRINTN(" -- MC Issuing to CPU bus : " << *returnTransaction[0]);
+			PRINTN(" -- MC Issuing to CPU bus : " << *returnTransaction);
 		}
 		totalTransactions++;
+		// stats 
 
-		bool foundMatch=false;
-		//find the pending read transaction to calculate latency
-		for (size_t i=0;i<pendingReadTransactions.size();i++)
-		{
-			if (pendingReadTransactions[i]->address == returnTransaction[0]->address)
-			{
-				//if(currentClockCycle - pendingReadTransactions[i]->timeAdded > 2000)
-				//	{
-				//		pendingReadTransactions[i]->print();
-				//		exit(0);
-				//	}
-				Transaction *t = returnTransaction[0];
-				unsigned rank = t->address.rank;
-				unsigned bank = t->address.bank;
-				insertHistogram(currentClockCycle-pendingReadTransactions[i]->timeAdded,rank,bank);
-				//return latency
-				returnReadData(pendingReadTransactions[i]);
-
-				delete pendingReadTransactions[i];
-				pendingReadTransactions.erase(pendingReadTransactions.begin()+i);
-				foundMatch=true; 
-				break;
-			}
+		if (returnReadData(returnTransaction)) {
+			returnTransactions.erase(returnTransactions.begin());
+			insertHistogram(currentClockCycle - returnTransaction->timeAdded,returnTransaction->address.rank,returnTransaction->address.bank);
 		}
-		if (!foundMatch)
-		{
-			ERROR("Can't find a matching transaction for 0x"<<hex<<returnTransaction[0]->address<<dec);
-			abort(); 
-		}
-		delete returnTransaction[0];
-		returnTransaction.erase(returnTransaction.begin());
 	}
 
 	//decrement refresh counters
@@ -851,13 +831,6 @@ void MemoryController::printStats(CSVWriter *CSVOut, bool finalStats)
 	}
 
 
-	PRINT(endl<< " == Pending Transactions : "<<pendingReadTransactions.size()<<" ("<<currentClockCycle<<")==");
-	/*
-	for(size_t i=0;i<pendingReadTransactions.size();i++)
-		{
-			PRINT( i << "] I've been waiting for "<<currentClockCycle-pendingReadTransactions[i].timeAdded<<endl;
-		}
-	*/
 #ifdef LOG_OUTPUT
 	dramsim_log.flush();
 #endif
@@ -872,13 +845,10 @@ MemoryController::~MemoryController()
 	}
 	//ERROR("MEMORY CONTROLLER DESTRUCTOR");
 	//abort();
-	for (size_t i=0; i<pendingReadTransactions.size(); i++)
+
+	for (size_t i=0; i<returnTransactions.size(); i++)
 	{
-		delete pendingReadTransactions[i];
-	}
-	for (size_t i=0; i<returnTransaction.size(); i++)
-	{
-		delete returnTransaction[i];
+		delete returnTransactions[i];
 	}
 
 }

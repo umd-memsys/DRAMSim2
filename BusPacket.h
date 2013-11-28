@@ -46,6 +46,7 @@ namespace DRAMSim
 	};
 
 	class Config; 
+	class Transaction;
 	class BusPacket
 	{
 		BusPacket();
@@ -58,14 +59,20 @@ namespace DRAMSim
 		unsigned rank;
 		uint64_t physicalAddress;
 		void *data;
+		Transaction *sourceTransaction;
+
+		public:
 
 		//Functions
 		BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, void *dat);
 
+		void setSourceTransaction(Transaction *t) {
+			sourceTransaction = t; 
+		}
+
 		ostream &print(ostream &out) const;
 		void print(uint64_t currentClockCycle, bool dataStart);
 		ostream &printData(ostream &out) const;
-
 	};
 	ostream &operator<<(ostream &out, const BusPacket &bp);
 }
