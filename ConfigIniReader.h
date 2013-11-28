@@ -60,10 +60,11 @@ class ConfigOption {
 		setAfterDefault(false)
 	{}
 
-	void set(const T &value_) {
-		value=T(value_);
+	/*
+	void set(const T &value_) { value=T(value_);
 		setAfterDefault=true; 
 	}
+	*/
 
 	void set(const std::string &value_str) {
 		this->optionValueString = value_str; 
@@ -71,6 +72,7 @@ class ConfigOption {
 		iss >> std::boolalpha >> this->value; 
 		setAfterDefault = true; 
 	}
+
 	const std::string &getName() const {
 		return optionName; 
 	}
@@ -107,36 +109,10 @@ class ConfigOption {
 
 };
 
-
-enum AddressMappingScheme
-{
-	Scheme1,
-	Scheme2,
-	Scheme3,
-	Scheme4,
-	Scheme5,
-	Scheme6,
-	Scheme7
-};
-
+// We need a str::string specialization so we don't run the plain string it through isstringstream
 template <>
-inline void ConfigOption<AddressMappingScheme>::set(const std::string &value_str) {
-	if (value_str == "Scheme1")
-		value=Scheme1; 
-	else if (value_str == "Scheme2")
-		value=Scheme2; 
-	else if (value_str == "Scheme3")
-		value=Scheme3; 
-	else if (value_str == "Scheme4")
-		value=Scheme4; 
-	else if (value_str == "Scheme5")
-		value=Scheme5; 
-	else if (value_str == "Scheme6")
-		value=Scheme6; 
-	else if (value_str == "Scheme7")
-		value=Scheme7; 
-	else 
-		std::cerr << "WARNING: Unknown value '"<< value_str<<"' for option "<<getName()<<", using default\n";
+inline void ConfigOption<std::string>::set(const std::string &value_str) {
+	value = value_str;
 }
 
 // Template specialization for enums setters from strings 

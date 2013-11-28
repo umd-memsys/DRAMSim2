@@ -1,6 +1,6 @@
 /*********************************************************************************
-*  Copyright (c) 2010-2011, Elliott Cooper-Balis
-*                             Paul Rosenfeld
+*  Copyright (c) 2010-2013,  Paul Rosenfeld
+*                             Elliott Cooper-Balis
 *                             Bruce Jacob
 *                             University of Maryland 
 *                             dramninjas [at] gmail [dot] com
@@ -27,289 +27,133 @@
 *  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
+
+#include <assert.h>
 #include "SystemConfiguration.h"
+#include "Util.h"
+#include "util.h"
 #include "AddressMapping.h"
-#include "ConfigIniReader.h"
+#include <string.h> //memset
 
-namespace DRAMSim
-{
+using namespace std; 
 
-void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsigned &newTransactionRank, unsigned &newTransactionBank, unsigned &newTransactionRow, unsigned &newTransactionColumn, const Config &cfg)
-{
-	uint64_t tempA, tempB;
-	unsigned transactionSize = (cfg.JEDEC_DATA_BUS_BITS/8)*cfg.BL; 
-	unsigned channelBitWidth = dramsim_log2(cfg.NUM_CHANS);
-	unsigned	rankBitWidth = dramsim_log2(cfg.NUM_RANKS);
-	unsigned	bankBitWidth = dramsim_log2(cfg.NUM_BANKS);
-	unsigned	rowBitWidth = dramsim_log2(cfg.NUM_ROWS);
-	unsigned	colBitWidth = dramsim_log2(cfg.NUM_COLS);
-	// this forces the alignment to the width of a single burst (64 bits = 8 bytes = 3 address bits for DDR parts)
-	unsigned	byteOffsetWidth = dramsim_log2((cfg.JEDEC_DATA_BUS_BITS/8));
-	// Since we're assuming that a request is for BL*BUS_WIDTH, the bottom bits
-	// of this address *should* be all zeros if it's not, issue a warning
+namespace DRAMSim {
 
-#if WARN_ALIGNMENT
-	if ((physicalAddress & transactionMask) != 0)
+	const char * FieldStrings[] = {
+		"chan",
+		"rk",
+		"bk",
+		"rw",
+		"ch",
+		"cl",
+		"of",
+		NULL
+	};
+	/************************ Address *********************/
+
+
+	Address::Address(uint64_t addr_)
+		: physicalAddress(addr_)
+		, channel(fields[CHANNEL_FIELD])
+		, rank(fields[RANK_FIELD])
+		, bank(fields[BANK_FIELD])
+		, row(fields[ROW_FIELD])
+		, colHi(fields[COL_HI_FIELD])
+		, colLo(fields[COL_LO_FIELD])
 	{
-		uint64_t transactionMask =  transactionSize - 1; //ex: (64 bit bus width) x (8 Burst Length) - 1 = 64 bytes - 1 = 63 = 0x3f mask DEBUG("WARNING: address 0x"<<std::hex<<physicalAddress<<std::dec<<" is not aligned to the request size of "<<transactionSize); 
-	}
-#endif
-
-
-	// each burst will contain JEDEC_DATA_BUS_BITS/8 bytes of data, so the bottom bits (3 bits for a single channel DDR system) are
-	// 	thrown away before mapping the other bits
-	physicalAddress >>= byteOffsetWidth;
-
-	// The next thing we have to consider is that when a request is made for a
-	// we've taken into account the granulaity of a single burst by shifting 
-	// off the bottom 3 bits, but a transaction has to take into account the
-	// burst length (i.e. the requests will be aligned to cache line sizes which
-	// should be equal to transactionSize above). 
-	//
-	// Since the column address increments internally on bursts, the bottom n 
-	// bits of the column (colLow) have to be zero in order to account for the 
-	// total size of the transaction. These n bits should be shifted off the 
-	// address and also subtracted from the total column width. 
-	//
-	// I am having a hard time explaining the reasoning here, but it comes down
-	// this: for a 64 byte transaction, the bottom 6 bits of the address must be 
-	// zero. These zero bits must be made up of the byte offset (3 bits) and also
-	// from the bottom bits of the column 
-	// 
-	// For example: cowLowBits = log2(64bytes) - 3 bits = 3 bits 
-	unsigned colLowBitWidth = dramsim_log2(transactionSize) - byteOffsetWidth;
-
-	physicalAddress >>= colLowBitWidth;
-	unsigned colHighBitWidth = colBitWidth - colLowBitWidth; 
-	if (cfg.DEBUG_ADDR_MAP)
-	{
-		DEBUG("Bit widths: ch:"<<channelBitWidth<<" r:"<<rankBitWidth<<" b:"<<bankBitWidth
-				<<" row:"<<rowBitWidth<<" colLow:"<<colLowBitWidth
-				<< " colHigh:"<<colHighBitWidth<<" off:"<<byteOffsetWidth 
-				<< " Total:"<< (channelBitWidth + rankBitWidth + bankBitWidth + rowBitWidth + colLowBitWidth + colHighBitWidth + byteOffsetWidth));
+		memset(fields, 0, sizeof(fields));
 	}
 
-	//perform various address mapping schemes
-	if (cfg.ADDRESS_MAPPING_SCHEME == Scheme1)
-	{
-		//chan:rank:row:col:bank
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> channelBitWidth;
-		tempB = physicalAddress << channelBitWidth;
-		newTransactionChan = tempA ^ tempB;
-
-	}
-	else if (cfg.ADDRESS_MAPPING_SCHEME == Scheme2)
-	{
-		//chan:row:col:bank:rank
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> channelBitWidth;
-		tempB = physicalAddress << channelBitWidth;
-		newTransactionChan = tempA ^ tempB;
-
-	}
-	else if (cfg.ADDRESS_MAPPING_SCHEME == Scheme3)
-	{
-		//chan:rank:bank:col:row
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> channelBitWidth;
-		tempB = physicalAddress << channelBitWidth;
-		newTransactionChan = tempA ^ tempB;
-
-	}
-	else if (cfg.ADDRESS_MAPPING_SCHEME == Scheme4)
-	{
-		//chan:rank:bank:row:col
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> channelBitWidth;
-		tempB = physicalAddress << channelBitWidth;
-		newTransactionChan = tempA ^ tempB;
-
-	}
-	else if (cfg.ADDRESS_MAPPING_SCHEME == Scheme5)
-	{
-		//chan:row:col:rank:bank
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> channelBitWidth;
-		tempB = physicalAddress << channelBitWidth;
-		newTransactionChan = tempA ^ tempB;
-
-
-	}
-	else if (cfg.ADDRESS_MAPPING_SCHEME == Scheme6)
-	{
-		//chan:row:bank:rank:col
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> channelBitWidth;
-		tempB = physicalAddress << channelBitWidth;
-		newTransactionChan = tempA ^ tempB;
-
-
-	}
-	// clone of scheme 5, but channel moved to lower bits
-	else if (cfg.ADDRESS_MAPPING_SCHEME == Scheme7)
-	{
-		//row:col:rank:bank:chan
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> channelBitWidth;
-		tempB = physicalAddress << channelBitWidth;
-		newTransactionChan = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> bankBitWidth;
-		tempB = physicalAddress << bankBitWidth;
-		newTransactionBank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rankBitWidth;
-		tempB = physicalAddress << rankBitWidth;
-		newTransactionRank = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> colHighBitWidth;
-		tempB = physicalAddress << colHighBitWidth;
-		newTransactionColumn = tempA ^ tempB;
-
-		tempA = physicalAddress;
-		physicalAddress = physicalAddress >> rowBitWidth;
-		tempB = physicalAddress << rowBitWidth;
-		newTransactionRow = tempA ^ tempB;
-
+	bool Address::operator==(const Address &other) const {
+		return physicalAddress == other.physicalAddress;
 	}
 
-	else
-	{
-		ERROR("== Error - Unknown Address Mapping Scheme");
-		exit(-1);
-	}
-	if (cfg.DEBUG_ADDR_MAP)
-	{
-		DEBUG("Mapped Ch="<<newTransactionChan<<" Rank="<<newTransactionRank
-				<<" Bank="<<newTransactionBank<<" Row="<<newTransactionRow
-				<<" Col="<<newTransactionColumn<<"\n"); 
+	ostream &Address::print(ostream &out) const {
+		out << "0x"<<std::hex << physicalAddress << std::dec<< " [c: "<<channel<<", rk: "<<rank<<", b: "<<bank<<", r:"<<row<<", c:"<<col<<"]";
+		return out; 
 	}
 
-}
-};
+	ostream &operator<<(ostream &out, const Address &addr) {
+		return addr.print(out);
+	}
+/********************* AddressMapper ********************/
+	AddressMapper::AddressMapper (const Config &cfg_, unsigned *fieldOrder_) 
+		: cfg(cfg_) 
+	{
+		memcpy(fieldOrder, fieldOrder_, sizeof(fieldOrder));
+
+		fieldWidths[CHANNEL_FIELD]  = dramsim_log2(cfg.NUM_CHANS);
+		fieldWidths[RANK_FIELD]  = dramsim_log2(cfg.NUM_RANKS);
+		fieldWidths[BANK_FIELD]  = dramsim_log2(cfg.NUM_BANKS);
+		fieldWidths[ROW_FIELD]   = dramsim_log2(cfg.NUM_ROWS);
+
+		if (cfg.DEBUG_ADDR_MAP) 
+			PRINT("Widths: channel:"<<fieldWidths[CHANNEL_FIELD]<<" rank:"<<fieldWidths[RANK_FIELD]<<" bank:"<<fieldWidths[BANK_FIELD]<<" row:"<<fieldWidths[ROW_FIELD]<<" colHi:"<<fieldWidths[COL_HI_FIELD]<<" colLow:"<<fieldWidths[COL_LO_FIELD]<<" offset:"<<fieldWidths[OFFSET_FIELD]<<endl);
+	}
+
+	void AddressMapper::map(Address &address, unsigned transactionSize) {
+		// TODO: maybe: make this function const by copying fieldWidths each time
+		unsigned burstWidth = dramsim_log2(cfg.JEDEC_DATA_BUS_BITS/8);
+		unsigned transactionWidth = dramsim_log2(transactionSize); 
+		unsigned colLowWidth = transactionWidth - burstWidth; 
+		fieldWidths[COL_LO_FIELD] = colLowWidth; 
+		fieldWidths[COL_HI_FIELD] = dramsim_log2(cfg.NUM_COLS) - colLowWidth;
+		fieldWidths[OFFSET_FIELD] = transactionWidth - colLowWidth;
+
+		uint64_t inputAddress = address.physicalAddress;
+
+		unsigned bitCounter=0;
+		for (unsigned i=0; i<END_FIELD; ++i) {
+			unsigned fieldIndex = fieldOrder[i];
+			unsigned fieldWidth = fieldWidths[fieldIndex];
+			unsigned field = ExtractField(inputAddress, bitCounter, fieldWidth);
+			address.fields[fieldIndex] = field;
+			bitCounter += fieldWidth;
+		}
+
+		address.col = (address.colHi << fieldWidths[COL_LO_FIELD]) + address.colLo;
+		
+		if (cfg.DEBUG_ADDR_MAP) {
+			PRINT("Widths: channel:"<<fieldWidths[CHANNEL_FIELD]<<" rank:"<<fieldWidths[RANK_FIELD]<<" bank:"<<fieldWidths[BANK_FIELD]<<" row:"<<fieldWidths[ROW_FIELD]<<" colHi:"<<fieldWidths[COL_HI_FIELD]<<" colLow:"<<fieldWidths[COL_LO_FIELD]<<" offset:"<<fieldWidths[OFFSET_FIELD]<<endl);
+			PRINT("Mapped 0x"<<std::hex<<address.physicalAddress<<std::dec<<" to channel="<<address.channel<<", rank="<<address.rank<<", bank="<<address.bank<<", row="<<address.row<<", col="<<address.col<<" colHi="<<address.colHi<<endl);
+		}
+	}
+
+	unsigned *AddressMapper::FieldOrderFromString(const std::string &str, bool verbose) {
+		list<string> pieces = split(str, ":");
+		if (pieces.size() != END_FIELD) {
+			ERROR("Your address mapping scheme '"<<str<<"' does not have the proper number of fields; it should have "<<END_FIELD<<" fields but only has "<<pieces.size());
+			abort();
+		}
+		
+		unsigned *fieldOrder = new unsigned[END_FIELD];
+		unsigned fieldIndex = 0;
+		for (list<string>::const_iterator it = pieces.begin(); it != pieces.end(); ++it) {
+			const string &piece = *it; 
+			if (verbose) {
+				PRINT("piece='"<<piece<<"'");
+			}
+			// TODO: move this inner loop to its own function 
+			bool foundMatch=false;
+			for (unsigned i=0; i<END_FIELD; ++i) {
+				/* if this field matches, set the fieldOrder variable to the equivalent enum value */
+				if (piece == FieldStrings[i]) {
+					PRINT(piece);
+					// i is the enum index
+					fieldOrder[fieldIndex] = i;
+					if (verbose) {
+						PRINT("\t'"<<piece<<"': setting fieldOrder["<<fieldIndex<<"] = " << i);
+					}
+					foundMatch = true;
+					fieldIndex++;
+					break;
+				}
+			}
+			assert(foundMatch);
+		}
+		// make sure that the number of fields matches the number in the string
+		assert(fieldIndex == END_FIELD);
+		return(fieldOrder);
+	}
+
+} // namespace

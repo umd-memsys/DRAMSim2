@@ -58,7 +58,7 @@ class MemoryController : public SimulatorObject
 friend class Rank; 
 public:
 	//functions
-	MemoryController(MemorySystem* ms, ostream &dramsim_log_);
+	MemoryController(MemorySystem* parentMemorySystem_, AddressMapper &addressMapper, ostream &dramsim_log_);
 	virtual ~MemoryController();
 
 	bool addTransaction(Transaction *trans);
@@ -80,6 +80,7 @@ private:
 
 	MemorySystem *parentMemorySystem;
 	const Config &cfg; 
+	AddressMapper &addressMapper;
 
 	uint64_t lastDumpCycle; 
 	ostream &dramsim_log;

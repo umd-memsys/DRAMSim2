@@ -34,8 +34,8 @@
 //Transaction.h
 //
 //Header file for transaction object
-
 #include "SystemConfiguration.h"
+#include "AddressMapping.h"
 #include "BusPacket.h"
 
 using std::ostream; 
@@ -55,7 +55,7 @@ class Transaction
 public:
 	//fields
 	TransactionType transactionType;
-	uint64_t address;
+	Address address;
 	void *data;
 	uint64_t timeAdded;
 	uint64_t timeReturned;
@@ -63,7 +63,7 @@ public:
 
 	friend ostream &operator<<(ostream &os, const Transaction &t);
 	//functions
-	Transaction(TransactionType transType, uint64_t addr, void *data);
+	Transaction(TransactionType transType, uint64_t addr, AddressMapper &addressMapper_, void *data);
 
 	BusPacketType getBusPacketType(const Config &cfg) const;
 private:

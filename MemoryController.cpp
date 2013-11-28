@@ -45,9 +45,10 @@
 
 using namespace DRAMSim;
 
-MemoryController::MemoryController(MemorySystem *parent, ostream &dramsim_log_) :
-		parentMemorySystem(parent),
-		cfg(parent->cfg),
+MemoryController::MemoryController(MemorySystem *parentMemorySystem_, AddressMapper &addressMapper_, ostream &dramsim_log_) :
+		parentMemorySystem(parentMemorySystem_),
+		cfg(parentMemorySystem->cfg),
+		addressMapper(addressMapper_),
 		lastDumpCycle(0),
 		dramsim_log(dramsim_log_),
 		bankStates(cfg.NUM_RANKS, vector<BankState>(cfg.NUM_BANKS, cfg)),
@@ -111,7 +112,7 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 	}
 
 	//add to return read data queue
-	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, bpacket->data));
+	returnTransaction.push_back(new Transaction(RETURN_DATA, bpacket->physicalAddress, addressMapper, bpacket->data));
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
 
 	// this delete statement saves a mindboggling amount of memory
@@ -393,13 +394,14 @@ void MemoryController::update()
 		//	will eventually add policies here
 		Transaction *transaction = transactionQueue[i];
 
-		//map address to rank,bank,row,col
-		unsigned newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn;
+		// FIXME: Keeping these names to avoid find/replace, they need to be renamed 
+		unsigned newTransactionChan   = transaction->address.channel;
+		unsigned newTransactionRank   = transaction->address.rank;
+		unsigned newTransactionBank   = transaction->address.bank;
+		unsigned newTransactionRow    = transaction->address.row;
+		unsigned newTransactionColumn = transaction->address.col;
 
-		// pass these in as references so they get set by the addressMapping function
-		addressMapping(transaction->address, newTransactionChan, newTransactionRank, newTransactionBank, newTransactionRow, newTransactionColumn, cfg);
-
-		//if we have room, break up the transaction into the appropriate commands
+				//if we have room, break up the transaction into the appropriate commands
 		//and add them to the command queue
 		if (commandQueue.hasRoomFor(2, newTransactionRank, newTransactionBank))
 		{
@@ -574,8 +576,9 @@ void MemoryController::update()
 				//		pendingReadTransactions[i]->print();
 				//		exit(0);
 				//	}
-				unsigned chan,rank,bank,row,col;
-				addressMapping(returnTransaction[0]->address,chan,rank,bank,row,col, cfg);
+				Transaction *t = returnTransaction[0];
+				unsigned rank = t->address.rank;
+				unsigned bank = t->address.bank;
 				insertHistogram(currentClockCycle-pendingReadTransactions[i]->timeAdded,rank,bank);
 				//return latency
 				returnReadData(pendingReadTransactions[i]);

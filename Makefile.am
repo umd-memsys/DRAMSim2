@@ -16,7 +16,8 @@ libdramsim_la_SOURCES = AddressMapping.cpp \
 	Rank.cpp \
 	SimulatorObject.cpp \
 	Transaction.cpp \
-	Util.cpp
+	Util.cpp \
+	util.cpp
 
 # These are the only public headers needed to use the DRAMSimInterface 
 include_HEADERS = CSVWriter.h \

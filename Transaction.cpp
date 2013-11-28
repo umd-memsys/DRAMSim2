@@ -44,11 +44,14 @@ using std::dec;
 
 namespace DRAMSim {
 
-Transaction::Transaction(TransactionType transType, uint64_t addr, void *dat) :
+Transaction::Transaction(TransactionType transType, uint64_t addr, AddressMapper &addressMapper_, void *dat) :
 	transactionType(transType),
 	address(addr),
 	data(dat)
-{}
+{
+	// FIXME: make dynamically settable 
+	addressMapper_.map(address, 64);
+}
 
 
 ostream &operator<<(ostream &os, const Transaction &t)

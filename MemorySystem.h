@@ -54,13 +54,14 @@ class Config;
 class CSVWriter; 
 class Rank; 
 class Transaction; 
+class AddressMapper;
 
 
 class MemorySystem : public SimulatorObject
 {
 public:
 	//functions
-	MemorySystem(unsigned id, unsigned megsOfMemory, const Config &cfg_, ostream &dramsim_log_);
+	MemorySystem(unsigned id, unsigned megsOfMemory, const Config &cfg_, AddressMapper &addressMapper, ostream &dramsim_log_);
 	virtual ~MemorySystem();
 	void update();
 	bool addTransaction(Transaction *trans);
@@ -72,6 +73,7 @@ public:
 	//fields
 	const Config &cfg; 
 	ostream &dramsim_log;
+	AddressMapper &addressMapper;
 	MemoryController memoryController;
 	vector<Rank *> *ranks;
 	deque<Transaction *> pendingTransactions; 
