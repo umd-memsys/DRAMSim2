@@ -2,7 +2,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 # DRAMSim2 library 
 lib_LTLIBRARIES = libdramsim.la
-libdramsim_la_CPPFLAGS = -DNO_STORAGE
+libdramsim_la_CPPFLAGS = -DNO_STORAGE -g -O3 -march=native
 libdramsim_la_SOURCES = AddressMapping.cpp \
 	Bank.cpp \
 	BankState.cpp \

@@ -24,7 +24,7 @@ AC_PREFIX_DEFAULT($PWD)
 AC_CONFIG_FILES([Makefile])
 
 # check for google perftools 
-has_gperf=0
+has_gperf=1
 saved_LIBS = "$LIBS"
 AC_CHECK_HEADERS([google/profiler.h], [], [has_gperf=0])
 AC_CHECK_LIB([profiler], [ProfilerStart], [], [has_gperf=0])
