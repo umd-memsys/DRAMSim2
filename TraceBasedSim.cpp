@@ -408,6 +408,12 @@ bool parseLineAndTryAdd(const string &line, TraceType traceType, DRAMSimInterfac
 
 int main(int argc, char **argv)
 {
+#ifdef GIT_VERSION
+	std::cerr << "********************************************************************************\n";
+	std::cerr << "* DRAMSim2: built from:" stringify(GIT_VERSION)<<"\n";
+	std::cerr << "********************************************************************************\n";
+
+#endif
 	int c;
 	TraceType traceType;
 	string traceFileName;
