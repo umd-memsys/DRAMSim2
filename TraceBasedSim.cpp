@@ -495,6 +495,7 @@ int main(int argc, char **argv)
 			break;
 		case 'P':
 #ifdef HAS_GPERF
+			std::cerr << "Enabling CPU Profiler\n";
 			enableCPUprofiler=true;
 #else
 			std::cerr << "No gperf support detected, ignoring flag\n"; 
@@ -581,8 +582,10 @@ int main(int argc, char **argv)
 	bool lastTransactionSucceeded=true; 
 
 #if HAS_GPERF
-	static const char *gperf_filename = "DRAMSim.gperf.prof";
-	ProfilerStart(gperf_filename);
+	if (enableCPUprofiler) {
+		static const char *gperf_filename = "DRAMSim.gperf.prof";
+		ProfilerStart(gperf_filename);
+	}
 #endif
 
 	traceFile.open(traceFileName.c_str());
@@ -621,7 +624,9 @@ int main(int argc, char **argv)
 	traceFile.close();
 	memorySystem->simulationDone();
 #ifdef HAS_GPERF
-	ProfilerStop();
+	if (enableCPUprofiler) {
+		ProfilerStop();
+	}
 #endif 
 #ifdef RETURN_TRANSACTIONS
 	transactionReceiver.simulationDone(numCycles);
