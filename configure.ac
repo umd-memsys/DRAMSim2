@@ -28,7 +28,7 @@ CXXFLAGS='-g -O3 -march=native'
 
 # check for google perftools 
 has_gperf=1
-saved_LIBS = "$LIBS"
+saved_LIBS="$LIBS"
 AC_CHECK_HEADERS([google/profiler.h], [], [has_gperf=0])
 AC_CHECK_LIB([profiler], [ProfilerStart], [], [has_gperf=0])
 AS_IF([test "$has_gperf" = "1"], 
