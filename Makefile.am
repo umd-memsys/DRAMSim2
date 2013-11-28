@@ -1,8 +1,11 @@
 ACLOCAL_AMFLAGS = -I m4
 
+GIT_BRANCH=$(shell git branch | grep '\*' | awk '{print $$2}')
+GIT_VERSION=$(shell git describe)
+GIT_DESCRIPTION=-DGIT_VERSION=$(GIT_VERSION)-$(GIT_BRANCH)
 # DRAMSim2 library 
 lib_LTLIBRARIES = libdramsim.la
-libdramsim_la_CPPFLAGS = -DNO_STORAGE -g -O3 -march=native
+libdramsim_la_CPPFLAGS = -DNO_STORAGE $(GIT_DESCRIPTION)
 libdramsim_la_SOURCES = AddressMapping.cpp \
 	Bank.cpp \
 	BankState.cpp \
@@ -26,7 +29,7 @@ include_HEADERS = CSVWriter.h \
 
 # TraceBasedSim binary (./DRAMSim)
 bin_PROGRAMS = DRAMSim
-DRAMSim_CPPFLAGS = -DNO_STORAGE
+DRAMSim_CPPFLAGS = -DNO_STORAGE $(GIT_DESCRIPTION)
 DRAMSim_SOURCES = TraceBasedSim.cpp
 DRAMSim_LDADD = libdramsim.la
 
