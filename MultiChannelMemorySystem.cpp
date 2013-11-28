@@ -28,7 +28,6 @@
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
 #include "MultiChannelMemorySystem.h"
-#include "AddressMapping.h"
 #include "MemorySystem.h"
 #include "Transaction.h"
 #include "IniReader.h"
@@ -48,6 +47,7 @@ using namespace DRAMSim;
  */ 
 MultiChannelMemorySystem::MultiChannelMemorySystem(const Config &cfg_, ostream &logFile_)
 	: cfg(cfg_) 
+	, addressMapper(cfg, AddressMapper::FieldOrderFromString(cfg.ADDRESS_MAPPING_SCHEME, false))
 	, clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update))
 	, CSVOut(NULL)
 	, dumpInterval(0)
@@ -69,7 +69,7 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const Config &cfg_, ostream &
 
 	for (size_t i=0; i<cfg.NUM_CHANS; i++)
 	{
-		MemorySystem *channel = new MemorySystem(i, cfg.megsOfMemory/cfg.NUM_CHANS, cfg, dramsim_log);
+		MemorySystem *channel = new MemorySystem(i, cfg.megsOfMemory/cfg.NUM_CHANS, cfg, addressMapper, dramsim_log);
 		channels.push_back(channel);
 	}
 }
@@ -142,10 +142,12 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 				"I don't know what Intel was thinking, but trying to address map half a bit is a neat trick that we're not sure how to do"); 
 		abort(); 
 	}
-
+	
+	Address tmpAddr(addr);
+	// FIXME: needs to be dynamic based on request size 
+	addressMapper.map(tmpAddr, (cfg.JEDEC_DATA_BUS_BITS * cfg.BL)/8);
 	// only chan is used from this set 
-	unsigned channelNumber,rank,bank,row,col;
-	addressMapping(addr, channelNumber, rank, bank, row, col,cfg); 
+	unsigned channelNumber = tmpAddr.channel;
 	if (channelNumber >= cfg.NUM_CHANS)
 	{
 		ERROR("Got channel index "<<channelNumber<<" but only "<<cfg.NUM_CHANS<<" exist"); 
@@ -173,7 +175,7 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 DRAMSimTransaction *MultiChannelMemorySystem::makeTransaction(bool isWrite, uint64_t addr, unsigned requestSize) {
 	if (willAcceptTransaction(isWrite, addr)) {
 		TransactionType type = isWrite ? DATA_WRITE : DATA_READ; 
-		return (DRAMSimTransaction *)(new Transaction(type, addr, NULL)); 
+		return (DRAMSimTransaction *)(new Transaction(type, addr, addressMapper,NULL)); 
 	}
 	return NULL; 
 }

@@ -20,7 +20,7 @@ PARAM(unsigned,CMD_QUEUE_DEPTH,64) // command queue, i.e., DRAM-level commands s
 PARAM(unsigned,EPOCH_LENGTH,100000) // length of an epoch in cycles (granularity of simulation stats)
 
 PARAM(DRAMSim::RowBufferPolicy,ROW_BUFFER_POLICY,OpenPage) // OpenPage or ClosePage
-PARAM(DRAMSim::AddressMappingScheme,ADDRESS_MAPPING_SCHEME,Scheme7) //valid Schemes 1-7; For multiple independent channels, use Scheme7 since it has the most parallelism 
+PARAM(std::string,ADDRESS_MAPPING_SCHEME,"of:cl:chan:bk:rk:ch:rw")
 PARAM(DRAMSim::SchedulingPolicy,SCHEDULING_POLICY,RankThenBankRoundRobin) // BankThenRankRoundRobin or RankThenBankRoundRobin 
 PARAM(DRAMSim::QueuingStructure,QUEUING_STRUCTURE,PerRank) //PerRank or PerRankPerBank
 

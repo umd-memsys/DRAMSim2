@@ -36,6 +36,7 @@
 #include "ClockDomain.h"
 #include "Util.h"
 
+#include "AddressMapping.h"
 
 using std::vector;
 namespace DRAMSim {
@@ -78,12 +79,9 @@ class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 		printStats(false); 
 	}
 
-	//output file
-	
-
-
 	private:
 		const Config &cfg; 
+		AddressMapper addressMapper;
 
 		unsigned findChannelNumber(uint64_t addr);
 		void actual_update(); 

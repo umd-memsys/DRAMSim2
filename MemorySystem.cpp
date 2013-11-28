@@ -42,6 +42,7 @@
 #include "Rank.h"
 #include "Transaction.h"
 #include "ConfigIniReader.h"
+#include "AddressMapping.h"
 
 using namespace std;
 
@@ -50,10 +51,11 @@ ofstream cmd_verify_out; //used in Rank.cpp and MemoryController.cpp if VERIFICA
 
 namespace DRAMSim {
 
-MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, const Config &cfg_, ostream &dramsim_log_) :
+MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, const Config &cfg_, AddressMapper &addressMapper_, ostream &dramsim_log_) :
 		cfg(cfg_),
 		dramsim_log(dramsim_log_),
-		memoryController(this, dramsim_log),
+		addressMapper(addressMapper_), 
+		memoryController(this, addressMapper, dramsim_log),
 		systemID(id)
 {
 	DEBUG("===== MemorySystem "<<systemID<<" =====");
@@ -102,7 +104,7 @@ bool MemorySystem::WillAcceptTransaction()
 bool MemorySystem::addTransaction(bool isWrite, uint64_t addr)
 {
 	TransactionType type = isWrite ? DATA_WRITE : DATA_READ;
-	Transaction *trans = new Transaction(type,addr,NULL);
+	Transaction *trans = new Transaction(type,addr,addressMapper,NULL);
 
 	if (memoryController.WillAcceptTransaction()) 
 	{
