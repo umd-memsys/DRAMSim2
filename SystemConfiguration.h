@@ -57,6 +57,8 @@ namespace DRAMSim
 //
 //FUNCTIONS
 //
+#define _stringify(x) #x
+#define stringify(x) _stringify(x)
 
 unsigned inline dramsim_log2(unsigned value)
 {
