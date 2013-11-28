@@ -23,6 +23,9 @@ AC_PREFIX_DEFAULT($PWD)
 
 AC_CONFIG_FILES([Makefile])
 
+# TODO: add a flag for this and for debug mode 
+CXXFLAGS='-g -O3 -march=native'
+
 # check for google perftools 
 has_gperf=1
 saved_LIBS = "$LIBS"
