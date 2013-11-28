@@ -36,5 +36,5 @@ DRAMSim_LDADD = libdramsim.la
 .PHONY: symlinks
 
 symlinks:
-	ln -s $(top_srcdir)/ini/ $(prefix)/ini
-	ln -s $(top_srcdir)/traces/ $(prefix)/traces
+	-ln -s $(top_srcdir)/ini/ $(prefix)/ini
+	-ln -s $(top_srcdir)/traces/ $(prefix)/traces
