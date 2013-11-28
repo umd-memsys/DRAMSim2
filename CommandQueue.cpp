@@ -488,16 +488,17 @@ bool CommandQueue::pop(BusPacket **busPacket)
 
 				do // round robin over all ranks and banks
 				{
+					BankState &bankState = bankStates[nextRankPRE][nextBankPRE];
 					vector <BusPacket *> &queue = getCommandQueue(nextRankPRE, nextBankPRE);
 					bool found = false;
 					//check if bank is open
-					if (bankStates[nextRankPRE][nextBankPRE].currentBankState == RowActive)
+					if (bankState.currentBankState == RowActive)
 					{
 						for (size_t i=0;i<queue.size();i++)
 						{
 							//if there is something going to that bank and row, then we don't want to send a PRE
 							if (queue[i]->bank == nextBankPRE &&
-									queue[i]->row == bankStates[nextRankPRE][nextBankPRE].openRowAddress)
+									queue[i]->row == bankState.openRowAddress)
 							{
 								found = true;
 								break;
@@ -507,7 +508,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 						//if nothing found going to that bank and row or too many accesses have happend, close it
 						if (!found || rowAccessCounters[nextRankPRE][nextBankPRE]==cfg.TOTAL_ROW_ACCESSES)
 						{
-							if (currentClockCycle >= bankStates[nextRankPRE][nextBankPRE].nextPrecharge)
+							if (currentClockCycle >= bankState.nextPrecharge)
 							{
 								sendingPRE = true;
 								rowAccessCounters[nextRankPRE][nextBankPRE] = 0;
