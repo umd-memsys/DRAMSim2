@@ -31,6 +31,12 @@
 #ifndef _BUSPACKET_H_
 #define _BUSPACKET_H_
 
+#include <vector>
+//FIXME: move code out of header and forward delcare this instead  
+#include "ConfigIniReader.h"
+#include "AddressMapping.h"
+
+using std::vector;
 namespace DRAMSim
 {
 	enum BusPacketType
@@ -50,9 +56,13 @@ namespace DRAMSim
 	class BusPacket
 	{
 		BusPacket();
+
+		vector<BusPacket *> dependencies;
+		vector<BusPacket *> notifyList;
 		public:
 		//Fields
 		BusPacketType busPacketType;
+		uint64_t address;
 		unsigned column;
 		unsigned row;
 		unsigned bank;
@@ -61,13 +71,69 @@ namespace DRAMSim
 		void *data;
 		Transaction *sourceTransaction;
 
+		unsigned globalBankId; 
+		unsigned globalRowId; 
+
+
 		public:
 
 		//Functions
-		BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, void *dat);
+		BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, const Config &cfg, void *dat);
 
 		void setSourceTransaction(Transaction *t) {
 			sourceTransaction = t; 
+		}
+
+		inline bool hasDependencies() {
+			return !dependencies.empty();
+		}
+
+		bool isDependent(BusPacket *other) const {
+			// TODO: check ACTIVATE; currently, ACTIVATE can be sent with a refresh(?)
+			// before checking banks/rows, make sure every packet is dependent on a refresh 
+			if (other->busPacketType == REFRESH && this->rank == other->rank) {
+				return true; 
+			}
+
+			// otherwise, the most likely case is they simply aren't going to the same bank
+			if (this->globalBankId != other->globalBankId) {
+				return false;
+			}
+
+			// all requests to same row must be serialized
+			if (this->globalRowId == other->globalRowId) {
+				return true; 
+			}
+
+			// TODO: any other cases: going to same bank, but different rows
+			return false; 
+		}
+
+		void clearDependency(const BusPacket *dependentBP) {
+			// should only be one dep in our list, so might be enough to just return after the erase()
+			for (vector<BusPacket *>::iterator it = dependencies.begin(); it != dependencies.end(); ) {
+				if (*it == dependentBP) {
+					it = dependencies.erase(it);
+				} else {
+					++it;
+				}
+			}
+		}
+
+		void notifyAllDependents() {
+			for (size_t i=0; i<notifyList.size(); ++i) {
+				notifyList[i]->clearDependency(this);
+			}
+			notifyList.clear();
+		}
+
+		void addNotifyList(BusPacket *reverseDependency) {
+			notifyList.push_back(reverseDependency);
+		}
+
+		void setDependsOn(BusPacket *dependentBP) {
+			this->dependencies.push_back(dependentBP); 	
+			dependentBP->addNotifyList(this);
 		}
 
 		ostream &print(ostream &out) const;

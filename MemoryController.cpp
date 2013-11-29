@@ -248,7 +248,7 @@ void MemoryController::update()
 		{
 			BusPacket *dataPacket = new BusPacket(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,
 			                                    poppedBusPacket->row, poppedBusPacket->rank, poppedBusPacket->bank,
-			                                    poppedBusPacket->data);
+															cfg,  poppedBusPacket->data);
 			dataPacket->setSourceTransaction(poppedBusPacket->sourceTransaction);
 			writeDataToSend.push_back(dataPacket);
 			writeDataCountdown.push_back(cfg.WL);
@@ -434,16 +434,17 @@ void MemoryController::update()
 			//create activate command to the row we just translated
 			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
-					newTransactionBank, 0);
+					newTransactionBank, cfg, NULL);
 			ACTcommand->setSourceTransaction(transaction);
 
 			//create read or write command and enqueue it
 			BusPacketType bpType = transaction->getBusPacketType(cfg);
 			BusPacket *command = new BusPacket(bpType, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
-					newTransactionBank, transaction->data);
+					newTransactionBank, cfg, transaction->data);
 			command->setSourceTransaction(transaction);
 
+			command->setDependsOn(ACTcommand);
 
 			commandQueue.enqueue(ACTcommand);
 			commandQueue.enqueue(command);

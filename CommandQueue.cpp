@@ -127,31 +127,17 @@ void CommandQueue::enqueue(BusPacket *newBusPacket)
 {
 	unsigned rank = newBusPacket->rank;
 	unsigned bank = newBusPacket->bank;
-	if (cfg.QUEUING_STRUCTURE==PerRank)
-	{
-		queues[rank][0].push_back(newBusPacket);
-		if (queues[rank][0].size()>cfg.CMD_QUEUE_DEPTH)
-		{
-			ERROR("== Error - Enqueued more than allowed in command queue");
-			ERROR("						Need to call .hasRoomFor(int numberToEnqueue, unsigned rank, unsigned bank) first");
-			exit(0);
+
+	vector<BusPacket *> &queue = getCommandQueue(rank, bank);
+	assert(queue.size() < cfg.CMD_QUEUE_DEPTH && "Queue Overrun, did you call hasRoomFor()?");
+
+	// Scan the queue and add any dependencies for this packet 
+	for (size_t i=0, end = queue.size(); i<end; ++i) {
+		if (newBusPacket->isDependent(queue[i])) {
+			newBusPacket->setDependsOn(queue[i]);
 		}
 	}
-	else if (cfg.QUEUING_STRUCTURE==PerRankPerBank)
-	{
-		queues[rank][bank].push_back(newBusPacket);
-		if (queues[rank][bank].size()>cfg.CMD_QUEUE_DEPTH)
-		{
-			ERROR("== Error - Enqueued more than allowed in command queue");
-			ERROR("						Need to call .hasRoomFor(int numberToEnqueue, unsigned rank, unsigned bank) first");
-			exit(0);
-		}
-	}
-	else
-	{
-		ERROR("== Error - Unknown queuing structure");
-		exit(0);
-	}
+	queue.push_back(newBusPacket);
 }
 
 //Removes the next item from the command queue based on the system's
@@ -236,7 +222,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			//	reset flags and rank pointer
 			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
 			{
-				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0);
+				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, cfg, NULL);
 				refreshRank = -1;
 				refreshWaiting = false;
 				sendingREF = true;
@@ -370,7 +356,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 					if (closeRow && currentClockCycle >= bankStates[refreshRank][b].nextPrecharge)
 					{
 						rowAccessCounters[refreshRank][b]=0;
-						*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, refreshRank, b, 0);
+						*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, refreshRank, b, cfg, NULL);
 						sendingREForPRE = true;
 					}
 					break;
@@ -389,7 +375,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			//	reset flags and rank pointer
 			if (sendREF && bankStates[refreshRank][0].currentBankState != PowerDown)
 			{
-				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, 0);
+				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, cfg, NULL);
 				refreshRank = -1;
 				refreshWaiting = false;
 				sendingREForPRE = true;
@@ -512,7 +498,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 							{
 								sendingPRE = true;
 								rowAccessCounters[nextRankPRE][nextBankPRE] = 0;
-								*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, nextRankPRE, nextBankPRE, 0);
+								*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, nextRankPRE, nextBankPRE, cfg, NULL);
 								break;
 							}
 						}

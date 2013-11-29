@@ -32,6 +32,7 @@
 #define _ADDRESS_MAPPING_H_
 
 #include <iostream>
+#include <stdint.h>
 #include <assert.h>
 using std::ostream;
 

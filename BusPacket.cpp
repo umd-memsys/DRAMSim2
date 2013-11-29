@@ -42,7 +42,7 @@ using namespace DRAMSim;
 using namespace std;
 
 BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr, 
-		unsigned col, unsigned rw, unsigned r, unsigned b, void *dat)
+		unsigned col, unsigned rw, unsigned r, unsigned b, const Config &cfg, void *dat)
 	: busPacketType(packtype),
 	column(col),
 	row(rw),
@@ -50,7 +50,10 @@ BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr,
 	rank(r),
 	physicalAddress(physicalAddr),
 	data(dat), 
-	sourceTransaction(NULL)
+	sourceTransaction(NULL), 
+	// don't bother accounting for channels since they are truly independent
+	globalBankId(rank*cfg.NUM_BANKS + bank), 
+	globalRowId(globalBankId * cfg.NUM_ROWS + row)
 {}
 
 void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
