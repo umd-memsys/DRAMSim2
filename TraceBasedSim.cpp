@@ -49,6 +49,7 @@
 #include "Transaction.h"
 #include "ConfigIniReader.h"
 #include "IniReader.h"
+#include "util.h"
 #include "CSVWriter.h"
 #include <assert.h>
 #include "config.h"
@@ -408,12 +409,15 @@ bool parseLineAndTryAdd(const string &line, TraceType traceType, DRAMSimInterfac
 
 int main(int argc, char **argv)
 {
-#ifdef GIT_VERSION
 	std::cerr << "********************************************************************************\n";
-	std::cerr << "* DRAMSim2: built from:" stringify(GIT_VERSION)<<"\n";
+	std::cerr << "* DRAMSim2: A Cycle-Accurate DRAM Simulator built from:" stringify(GIT_VERSION)<<"\n";
+	std::cerr << "                                                                               *\n";
+#ifdef GIT_VERSION
+	std::cerr << "* 	built from: " stringify(GIT_VERSION)<<"\n";
+#endif
+	std::cerr << "*                                                                               \n";
 	std::cerr << "********************************************************************************\n";
 
-#endif
 	int c;
 	TraceType traceType;
 	string traceFileName;
@@ -428,7 +432,7 @@ int main(int argc, char **argv)
 	
 	OptionsMap paramOverrides; 
 
-	unsigned numCycles=1000;
+	uint64_t numCycles=1000;
 	//getopt stuff
 	while (1)
 	{
@@ -482,10 +486,10 @@ int main(int argc, char **argv)
 			deviceIniFilename = string(optarg);
 			break;
 		case 'c':
-			numCycles = atoi(optarg);
+			convert(numCycles, optarg);
 			break;
 		case 'S':
-			megsOfMemory=atoi(optarg);
+			convert(megsOfMemory, optarg);
 			break;
 		case 'p':
 			pwdString = string(optarg);
@@ -609,21 +613,23 @@ int main(int argc, char **argv)
 		}
 		// otherwise, grab the next line from the trace and try to send it
 		else {
-			if (!traceFile.eof())
-			{
-				// skip any blank lines in the trace 
-				while (true) {
-					getline(traceFile, line);
-					lineNumber++;
-					if (line.length() == 0) {
-						DEBUG("Skipping blank line "<<lineNumber<<"\n");
-					} else {
-						break;
-					}
+			while (true) {
+				getline(traceFile, line);
+				if (traceFile.eof()) {
+					// we can't break because there's nothing to add, so use an 'evil' goto to jump out of this loop 
+					goto updateAndContinue;
 				}
-				lastTransactionSucceeded = parseLineAndTryAdd(line, traceType, memorySystem, i, useClockCycle);
+				lineNumber++;
+				if (line.length() == 0) {
+					DEBUG("Skipping blank line "<<lineNumber<<"\n");
+					continue;
+				} else {
+					break;
+				}
 			}
+			lastTransactionSucceeded = parseLineAndTryAdd(line, traceType, memorySystem, i, useClockCycle);
 		}
+updateAndContinue:
 		memorySystem->update();
 	} // end main loop 
 
