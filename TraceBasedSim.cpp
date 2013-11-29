@@ -49,6 +49,7 @@
 #include "Transaction.h"
 #include "ConfigIniReader.h"
 #include "IniReader.h"
+#include "util.h"
 #include "CSVWriter.h"
 #include <assert.h>
 #include "config.h"
@@ -431,7 +432,7 @@ int main(int argc, char **argv)
 	
 	OptionsMap paramOverrides; 
 
-	unsigned numCycles=1000;
+	uint64_t numCycles=1000;
 	//getopt stuff
 	while (1)
 	{
@@ -485,10 +486,10 @@ int main(int argc, char **argv)
 			deviceIniFilename = string(optarg);
 			break;
 		case 'c':
-			numCycles = atoi(optarg);
+			convert(numCycles, optarg);
 			break;
 		case 'S':
-			megsOfMemory=atoi(optarg);
+			convert(megsOfMemory, optarg);
 			break;
 		case 'p':
 			pwdString = string(optarg);
