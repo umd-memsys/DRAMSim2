@@ -613,21 +613,23 @@ int main(int argc, char **argv)
 		}
 		// otherwise, grab the next line from the trace and try to send it
 		else {
-			if (!traceFile.eof())
-			{
-				// skip any blank lines in the trace 
-				while (true) {
-					getline(traceFile, line);
-					lineNumber++;
-					if (line.length() == 0) {
-						DEBUG("Skipping blank line "<<lineNumber<<"\n");
-					} else {
-						break;
-					}
+			while (true) {
+				getline(traceFile, line);
+				if (traceFile.eof()) {
+					// we can't break because there's nothing to add, so use an 'evil' goto to jump out of this loop 
+					goto updateAndContinue;
 				}
-				lastTransactionSucceeded = parseLineAndTryAdd(line, traceType, memorySystem, i, useClockCycle);
+				lineNumber++;
+				if (line.length() == 0) {
+					DEBUG("Skipping blank line "<<lineNumber<<"\n");
+					continue;
+				} else {
+					break;
+				}
 			}
+			lastTransactionSucceeded = parseLineAndTryAdd(line, traceType, memorySystem, i, useClockCycle);
 		}
+updateAndContinue:
 		memorySystem->update();
 	} // end main loop 
 
