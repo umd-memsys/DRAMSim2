@@ -158,7 +158,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 		}
 
 		//the head will always be the smallest counter, so check if it has reached 0
-		if (tFAWCountdown[i].size()>0 && tFAWCountdown[i][0]==0)
+		if (!tFAWCountdown[i].empty() && tFAWCountdown[i][0]==0)
 		{
 			tFAWCountdown[i].erase(tFAWCountdown[i].begin());
 		}

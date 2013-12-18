@@ -244,7 +244,7 @@ void Rank::update()
 	}
 
 
-	if (readReturnCountdown.size() > 0 && readReturnCountdown[0]==0)
+	if (!readReturnCountdown.empty() && readReturnCountdown[0]==0)
 	{
 		// RL time has passed since the read was issued; this packet is
 		// ready to go out on the bus

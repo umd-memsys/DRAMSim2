@@ -187,7 +187,7 @@ void MemoryController::update()
 	//then send data on bus
 	//
 	//write data held in fifo vector along with countdowns
-	if (writeDataCountdown.size() > 0)
+	if (!writeDataCountdown.empty())
 	{
 		for (size_t i=0;i<writeDataCountdown.size();i++)
 		{
@@ -562,7 +562,7 @@ void MemoryController::update()
 	}
 
 	//check for outstanding data to return to the CPU
-	if (returnTransactions.size()>0)
+	if (!returnTransactions.empty())
 	{
 		Transaction *returnTransaction = returnTransactions[0];
 
