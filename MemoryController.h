@@ -77,6 +77,8 @@ public:
 private:
 	//functions
 	void insertHistogram(unsigned latencyValue, unsigned rank, unsigned bank);
+	bool schedulePendingTransaction();
+	void updateOtherBankStates(const BusPacket *poppedBusPacket);
 
 	MemorySystem *parentMemorySystem;
 	const Config &cfg; 
@@ -92,7 +94,6 @@ private:
 	PowerCallback_t *powerCB;
 
 	CommandQueue commandQueue;
-	BusPacket *poppedBusPacket;
 	vector<unsigned>refreshCountdown;
 	vector<BusPacket *> writeDataToSend;
 	vector<unsigned> writeDataCountdown;

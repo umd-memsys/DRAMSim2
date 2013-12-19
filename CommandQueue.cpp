@@ -152,7 +152,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 	for (size_t i=0;i<cfg.NUM_RANKS;i++)
 	{
 		//decrement all the counters we have going
-		for (size_t j=0;j<tFAWCountdown[i].size();j++)
+		for (size_t j=0, end=tFAWCountdown[i].size(); j < end ;j++)
 		{
 			tFAWCountdown[i][j]--;
 		}

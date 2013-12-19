@@ -56,7 +56,6 @@ MemoryController::MemoryController(MemorySystem *parentMemorySystem_, AddressMap
 		writeCB(NULL),
 		powerCB(NULL), 
 		commandQueue(bankStates, dramsim_log_, cfg),
-		poppedBusPacket(NULL),
 		powerDown(cfg.NUM_RANKS,false),
 		totalTransactions(0),
 		grandTotalBankAccesses(cfg.NUM_RANKS*cfg.NUM_BANKS,0),
@@ -140,7 +139,7 @@ void MemoryController::attachRanks(vector<Rank *> *ranks)
 //memory controller update
 void MemoryController::update()
 {
-
+	BusPacket *poppedBusPacket=NULL;
 	//PRINT(" ------------------------- [" << currentClockCycle << "] -------------------------");
 
 	//update bank states
@@ -239,8 +238,6 @@ void MemoryController::update()
 		(*ranks)[refreshRank]->refreshWaiting = true;
 	}
 
-	//pass a pointer to a poppedBusPacket
-
 	//function returns true if there is something valid in poppedBusPacket
 	if (commandQueue.pop(&poppedBusPacket))
 	{
@@ -263,116 +260,8 @@ void MemoryController::update()
 		 */
 		bankStates[rank][bank].updateState(*poppedBusPacket, currentClockCycle);
 
-		switch (poppedBusPacket->busPacketType)
-		{
-			case READ_P:
-			case READ:
-				//add energy to account for total
-				if (cfg.DEBUG_POWER)
-				{
-					PRINT(" ++ Adding Read energy to total energy");
-				}
-				burstEnergy[rank] += (cfg.IDD4R - cfg.IDD3N) * cfg.BL/2 * cfg.NUM_DEVICES;
+		updateOtherBankStates(poppedBusPacket);
 
-				for (size_t i=0;i<cfg.NUM_RANKS;i++)
-				{
-					for (size_t j=0;j<cfg.NUM_BANKS;j++)
-					{
-						BankState &bankState = bankStates[i][j];
-						if (i != rank)
-						{
-							//check to make sure it is active before trying to set (saves time?)
-							if (bankState.currentBankState == RowActive)
-							{
-								bankState.nextRead = max(currentClockCycle + cfg.BL/2 + cfg.tRTRS, bankState.nextRead);
-								bankState.nextWrite = max(currentClockCycle + cfg.READ_TO_WRITE_DELAY,
-										bankState.nextWrite);
-							}
-						}
-						else
-						{
-							bankState.nextRead = max(currentClockCycle + max((unsigned)cfg.tCCD, cfg.BL/2), bankState.nextRead);
-							bankState.nextWrite = max(currentClockCycle + cfg.READ_TO_WRITE_DELAY,
-									bankState.nextWrite);
-						}
-					}
-				}
-
-
-				break;
-			case WRITE_P:
-			case WRITE:
-
-
-				//add energy to account for total
-				if (cfg.DEBUG_POWER)
-				{
-					PRINT(" ++ Adding Write energy to total energy");
-				}
-				burstEnergy[rank] += (cfg.IDD4W - cfg.IDD3N) * cfg.BL/2 * cfg.NUM_DEVICES;
-
-				for (size_t i=0;i<cfg.NUM_RANKS;i++)
-				{
-					for (size_t j=0;j<cfg.NUM_BANKS;j++)
-					{
-						if (i!=poppedBusPacket->rank)
-						{
-							if (bankStates[i][j].currentBankState == RowActive)
-							{
-								bankStates[i][j].nextWrite = max(currentClockCycle + cfg.BL/2 + cfg.tRTRS, bankStates[i][j].nextWrite);
-								bankStates[i][j].nextRead = max(currentClockCycle + cfg.WRITE_TO_READ_DELAY_R,
-										bankStates[i][j].nextRead);
-							}
-						}
-						else
-						{
-							bankStates[i][j].nextWrite = max(currentClockCycle + max(cfg.BL/2, (unsigned)cfg.tCCD), bankStates[i][j].nextWrite);
-							bankStates[i][j].nextRead = max(currentClockCycle + cfg.WRITE_TO_READ_DELAY_B,
-									bankStates[i][j].nextRead);
-						}
-					}
-				}
-
-
-				break;
-			case ACTIVATE:
-				//add energy to account for total
-				if (cfg.DEBUG_POWER)
-				{
-					PRINT(" ++ Adding Activate and Precharge energy to total energy");
-				}
-				actpreEnergy[rank] += ((cfg.IDD0 * cfg.tRC) - ((cfg.IDD3N * cfg.tRAS) + (cfg.IDD2N * (cfg.tRC - cfg.tRAS)))) * cfg.NUM_DEVICES;
-
-				for (size_t i=0;i<cfg.NUM_BANKS;i++)
-				{
-					if (i!=poppedBusPacket->bank)
-					{
-						bankStates[rank][i].nextActivate = max(currentClockCycle + cfg.tRRD, bankStates[rank][i].nextActivate);
-					}
-				}
-
-				break;
-			case PRECHARGE:
-				break;
-			case REFRESH:
-				//add energy to account for total
-				if (cfg.DEBUG_POWER)
-				{
-					PRINT(" ++ Adding Refresh energy to total energy");
-				}
-				refreshEnergy[rank] += (cfg.IDD5 - cfg.IDD3N) * cfg.tRFC * cfg.NUM_DEVICES;
-
-				// FIXME: this results in an extra call to updateState since we already did it for one of the banks above, but, not a big deal 
-				for (size_t i=0;i<cfg.NUM_BANKS;i++)
-				{
-					bankStates[rank][i].updateState(*poppedBusPacket, currentClockCycle);
-				}
-
-				break;
-			default:
-				ERROR("== Error - Popped a command we shouldn't have of type : " << poppedBusPacket->busPacketType);
-				exit(0);
-		}
 
 		//issue on bus and print debug
 		if (cfg.DEBUG_BUS)
@@ -391,88 +280,7 @@ void MemoryController::update()
 
 	}
 
-	for (size_t i=0;i<transactionQueue.size();i++)
-	{
-		//pop off top transaction from queue
-		//
-		//	assuming simple scheduling at the moment
-		//	will eventually add policies here
-		Transaction *transaction = transactionQueue[i];
-
-		// FIXME: Keeping these names to avoid find/replace, they need to be renamed 
-		unsigned newTransactionChan   = transaction->address.channel;
-		unsigned newTransactionRank   = transaction->address.rank;
-		unsigned newTransactionBank   = transaction->address.bank;
-		unsigned newTransactionRow    = transaction->address.row;
-		unsigned newTransactionColumn = transaction->address.col;
-
-				//if we have room, break up the transaction into the appropriate commands
-		//and add them to the command queue
-		if (commandQueue.hasRoomFor(2, newTransactionRank, newTransactionBank))
-		{
-			if (cfg.DEBUG_ADDR_MAP) 
-			{
-				PRINTN("== New Transaction - Mapping Address [0x" << hex << transaction->address << dec << "]");
-				if (transaction->transactionType == DATA_READ) 
-				{
-					PRINT(" (Read)");
-				}
-				else
-				{
-					PRINT(" (Write)");
-				}
-				PRINT("  Rank : " << newTransactionRank);
-				PRINT("  Bank : " << newTransactionBank);
-				PRINT("  Row  : " << newTransactionRow);
-				PRINT("  Col  : " << newTransactionColumn);
-			}
-
-
-
-			//now that we know there is room in the command queue, we can remove from the transaction queue
-			transactionQueue.erase(transactionQueue.begin()+i);
-
-			//create activate command to the row we just translated
-			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction->address,
-					newTransactionColumn, newTransactionRow, newTransactionRank,
-					newTransactionBank, cfg, NULL);
-			ACTcommand->setSourceTransaction(transaction);
-
-			//create read or write command and enqueue it
-			BusPacketType bpType = transaction->getBusPacketType(cfg);
-			BusPacket *command = new BusPacket(bpType, transaction->address,
-					newTransactionColumn, newTransactionRow, newTransactionRank,
-					newTransactionBank, cfg, transaction->data);
-			command->setSourceTransaction(transaction);
-
-			command->setDependsOn(ACTcommand);
-
-			commandQueue.enqueue(ACTcommand);
-			commandQueue.enqueue(command);
-
-			/**
-			 * Keep the READ transactions around; we will need them later on for
-			 * when their bus packets come back to the MC; all others don't need a
-			 * response
-			 */
-			if (transaction->transactionType != DATA_READ)
-			{
-				delete transaction; 
-			}
-
-			/* only allow one transaction to be scheduled per cycle -- this should
-			 * be a reasonable assumption considering how much logic would be
-			 * required to schedule multiple entries per cycle (parallel data
-			 * lines, switching logic, decision logic)
-			 */
-			break;
-		}
-		else // no room, do nothing this cycle
-		{
-			//PRINT( "== Warning - No room in command queue" << endl;
-		}
-	}
-
+	schedulePendingTransaction(); 
 
 	//calculate power
 	//  this is done on a per-rank basis, since power characterization is done per device (not per bank)
@@ -637,7 +445,207 @@ void MemoryController::update()
 	}
 
 	commandQueue.step();
+}
 
+void MemoryController::updateOtherBankStates(const BusPacket *poppedBusPacket) {
+	unsigned rank = poppedBusPacket->rank;
+	unsigned bank = poppedBusPacket->bank;
+
+	switch (poppedBusPacket->busPacketType)
+	{
+		case READ_P:
+		case READ:
+			//add energy to account for total
+			if (cfg.DEBUG_POWER)
+			{
+				PRINT(" ++ Adding Read energy to total energy");
+			}
+			burstEnergy[rank] += (cfg.IDD4R - cfg.IDD3N) * cfg.BL/2 * cfg.NUM_DEVICES;
+
+			for (size_t i=0;i<cfg.NUM_RANKS;i++)
+			{
+				for (size_t j=0;j<cfg.NUM_BANKS;j++)
+				{
+					BankState &bankState = bankStates[i][j];
+					if (i != rank)
+					{
+						//check to make sure it is active before trying to set (saves time?)
+						if (bankState.currentBankState == RowActive)
+						{
+							bankState.nextRead = max(currentClockCycle + cfg.BL/2 + cfg.tRTRS, bankState.nextRead);
+							bankState.nextWrite = max(currentClockCycle + cfg.READ_TO_WRITE_DELAY,
+									bankState.nextWrite);
+						}
+					}
+					else
+					{
+						bankState.nextRead = max(currentClockCycle + max((unsigned)cfg.tCCD, cfg.BL/2), bankState.nextRead);
+						bankState.nextWrite = max(currentClockCycle + cfg.READ_TO_WRITE_DELAY,
+								bankState.nextWrite);
+					}
+				}
+			}
+
+
+			break;
+		case WRITE_P:
+		case WRITE:
+
+
+			//add energy to account for total
+			if (cfg.DEBUG_POWER)
+			{
+				PRINT(" ++ Adding Write energy to total energy");
+			}
+			burstEnergy[rank] += (cfg.IDD4W - cfg.IDD3N) * cfg.BL/2 * cfg.NUM_DEVICES;
+
+			for (size_t i=0;i<cfg.NUM_RANKS;i++)
+			{
+				for (size_t j=0;j<cfg.NUM_BANKS;j++)
+				{
+					if (i!=poppedBusPacket->rank)
+					{
+						if (bankStates[i][j].currentBankState == RowActive)
+						{
+							bankStates[i][j].nextWrite = max(currentClockCycle + cfg.BL/2 + cfg.tRTRS, bankStates[i][j].nextWrite);
+							bankStates[i][j].nextRead = max(currentClockCycle + cfg.WRITE_TO_READ_DELAY_R,
+									bankStates[i][j].nextRead);
+						}
+					}
+					else
+					{
+						bankStates[i][j].nextWrite = max(currentClockCycle + max(cfg.BL/2, (unsigned)cfg.tCCD), bankStates[i][j].nextWrite);
+						bankStates[i][j].nextRead = max(currentClockCycle + cfg.WRITE_TO_READ_DELAY_B,
+								bankStates[i][j].nextRead);
+					}
+				}
+			}
+
+
+			break;
+		case ACTIVATE:
+			//add energy to account for total
+			if (cfg.DEBUG_POWER)
+			{
+				PRINT(" ++ Adding Activate and Precharge energy to total energy");
+			}
+			actpreEnergy[rank] += ((cfg.IDD0 * cfg.tRC) - ((cfg.IDD3N * cfg.tRAS) + (cfg.IDD2N * (cfg.tRC - cfg.tRAS)))) * cfg.NUM_DEVICES;
+
+			for (size_t i=0;i<cfg.NUM_BANKS;i++)
+			{
+				if (i!=poppedBusPacket->bank)
+				{
+					bankStates[rank][i].nextActivate = max(currentClockCycle + cfg.tRRD, bankStates[rank][i].nextActivate);
+				}
+			}
+
+			break;
+		case PRECHARGE:
+			break;
+		case REFRESH:
+			//add energy to account for total
+			if (cfg.DEBUG_POWER)
+			{
+				PRINT(" ++ Adding Refresh energy to total energy");
+			}
+			refreshEnergy[rank] += (cfg.IDD5 - cfg.IDD3N) * cfg.tRFC * cfg.NUM_DEVICES;
+
+			// FIXME: this results in an extra call to updateState since we already did it for one of the banks above, but, not a big deal 
+			for (size_t i=0;i<cfg.NUM_BANKS;i++)
+			{
+				bankStates[rank][i].updateState(*poppedBusPacket, currentClockCycle);
+			}
+
+			break;
+		default:
+			ERROR("== Error - Popped a command we shouldn't have of type : " << poppedBusPacket->busPacketType);
+			exit(0);
+	}
+
+}
+
+bool MemoryController::schedulePendingTransaction() {
+	bool scheduledOne = false; 
+	// XXX: this loop does delete from the queue, but in the case it does, it breaks early, meaning it is always ok to prefetch size()
+	for (size_t i=0, end = transactionQueue.size();i<end;i++)
+	{
+		//pop off top transaction from queue
+		//
+		//	assuming simple scheduling at the moment
+		//	will eventually add policies here
+		Transaction *transaction = transactionQueue[i];
+
+		// FIXME: Keeping these names to avoid find/replace, they need to be renamed 
+		unsigned newTransactionRank   = transaction->address.rank;
+		unsigned newTransactionBank   = transaction->address.bank;
+		unsigned newTransactionRow    = transaction->address.row;
+		unsigned newTransactionColumn = transaction->address.col;
+
+				//if we have room, break up the transaction into the appropriate commands
+		//and add them to the command queue
+		if (commandQueue.hasRoomFor(2, newTransactionRank, newTransactionBank))
+		{
+			if (cfg.DEBUG_ADDR_MAP) 
+			{
+				PRINTN("== New Transaction - Mapping Address [0x" << hex << transaction->address << dec << "]");
+				if (transaction->transactionType == DATA_READ) 
+				{
+					PRINT(" (Read)");
+				}
+				else
+				{
+					PRINT(" (Write)");
+				}
+				PRINT("  Rank : " << newTransactionRank);
+				PRINT("  Bank : " << newTransactionBank);
+				PRINT("  Row  : " << newTransactionRow);
+				PRINT("  Col  : " << newTransactionColumn);
+			}
+
+			//now that we know there is room in the command queue, we can remove from the transaction queue
+			transactionQueue.erase(transactionQueue.begin()+i);
+
+			//create activate command to the row we just translated
+			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction->address,
+					newTransactionColumn, newTransactionRow, newTransactionRank,
+					newTransactionBank, cfg, NULL);
+			ACTcommand->setSourceTransaction(transaction);
+
+			//create read or write command and enqueue it
+			BusPacketType bpType = transaction->getBusPacketType(cfg);
+			BusPacket *command = new BusPacket(bpType, transaction->address,
+					newTransactionColumn, newTransactionRow, newTransactionRank,
+					newTransactionBank, cfg, transaction->data);
+			command->setSourceTransaction(transaction);
+
+			commandQueue.enqueue(ACTcommand);
+			commandQueue.enqueue(command);
+			scheduledOne = true; 
+
+			/**
+			 * Keep the READ transactions around; we will need them later on for
+			 * when their bus packets come back to the MC; all others don't need a
+			 * response
+			 */
+			if (transaction->transactionType != DATA_READ)
+			{
+				//delete transaction; 
+			}
+
+			/* only allow one transaction to be scheduled per cycle -- this should
+			 * be a reasonable assumption considering how much logic would be
+			 * required to schedule multiple entries per cycle (parallel data
+			 * lines, switching logic, decision logic)
+			 */
+			break;
+		}
+		else // no room, do nothing this cycle
+		{
+			//PRINT( "== Warning - No room in command queue" << endl;
+		}
+	}
+
+	return scheduledOne;
 }
 
 bool MemoryController::WillAcceptTransaction()
