@@ -110,7 +110,7 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 	{
 		PRINTN(" -- MC Receiving From Data Bus : " << *bpacket << "\n");
 	}
-	Transaction *transactionForBusPacket = bpacket->sourceTransaction;
+	Transaction *transactionForBusPacket = bpacket->getSourceTransaction();
 	assert(transactionForBusPacket);
 	transactionForBusPacket->transactionType = RETURN_DATA;
 
@@ -244,12 +244,13 @@ void MemoryController::update()
 	//function returns true if there is something valid in poppedBusPacket
 	if (commandQueue.pop(&poppedBusPacket))
 	{
+		poppedBusPacket->notifyAllDependents();
 		if (poppedBusPacket->busPacketType == WRITE || poppedBusPacket->busPacketType == WRITE_P)
 		{
 			BusPacket *dataPacket = new BusPacket(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,
 			                                    poppedBusPacket->row, poppedBusPacket->rank, poppedBusPacket->bank,
 															cfg,  poppedBusPacket->data);
-			dataPacket->setSourceTransaction(poppedBusPacket->sourceTransaction);
+			//dataPacket->setSourceTransaction(poppedBusPacket->getSourceTransaction());
 			writeDataToSend.push_back(dataPacket);
 			writeDataCountdown.push_back(cfg.WL);
 		}

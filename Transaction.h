@@ -59,11 +59,17 @@ public:
 	void *data;
 	uint64_t timeAdded;
 	uint64_t timeReturned;
+	uint64_t transactionId; 
+	unsigned valid;
+private:
+	vector<BusPacket *> busPackets;
+public:
 
-
+	void addBusPacket(BusPacket *bp);
 	friend ostream &operator<<(ostream &os, const Transaction &t);
 	//functions
 	Transaction(TransactionType transType, uint64_t addr, AddressMapper &addressMapper_, void *data);
+	~Transaction();
 
 	BusPacketType getBusPacketType(const Config &cfg) const;
 private:

@@ -397,23 +397,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
 					for (size_t i=0;i<queue.size();i++)
 					{
 						BusPacket *packet = queue[i];
-						if (isIssuable(packet))
+						if (isIssuable(packet) && !packet->hasDependencies())
 						{
-							//check for dependencies
-							bool dependencyFound = false;
-							for (size_t j=0;j<i;j++)
-							{
-								BusPacket *prevPacket = queue[j];
-								if (prevPacket->busPacketType != ACTIVATE &&
-										prevPacket->bank == packet->bank &&
-										prevPacket->row == packet->row)
-								{
-									dependencyFound = true;
-									break;
-								}
-							}
-							if (dependencyFound) continue;
-
 							*busPacket = packet;
 
 							//if the bus packet before is an activate, that is the act that was

@@ -47,12 +47,18 @@ namespace DRAMSim {
 Transaction::Transaction(TransactionType transType, uint64_t addr, AddressMapper &addressMapper_, void *dat) :
 	transactionType(transType),
 	address(addr),
-	data(dat)
+	data(dat), 
+	timeAdded(0),
+	timeReturned(0),
+	transactionId(0), 
+	valid(0xdeadbeef)
 {
 	// FIXME: make dynamically settable 
 	addressMapper_.map(address, 64);
 }
-
+Transaction::~Transaction() {
+	valid=0;
+}
 
 ostream &operator<<(ostream &os, const Transaction &t)
 {
@@ -69,6 +75,14 @@ ostream &operator<<(ostream &os, const Transaction &t)
 		os<<"T [Data] [0x" << hex << t.address << "] [" << dec << t.data << "]" <<endl;
 	}
 	return os; 
+}
+
+void Transaction::addBusPacket(BusPacket *bp) {
+	for (size_t i=0; i<busPackets.size(); ++i) {
+		assert(!(*bp == *(busPackets[i])));
+	}
+	busPackets.push_back(bp);
+	assert(busPackets.size() <= 3);
 }
 
 BusPacketType Transaction::getBusPacketType(const Config &cfg) const

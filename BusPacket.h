@@ -69,8 +69,9 @@ namespace DRAMSim
 		unsigned rank;
 		uint64_t physicalAddress;
 		void *data;
+		private:
 		Transaction *sourceTransaction;
-
+		public:
 		unsigned globalBankId; 
 		unsigned globalRowId; 
 
@@ -80,45 +81,31 @@ namespace DRAMSim
 		//Functions
 		BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, const Config &cfg, void *dat);
 
-		void setSourceTransaction(Transaction *t) {
-			sourceTransaction = t; 
+		void setSourceTransaction(Transaction *t);
+
+		Transaction *getSourceTransaction() {
+			return sourceTransaction;
+		}
+
+		bool isWrite() const { 
+			return busPacketType == WRITE || busPacketType == WRITE_P;
+		}
+		bool isRead() const {
+			return busPacketType == READ || busPacketType == READ_P;
+		}
+		bool isCAS() const {
+			return isRead() || isWrite(); 
 		}
 
 		inline bool hasDependencies() {
 			return !dependencies.empty();
 		}
 
-		bool isDependent(BusPacket *other) const {
-			// TODO: check ACTIVATE; currently, ACTIVATE can be sent with a refresh(?)
-			// before checking banks/rows, make sure every packet is dependent on a refresh 
-			if (other->busPacketType == REFRESH && this->rank == other->rank) {
-				return true; 
-			}
+		bool isDependent(BusPacket *other) const;
+		
 
-			// otherwise, the most likely case is they simply aren't going to the same bank
-			if (this->globalBankId != other->globalBankId) {
-				return false;
-			}
-
-			// all requests to same row must be serialized
-			if (this->globalRowId == other->globalRowId) {
-				return true; 
-			}
-
-			// TODO: any other cases: going to same bank, but different rows
-			return false; 
-		}
-
-		void clearDependency(const BusPacket *dependentBP) {
-			// should only be one dep in our list, so might be enough to just return after the erase()
-			for (vector<BusPacket *>::iterator it = dependencies.begin(); it != dependencies.end(); ) {
-				if (*it == dependentBP) {
-					it = dependencies.erase(it);
-				} else {
-					++it;
-				}
-			}
-		}
+		void clearDependency(const BusPacket *dependentBP);
+		
 
 		void notifyAllDependents() {
 			for (size_t i=0; i<notifyList.size(); ++i) {
@@ -131,14 +118,23 @@ namespace DRAMSim
 			notifyList.push_back(reverseDependency);
 		}
 
-		void setDependsOn(BusPacket *dependentBP) {
-			this->dependencies.push_back(dependentBP); 	
-			dependentBP->addNotifyList(this);
-		}
+		void setDependsOn(BusPacket *dependentBP);
+		
 
 		ostream &print(ostream &out) const;
 		void print(uint64_t currentClockCycle, bool dataStart);
 		ostream &printData(ostream &out) const;
+
+		bool operator==(const BusPacket &other) {
+			return (this->globalRowId == other.globalRowId && 
+					this->busPacketType == other.busPacketType &&
+					this->column == other.column);
+		}
+
+		private: 
+		// prevent copying 
+		BusPacket &operator=(const BusPacket &other);
+		BusPacket(const BusPacket &other);
 	};
 	ostream &operator<<(ostream &out, const BusPacket &bp);
 }

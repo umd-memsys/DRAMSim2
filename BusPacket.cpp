@@ -56,6 +56,73 @@ BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr,
 	globalRowId(globalBankId * cfg.NUM_ROWS + row)
 {}
 
+void BusPacket::setSourceTransaction(Transaction *t) {
+	assert(t);
+	assert(this);
+	sourceTransaction = t; 
+	t->addBusPacket(this);
+}
+
+void BusPacket::setDependsOn(BusPacket *dependentBP) {
+	//std::cout << "Setting "<<*this<<"    depends on    "<<*dependentBP<<"\n";
+	if (dependentBP->sourceTransaction && this->sourceTransaction &&
+			dependentBP->sourceTransaction->transactionId == this->sourceTransaction->transactionId) {
+		ERROR("Setting circular transaction dependency");
+		abort();
+	}
+
+	this->dependencies.push_back(dependentBP); 	
+	dependentBP->addNotifyList(this);
+}
+void BusPacket::clearDependency(const BusPacket *dependentBP) {
+	unsigned numRemoved = 0;
+	//std::cout <<"Removing dep "<<*dependentBP<<" from "<<*this<<" with dependencies: \n";
+
+	// should only be one dep in our list, so might be enough to just return after the erase()
+	for (vector<BusPacket *>::iterator it = dependencies.begin(); it != dependencies.end(); ) {
+	//	std::cout << "\t - " << **it <<"\n"; 
+		if ((*it)->sourceTransaction) {
+			assert((*it)->sourceTransaction->valid);
+		}
+
+		if (*it == dependentBP) {
+			it = dependencies.erase(it);
+			numRemoved++;
+		} else {
+			++it;
+		}
+	}
+	assert(numRemoved ==1);
+}
+
+bool BusPacket::isDependent(BusPacket *other) const {
+	if (this == other) {
+		abort();
+	}
+
+	// only check between actual data access commands
+	if (!this->isCAS() || !other->isCAS()) {
+		return false; 
+	}
+
+	// otherwise, the most likely case is they simply aren't going to the same bank
+	if (this->globalBankId != other->globalBankId) {
+		return false;
+	}
+
+	// all requests to same row must be serialized
+	if (this->globalRowId == other->globalRowId) {
+		// enforce write dependence (RAW, WAR, WAW) 
+		if (this->isWrite() || other->isWrite()) {
+			return true;
+		}
+	}
+
+	// TODO: any other cases: going to same bank, but different rows
+	return false; 
+}
+
+
 void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
 {
 	// FIXME: move this out of BP 
@@ -104,7 +171,12 @@ void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
 }
 
 ostream &BusPacket::print(ostream &out) const {
-	out << "BP [";
+	out << "BP ("<< hex<<this<<dec<<") ";
+	if (sourceTransaction) {
+		out << "TID [" <<sourceTransaction->transactionId<<", "<<hex<<sourceTransaction<<"] ";
+	}
+
+	out <<"[";
 	switch (busPacketType)
 	{
 		case READ:
