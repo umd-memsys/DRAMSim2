@@ -110,17 +110,6 @@ CommandQueue::~CommandQueue()
 	if (cfg.QUEUING_STRUCTURE == PerRank) {
 		bankMax = 1; 
 	}
-	for (size_t r=0; r< cfg.NUM_RANKS; r++)
-	{
-		for (size_t b=0; b<bankMax; b++) 
-		{
-			for (size_t i=0; i<queues[r][b].size(); i++)
-			{
-				delete(queues[r][b][i]);
-			}
-			queues[r][b].clear();
-		}
-	}
 }
 //Adds a command to appropriate queue
 void CommandQueue::enqueue(BusPacket *newBusPacket)
@@ -222,7 +211,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			//	reset flags and rank pointer
 			if (!foundActiveOrTooEarly && bankStates[refreshRank][0].currentBankState != PowerDown)
 			{
-				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, cfg, NULL);
+				*busPacket = BusPacketPool.alloc();
+				(*busPacket)->init(REFRESH, 0, 0, 0, refreshRank, 0, cfg, NULL);
 				refreshRank = -1;
 				refreshWaiting = false;
 				sendingREF = true;
@@ -356,7 +346,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
 					if (closeRow && currentClockCycle >= bankStates[refreshRank][b].nextPrecharge)
 					{
 						rowAccessCounters[refreshRank][b]=0;
-						*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, refreshRank, b, cfg, NULL);
+						*busPacket = BusPacketPool.alloc(); 
+						(*busPacket)->init(PRECHARGE, 0, 0, 0, refreshRank, b, cfg, NULL);
 						sendingREForPRE = true;
 					}
 					break;
@@ -375,7 +366,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
 			//	reset flags and rank pointer
 			if (sendREF && bankStates[refreshRank][0].currentBankState != PowerDown)
 			{
-				*busPacket = new BusPacket(REFRESH, 0, 0, 0, refreshRank, 0, cfg, NULL);
+				*busPacket = BusPacketPool.alloc(); 
+				(*busPacket)->init(REFRESH, 0, 0, 0, refreshRank, 0, cfg, NULL);
 				refreshRank = -1;
 				refreshWaiting = false;
 				sendingREForPRE = true;
@@ -408,7 +400,7 @@ bool CommandQueue::pop(BusPacket **busPacket)
 							{
 								rowAccessCounters[(*busPacket)->rank][(*busPacket)->bank]++;
 								// i is being returned, but i-1 is being thrown away, so must delete it here 
-								delete (queue[i-1]);
+								BusPacketPool.dealloc(queue[i-1]);
 
 								// remove both i-1 (the activate) and i (we've saved the pointer in *busPacket)
 								queue.erase(queue.begin()+i-1,queue.begin()+i+1);
@@ -483,7 +475,8 @@ bool CommandQueue::pop(BusPacket **busPacket)
 							{
 								sendingPRE = true;
 								rowAccessCounters[nextRankPRE][nextBankPRE] = 0;
-								*busPacket = new BusPacket(PRECHARGE, 0, 0, 0, nextRankPRE, nextBankPRE, cfg, NULL);
+								*busPacket = BusPacketPool.alloc(); 
+								(*busPacket)->init(PRECHARGE, 0, 0, 0, nextRankPRE, nextBankPRE, cfg, NULL);
 								break;
 							}
 						}

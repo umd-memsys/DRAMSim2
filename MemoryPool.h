@@ -50,7 +50,7 @@ template <class T>
 class MemoryPool {
 
 	vector<T> pool; 
-	list<T *> free_list; 
+	vector<T *> free_list; 
 	// on a dealloc, check to make sure the item isn't already on the free list somehow
 	bool check_uniqueness; 
 	bool debug; 
@@ -61,7 +61,7 @@ class MemoryPool {
 	 */
 	MemoryPool(unsigned n_elem) 
 		: pool(n_elem)
-		  , check_uniqueness(true)
+		  , check_uniqueness(false)
 		  , debug(true) 
 	{
 		// Initially, everyone is on the free list 
@@ -89,11 +89,11 @@ class MemoryPool {
 
 			// add all the new entries to the freelist 
 			for (size_t i=old_size; i<new_size; i++) {
-				free_list.push_front(&pool[i]);
+				free_list.push_back(&pool[i]);
 			}
 		}
-		T *ret = free_list.front(); 
-		free_list.pop_front(); 
+		T *ret = free_list.back(); 
+		free_list.pop_back(); 
 		return ret; 
 	}
 	
@@ -101,12 +101,14 @@ class MemoryPool {
 	 * 'free' an object back into the memory pool 
 	 */
 	void dealloc(T *elem) {
+#if 0
 		if (check_uniqueness) {
 			for (typename list<T *>::iterator it=free_list.begin(); it != free_list.end(); it++) {
 				assert(*it != elem); 
 			}
 		}
-		free_list.push_front(elem); 
+#endif
+		free_list.push_back(elem); 
 	}
 
 };

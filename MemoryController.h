@@ -46,11 +46,15 @@
 #include "Rank.h"
 #include "CSVWriter.h"
 #include <map>
+#include "MemoryPool.h"
+
 
 using namespace std;
 
 namespace DRAMSim
 {
+extern MemoryPool<BusPacket> BusPacketPool;
+
 class Config; 
 class MemorySystem;
 class MemoryController : public SimulatorObject

@@ -59,12 +59,7 @@ void Rank::setId(int id)
 
 Rank::~Rank()
 {
-	for (size_t i=0; i<readReturnPacket.size(); i++)
-	{
-		delete readReturnPacket[i];
-	}
 	readReturnPacket.clear(); 
-	delete outgoingDataPacket; 
 }
 
 bool Rank::isTimingValid(BusPacket *packet) const {
@@ -164,7 +159,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 				bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + cfg.WRITE_TO_READ_DELAY_B);
 				bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + max((unsigned)cfg.BL/2, (unsigned)cfg.tCCD));
 			}
-			delete(packet);
+			BusPacketPool.dealloc(packet);
 			break;
 
 		case ACTIVATE:
@@ -173,11 +168,11 @@ void Rank::receiveFromBus(BusPacket *packet)
 					bankStates[i].nextActivate = max(bankStates[i].nextActivate, currentClockCycle + cfg.tRRD);
 				}
 			}
-			delete(packet); 
+			BusPacketPool.dealloc(packet);
 			break;
 
 		case PRECHARGE:
-			delete(packet); 
+			BusPacketPool.dealloc(packet);
 			break;
 
 		case REFRESH:
@@ -186,7 +181,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 			{
 				bankStates[i].nextActivate = currentClockCycle + cfg.tRFC;
 			}
-			delete(packet); 
+			BusPacketPool.dealloc(packet);
 			break;
 		case DATA:
 			// TODO: replace this check with something that works?
@@ -203,7 +198,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 				*/
 			banks[packet->bank].write(packet);
 			// end of the line for the write packet
-			delete(packet);
+			BusPacketPool.dealloc(packet);
 			break;
 
 		default:

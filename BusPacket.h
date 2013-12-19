@@ -55,8 +55,6 @@ namespace DRAMSim
 	class Transaction;
 	class BusPacket
 	{
-		BusPacket();
-
 		vector<BusPacket *> dependencies;
 		vector<BusPacket *> notifyList;
 		public:
@@ -71,6 +69,7 @@ namespace DRAMSim
 		void *data;
 		private:
 		Transaction *sourceTransaction;
+		unsigned valid; 
 		public:
 		unsigned globalBankId; 
 		unsigned globalRowId; 
@@ -79,7 +78,8 @@ namespace DRAMSim
 		public:
 
 		//Functions
-		BusPacket(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, const Config &cfg, void *dat);
+		BusPacket();
+		void init(BusPacketType packtype, uint64_t physicalAddr, unsigned col, unsigned rw, unsigned r, unsigned b, const Config &cfg, void *dat);
 
 		void setSourceTransaction(Transaction *t);
 
@@ -133,8 +133,8 @@ namespace DRAMSim
 
 		private: 
 		// prevent copying 
-		BusPacket &operator=(const BusPacket &other);
-		BusPacket(const BusPacket &other);
+		//BusPacket &operator=(const BusPacket &other);
+		//BusPacket(const BusPacket &other);
 	};
 	ostream &operator<<(ostream &out, const BusPacket &bp);
 }

@@ -41,20 +41,35 @@
 using namespace DRAMSim;
 using namespace std;
 
-BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr, 
-		unsigned col, unsigned rw, unsigned r, unsigned b, const Config &cfg, void *dat)
-	: busPacketType(packtype),
-	column(col),
-	row(rw),
-	bank(b),
-	rank(r),
-	physicalAddress(physicalAddr),
-	data(dat), 
+BusPacket::BusPacket()
+	: busPacketType(READ),
+	column(0),
+	row(0),
+	bank(0),
+	rank(0),
+	physicalAddress(0),
+	data(0), 
 	sourceTransaction(NULL), 
 	// don't bother accounting for channels since they are truly independent
-	globalBankId(rank*cfg.NUM_BANKS + bank), 
-	globalRowId(globalBankId * cfg.NUM_ROWS + row)
+	globalBankId(0), 
+	globalRowId(0)
 {}
+
+void BusPacket::init (BusPacketType packtype, uint64_t physicalAddr, 
+		unsigned col, unsigned rw, unsigned r, unsigned b, const Config &cfg, void *dat) {
+
+	busPacketType=packtype;
+	column=col;
+	row=rw;
+	bank=b;
+	rank=r;
+	physicalAddress=physicalAddr;
+	data=dat;
+	sourceTransaction=NULL;
+	// don't bother accounting for channels since they are truly independent
+	globalBankId=rank*cfg.NUM_BANKS + bank;
+	globalRowId=globalBankId * cfg.NUM_ROWS + row;
+}
 
 void BusPacket::setSourceTransaction(Transaction *t) {
 	assert(t);

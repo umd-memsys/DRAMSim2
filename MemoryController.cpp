@@ -40,9 +40,13 @@
 #include "MemoryController.h"
 #include "MemorySystem.h"
 #include "AddressMapping.h"
+#include "MemoryPool.h"
 
 #define SEQUENTIAL(rank,bank) (rank*cfg.NUM_BANKS)+bank
 
+namespace DRAMSim {
+	MemoryPool<BusPacket> BusPacketPool(8192); 
+}
 using namespace DRAMSim;
 
 MemoryController::MemoryController(MemorySystem *parentMemorySystem_, AddressMapper &addressMapper_, ostream &dramsim_log_) :
@@ -117,7 +121,7 @@ void MemoryController::receiveFromBus(BusPacket *bpacket)
 	totalReadsPerBank[SEQUENTIAL(bpacket->rank,bpacket->bank)]++;
 
 	// this delete statement saves a mindboggling amount of memory
-	delete(bpacket);
+	BusPacketPool.dealloc(bpacket);
 }
 
 //sends read data back to the CPU
@@ -244,7 +248,8 @@ void MemoryController::update()
 		poppedBusPacket->notifyAllDependents();
 		if (poppedBusPacket->busPacketType == WRITE || poppedBusPacket->busPacketType == WRITE_P)
 		{
-			BusPacket *dataPacket = new BusPacket(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,
+			BusPacket *dataPacket = BusPacketPool.alloc(); 
+			dataPacket->init(DATA, poppedBusPacket->physicalAddress, poppedBusPacket->column,
 			                                    poppedBusPacket->row, poppedBusPacket->rank, poppedBusPacket->bank,
 															cfg,  poppedBusPacket->data);
 			//dataPacket->setSourceTransaction(poppedBusPacket->getSourceTransaction());
@@ -606,14 +611,16 @@ bool MemoryController::schedulePendingTransaction() {
 			transactionQueue.erase(transactionQueue.begin()+i);
 
 			//create activate command to the row we just translated
-			BusPacket *ACTcommand = new BusPacket(ACTIVATE, transaction->address,
+			BusPacket *ACTcommand = BusPacketPool.alloc(); 
+			ACTcommand->init(ACTIVATE, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
 					newTransactionBank, cfg, NULL);
 			ACTcommand->setSourceTransaction(transaction);
 
 			//create read or write command and enqueue it
 			BusPacketType bpType = transaction->getBusPacketType(cfg);
-			BusPacket *command = new BusPacket(bpType, transaction->address,
+			BusPacket *command = BusPacketPool.alloc(); 
+			command->init(bpType, transaction->address,
 					newTransactionColumn, newTransactionRow, newTransactionRank,
 					newTransactionBank, cfg, transaction->data);
 			command->setSourceTransaction(transaction);
