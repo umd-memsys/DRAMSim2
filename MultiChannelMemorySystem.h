@@ -90,6 +90,8 @@ class MultiChannelMemorySystem : public DRAMSimInterface, public SimulatorObject
 		CSVWriter *CSVOut; 
 		unsigned dumpInterval;
 		std::ostream &dramsim_log; 
+		uint64_t lastTransactionId;
+		uint64_t lastTransactionIdAdded;
 	public: 
 
 	void enableStatsDump(CSVWriter *CSVOut_, unsigned dumpInterval_=0) {

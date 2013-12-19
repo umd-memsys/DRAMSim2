@@ -51,7 +51,9 @@ MultiChannelMemorySystem::MultiChannelMemorySystem(const Config &cfg_, ostream &
 	, clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update))
 	, CSVOut(NULL)
 	, dumpInterval(0)
-	, dramsim_log(logFile_) 
+	, dramsim_log(logFile_)
+	, lastTransactionId(0)
+	, lastTransactionIdAdded(0)
 {
 
 	// A few sanity checks before we begin 
@@ -175,7 +177,9 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 DRAMSimTransaction *MultiChannelMemorySystem::makeTransaction(bool isWrite, uint64_t addr, unsigned requestSize) {
 	if (willAcceptTransaction(isWrite, addr)) {
 		TransactionType type = isWrite ? DATA_WRITE : DATA_READ; 
-		return (DRAMSimTransaction *)(new Transaction(type, addr, addressMapper,NULL)); 
+		Transaction *t = new Transaction(type, addr, addressMapper,NULL);
+		t->transactionId = ++lastTransactionId;
+		return (DRAMSimTransaction *)(t);
 	}
 	return NULL; 
 }
@@ -189,6 +193,8 @@ void MultiChannelMemorySystem::deleteTransaction(DRAMSimTransaction *t) {
 bool MultiChannelMemorySystem::addTransaction(DRAMSimTransaction *t) {
 	assert(t);
 	Transaction *trans = (Transaction *)(t);
+	assert(lastTransactionIdAdded < trans->transactionId);
+	lastTransactionIdAdded = trans->transactionId;
 	unsigned channelNumber = findChannelNumber(trans->address); 
 	return channels[channelNumber]->addTransaction(trans); 
 }
