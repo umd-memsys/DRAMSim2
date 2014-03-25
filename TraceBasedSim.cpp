@@ -52,10 +52,11 @@
 #include "util.h"
 #include "CSVWriter.h"
 #include <assert.h>
-#include "config.h"
 #ifdef HAS_GPERF 
 #include <google/profiler.h>
 #endif 
+
+#define NO_STORAGE
 
 enum TraceType
 {

@@ -43,11 +43,10 @@
 #include <cstdlib>
 #include "SimulatorObject.h"
 
-using namespace DRAMSim;
-using namespace std;
-
+using DRAMSim::SimulatorObject;
 SimulatorObject::SimulatorObject() : currentClockCycle(0) {
 }
+
 void SimulatorObject::step()
 {
 	currentClockCycle++;

@@ -141,35 +141,35 @@ namespace DRAMSim {
 		unsigned idx; 
 		// This is a poor man's parity -- tag each known value (like int, float, etc) and then we know that a field name has to follow a real value, and if a string follows a field, it is actually a value. Might be able to just use the parity of idx to do this, but this seems to be a little safer. 
 		bool lastFieldWasValue;
+		string firstField;
 		public: 
+
+		~CSVWriter() {
+			endLine();
+			output.flush();
+		}
+
+		void printHeader() {
+				for (unsigned i=0; i<fieldNames.size(); i++)
+				{
+					output << fieldNames[i] << ",";
+					//std::cout <<i<<": '"<<fieldNames[i]<<"'\n";
+				}
+				finalized=true; 
+				endLine();
+		}
+
+		void endLine() {
+			output << std::endl << std::flush;
+			idx=0;
+		}
 
 		// Functions
 		void finalize()
 		{
-			//TODO: tag unlikely
-			if (!finalized)
-			{
-				for (unsigned i=0; i<fieldNames.size(); i++)
-				{
-					output << fieldNames[i] << ",";
-				}
-				output << std::endl << std::flush;
-				finalized=true; 
-			}
-			else
-			{
-				if (idx < fieldNames.size()) 
-				{
-					printf(" Number of fields doesn't match values (fields=%u, values=%u), check each value has a field name before it\n", idx, (unsigned)fieldNames.size());
-				}
-				idx=0; 
-				output << std::endl; 
-			}
+			// now a no-op 
 		}
-		static CSVWriter &GetCSVWriterInstance(const string &filename) {
-			ostream &output = *(new ofstream(filename.c_str())); 
-			return *(new CSVWriter(output)); 
-		}
+
 
 		// Constructor 
 		CSVWriter(ostream &_output) : output(_output), finalized(false), idx(0), lastFieldWasValue(true)
@@ -185,16 +185,32 @@ namespace DRAMSim {
 			if (!finalized)
 			{
 				if (lastFieldWasValue) {
-					fieldNames.push_back(string(name));
+					if (fieldNames.empty()) {
+						firstField = string(name);
+						std::cout << "First field is "<< firstField<<"\n";
+						fieldNames.push_back(string(name));
+					}
+					else {
+						if (firstField == name) {
+							finalized = true;
+							printHeader();
+						} 
+						else {
+							fieldNames.push_back(string(name));
+						}
+					}
 				}
 			}
-			else 
+			else // finalized
 			{
 				if (!lastFieldWasValue) {
 					output << name << ",";
 					idx++;
 				}
-				
+				if (idx == fieldNames.size()) {
+					endLine();
+				}
+
 			}
 			lastFieldWasValue = !lastFieldWasValue;
 			return *this; 
@@ -210,18 +226,6 @@ namespace DRAMSim {
 			return (*this)<<indexedName.str.c_str();
 		}
 
-		// special case: when we want to actually just print a string to the field instead of the header
-		CSVWriter &operator<<(const CSVWriter::StringWrapper &s)
-		{
-			if (finalized)
-			{
-				output << s.s << ",";
-				idx++;
-			}
-			lastFieldWasValue=true;
-			return *this; 
-		}	
-
 		ostream &getOutputStream()
 		{
 			return output; 
@@ -231,15 +235,18 @@ namespace DRAMSim {
 		// ofstream, so just write this small wrapper function to make the
 		// whole thing less verbose
 #define ADD_TYPE(T) \
-		CSVWriter &operator<<(T value) \
-		{                                \
-			if (finalized)                \
-			{                             \
-				output << value <<",";     \
-				idx++;                     \
-			}                             \
-			lastFieldWasValue=true;       \
-			return *this;                 \
+		CSVWriter &operator<<(T value)            \
+		{                                         \
+			if (finalized)                         \
+			{                                      \
+				output << value <<",";              \
+				idx++;                              \
+				if (idx == fieldNames.size()) {     \
+					endLine();                       \
+				}                                   \
+			}                                      \
+			lastFieldWasValue=true;                \
+			return *this;                          \
 		}                      
 
 	ADD_TYPE(int);
@@ -248,6 +255,12 @@ namespace DRAMSim {
 	ADD_TYPE(uint64_t);
 	ADD_TYPE(float);
 	ADD_TYPE(double);
+
+	static CSVWriter &GetCSVWriterInstance(const string &filename) {
+		std::cerr<<"Creating new CSVWriter '"<< filename<<"'\n";
+		ostream &output = *(new ofstream(filename.c_str())); 
+		return *(new CSVWriter(output)); 
+	}
 
 	//disable copy constructor and assignment operator
 	private:

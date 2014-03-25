@@ -1,3 +1,6 @@
+#ifndef _CLOCKDOMAIN_H_
+#define _CLOCKDOMAIN_H_
+
 #include <iostream>
 
 #include <cmath>
@@ -58,3 +61,5 @@ namespace ClockDomain
 		int test();
 	};
 }
+#endif 
+
