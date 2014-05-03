@@ -193,7 +193,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 				cout << "== Error - Rank " << id << " received a DATA packet to the wrong place" << endl;
 				packet->print();
 				bankStates[packet->bank].print();
-				exit(0);
+				abort();
 				}
 				*/
 			banks[packet->bank].write(packet);
@@ -203,7 +203,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 
 		default:
 			ERROR("== Error - Unknown BusPacketType trying to be sent to Bank");
-			exit(0);
+			abort();
 			break;
 	}
 }
@@ -268,7 +268,7 @@ void Rank::powerDown()
 		if (bankStates[i].currentBankState != Idle)
 		{
 			ERROR("== Error - Trying to power down rank " << id << " while not all banks are idle");
-			exit(0);
+			abort();
 		}
 
 		bankStates[i].nextPowerUp = currentClockCycle + cfg.tCKE;
@@ -284,7 +284,7 @@ void Rank::powerUp()
 	if (!isPowerDown)
 	{
 		ERROR("== Error - Trying to power up rank " << id << " while it is not already powered down");
-		exit(0);
+		abort();
 	}
 
 	isPowerDown = false;
@@ -295,7 +295,7 @@ void Rank::powerUp()
 		{
 			ERROR("== Error - Trying to power up rank " << id << " before we're allowed to");
 			ERROR(bankStates[i].nextPowerUp << "    " << currentClockCycle);
-			exit(0);
+			abort();
 		}
 		bankStates[i].nextActivate = currentClockCycle + cfg.tXP;
 		bankStates[i].currentBankState = Idle;
