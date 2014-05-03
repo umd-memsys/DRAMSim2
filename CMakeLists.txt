@@ -7,6 +7,7 @@ ENDIF()
 
 set (CMAKE_CXX_FLAGS_RELEASE "-g -O3 -march=native -DLOG_OUTPUT")
 set (CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DLOG_OUTPUT")
+set (CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
 add_library ( dramsimutils SHARED Util.cpp util.cpp ClockDomain.cpp )
 add_library ( dramsim SHARED AddressMapping.cpp Bank.cpp BankState.cpp BusPacket.cpp
