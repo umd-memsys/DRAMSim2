@@ -268,7 +268,7 @@ namespace DRAMSim {
 	 * @param simDesc A description that will be appended to output files (.log, .csv, etc) 
 	 * @param paramOverride An list of any options to manually override (will be applied after loading ini files)
 	 */
-	DRAMSimInterface *getMemorySystemInstance(const vector<std::string> &iniFiles, const string simDesc, const OptionsMap *paramOverrides) 
+	DRAMSimInterface *getMemorySystemInstance(const IniFileList &iniFiles, const string simDesc, const OptionsMap *paramOverrides) 
 	{
 		string baseName = ""; 
 		if (simDesc.length() > 0 ) {

@@ -295,6 +295,19 @@ class Config {
 
 		this->megsOfMemory = this->NUM_RANKS * megsOfStoragePerRank;
 
+		// Fix up all the other formulas from the def file 
+		RL = CL + AL;
+		WL = RL - 1;
+		READ_TO_PRE_DELAY     = (AL+BL/2+max((unsigned)tRTP,2U)-2);
+		WRITE_TO_PRE_DELAY    = (WL+BL/2+tWR);
+		READ_TO_WRITE_DELAY   = (RL+BL/2+tRTRS-WL);
+		READ_AUTOPRE_DELAY    = (AL+tRTP+tRP);
+		WRITE_AUTOPRE_DELAY   = (WL+BL/2+tWR+tRP);
+		WRITE_TO_READ_DELAY_B = (WL+BL/2+tWTR);
+		WRITE_TO_READ_DELAY_R = (WL+BL/2+tRTRS-RL);
+		NUM_DEVICES = (JEDEC_DATA_BUS_BITS/DEVICE_WIDTH);
+
+
 		finalized=true; 
 
 	}

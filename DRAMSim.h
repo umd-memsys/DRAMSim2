@@ -71,13 +71,23 @@ namespace DRAMSim
 			virtual float getUpdateClockPeriod()=0;
 			virtual void dumpStats(CSVWriter &CSVOut)=0; 
 
+
+
 			virtual void registerCallbacks(
 				TransactionCompleteCB *readDone,
 				TransactionCompleteCB *writeDone,
 				PowerCallback_t *powerCB)=0;
 	};
-	DRAMSimInterface *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory);
-	DRAMSimInterface *getMemorySystemInstance(const std::vector<std::string> &iniFiles=std::vector<std::string>(), const string simDesc=string(""), const OptionsMap *paramOverrides=NULL); 
+	DRAMSimInterface *getMemorySystemInstance(const string &dev,
+						  const string &sys,
+						  const string &pwd,
+						  const string &trc,
+						  unsigned megsOfMemory);
+	typedef std::vector<std::string> IniFileList;
+	DRAMSimInterface *
+	getMemorySystemInstance(const IniFileList &iniFiles = IniFileList(),
+				const string simDesc = string(""),
+				const OptionsMap *paramOverrides = NULL);
 }
 
 #endif
