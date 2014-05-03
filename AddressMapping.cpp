@@ -78,8 +78,8 @@ namespace DRAMSim {
 		return addr.print(out);
 	}
 /********************* AddressMapper ********************/
-	AddressMapper::AddressMapper (const Config &cfg_, unsigned *fieldOrder_) 
-		: cfg(cfg_) 
+	AddressMapper::AddressMapper (const Config &cfg_, unsigned *fieldOrder_, ostream &dramsim_log_) 
+		: cfg(cfg_), dramsim_log(dramsim_log_)
 	{
 		memcpy(fieldOrder, fieldOrder_, sizeof(fieldOrder));
 
@@ -132,18 +132,17 @@ namespace DRAMSim {
 		for (list<string>::const_iterator it = pieces.begin(); it != pieces.end(); ++it) {
 			const string &piece = *it; 
 			if (verbose) {
-				PRINT("piece='"<<piece<<"'");
+				std::cerr<<"piece='"<<piece<<"'";
 			}
 			// TODO: move this inner loop to its own function 
 			bool foundMatch=false;
 			for (unsigned i=0; i<END_FIELD; ++i) {
 				/* if this field matches, set the fieldOrder variable to the equivalent enum value */
 				if (piece == FieldStrings[i]) {
-					PRINT(piece);
 					// i is the enum index
 					fieldOrder[fieldIndex] = i;
 					if (verbose) {
-						PRINT("\t'"<<piece<<"': setting fieldOrder["<<fieldIndex<<"] = " << i);
+						std::cerr<<"\t'"<<piece<<"': setting fieldOrder["<<fieldIndex<<"] = " << i<<"\n";
 					}
 					foundMatch = true;
 					fieldIndex++;

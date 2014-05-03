@@ -142,7 +142,7 @@ void Bank::write(const BusPacket *busPacket)
 		if (cfg.DEBUG_BANKS)
 		{
 			PRINTN(" -- Bank "<<busPacket->bank<<" writing to physical address 0x" << hex << busPacket->physicalAddress<<dec<<":");
-			busPacket->printData();
+			busPacket->printData(dramsim_log);
 			PRINT("");
 		}
 	}

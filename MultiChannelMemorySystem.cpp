@@ -47,7 +47,7 @@ using namespace DRAMSim;
  */ 
 MultiChannelMemorySystem::MultiChannelMemorySystem(const Config &cfg_, ostream &logFile_)
 	: cfg(cfg_) 
-	, addressMapper(cfg, AddressMapper::FieldOrderFromString(cfg.ADDRESS_MAPPING_SCHEME, false))
+	, addressMapper(cfg, AddressMapper::FieldOrderFromString(cfg.ADDRESS_MAPPING_SCHEME, false), logFile_)
 	, clockDomainCrosser(new ClockDomain::Callback<MultiChannelMemorySystem, void>(this, &MultiChannelMemorySystem::actual_update))
 	, CSVOut(NULL)
 	, dumpInterval(0)
@@ -289,8 +289,9 @@ namespace DRAMSim {
 		
 		Config &cfg = (*new Config()); 
 		for (size_t i=0; i < iniFiles.size(); i++) {
+			std::cerr << "Loading "<< iniFiles[i] <<":\n";
 			OptionsFailedToSet failures = cfg.set(IniReader::ReadIniFile(iniFiles[i]));
-			std::cerr << "Failed to set:\n";
+			std::cerr << "\tFailed to set:\n";
 			for (OptionsFailedToSet::const_iterator it = failures.begin(); it != failures.end(); it++) {
 				std::cerr << "\t "<<*it<<endl;
 			}

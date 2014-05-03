@@ -86,6 +86,7 @@ ostream &operator<<(ostream &out, const Address &addr);
 
 class AddressMapper {
 	const Config &cfg;
+	ostream &dramsim_log;
 	unsigned fieldWidths[END_FIELD]; 
 	unsigned fieldOrder[END_FIELD];
 
@@ -103,7 +104,7 @@ class AddressMapper {
 		addr |= (fieldValue<<startBit);
 		return addr;
 	}
-	AddressMapper (const Config &cfg_, unsigned *fieldOrder_);
+	AddressMapper (const Config &cfg_, unsigned *fieldOrder_, std::ostream &dramsim_log_);
 
 
 	/**
