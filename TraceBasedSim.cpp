@@ -422,7 +422,7 @@ int main(int argc, char **argv)
 	int c;
 	TraceType traceType;
 	string traceFileName;
-	string systemIniFilename("system.ini");
+	string systemIniFilename;
 	string deviceIniFilename;
 	string pwdString;
 	unsigned megsOfMemory=2048;
@@ -543,26 +543,35 @@ int main(int argc, char **argv)
 	}
 
 
-	// no default value for the default model name
-	if (deviceIniFilename.length() == 0)
-	{
-		ERROR("Please provide a device ini file");
-		usage();
-		exit(-1);
-	}
-
-
 	//ignore the pwd argument if the argument is an absolute path
 	if (pwdString.length() > 0 && traceFileName[0] != '/')
 		traceFileName = pwdString + "/" +traceFileName;
-	if (pwdString.length() > 0 && systemIniFilename[0] != '/')
+	if (pwdString.length() > 0 && !systemIniFilename.empty() && systemIniFilename[0] != '/')
 		systemIniFilename = pwdString + "/" + systemIniFilename;
-	if (pwdString.length() > 0 && deviceIniFilename[0] != '/')
+	if (pwdString.length() > 0 && !deviceIniFilename.empty() && deviceIniFilename[0] != '/')
 		deviceIniFilename = pwdString + "/" + deviceIniFilename; 
 
 	vector<std::string> iniFiles;
-	iniFiles.push_back(deviceIniFilename); 
-	iniFiles.push_back(systemIniFilename);
+
+	// no default value for the default model name
+	if (deviceIniFilename.empty())
+	{
+		std::cerr<<"No device file ini, using compiled defaults\n";
+	}
+	else 
+	{
+		iniFiles.push_back(deviceIniFilename); 
+	}
+
+	if (systemIniFilename.empty()) 
+	{
+		std::cerr<<"No system ini file, using compiled defaults\n";
+	}
+	else 
+	{
+		iniFiles.push_back(systemIniFilename);
+	}
+
 
 	ostringstream oss; 
 	oss << megsOfMemory; 
