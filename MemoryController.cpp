@@ -242,8 +242,7 @@ void MemoryController::update()
 		(*ranks)[refreshRank]->refreshWaiting = true;
 	}
 
-	//function returns true if there is something valid in poppedBusPacket
-	if (commandQueue.pop(&poppedBusPacket))
+	if ((poppedBusPacket = commandQueue.pop()) != NULL)
 	{
 		poppedBusPacket->notifyAllDependents();
 		if (poppedBusPacket->busPacketType == WRITE || poppedBusPacket->busPacketType == WRITE_P)

@@ -28,11 +28,6 @@
 *  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 *********************************************************************************/
 
-
-
-
-
-
 #ifndef CMDQUEUE_H
 #define CMDQUEUE_H
 
@@ -68,7 +63,7 @@ public:
 	virtual ~CommandQueue(); 
 
 	void enqueue(BusPacket *newBusPacket);
-	bool pop(BusPacket **busPacket);
+	BusPacket *pop();
 	bool hasRoomFor(unsigned numberToEnqueue, unsigned rank, unsigned bank);
 	bool isIssuable(const BusPacket *busPacket) const;
 	bool isEmpty(unsigned rank) const;
@@ -76,9 +71,13 @@ public:
 	void print() const;
 	void update(); //SimulatorObject requirement
 private:
+	BusPacket *actual_pop();
 	void nextRankAndBank(unsigned &rank, unsigned &bank);
 	vector<BusPacket *> &getCommandQueue(unsigned rank, unsigned bank);
 
+	BusPacket *sendRefreshOrCloseOpenBank();
+	void injectPrecharges(unsigned rank, unsigned bank);
+	void injectRefreshCommand(unsigned refreshRank);
 	//fields
 	
 	BusPacket3D queues; // 3D array of BusPacket pointers
