@@ -16,8 +16,11 @@ LIB_NAME_MACOS=libdramsim.dylib
 SRC = $(wildcard *.cpp)
 OBJ = $(addsuffix .o, $(basename $(SRC)))
 
+LIB_SRC := $(filter-out TraceBasedSim.cpp,$(SRC))
+LIB_OBJ := $(addsuffix .o, $(basename $(LIB_SRC)))
+
 #build portable objects (i.e. with -fPIC)
-POBJ = $(addsuffix .po, $(basename $(SRC)))
+POBJ = $(addsuffix .po, $(basename $(LIB_SRC)))
 
 REBUILDABLES=$(OBJ) ${POBJ} $(EXE_NAME) $(LIB_NAME) 
 
