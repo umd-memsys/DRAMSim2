@@ -84,7 +84,7 @@ int some_object::add_one_and_run(MultiChannelMemorySystem *mem, uint64_t addr)
 	}
 
 	/* get a nice summary of this epoch */
-	mem->printStats();
+	mem->printStats(true);
 
 	return 0;
 }
