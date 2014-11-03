@@ -10,6 +10,7 @@ endif
 CXXFLAGS+=$(OPTFLAGS)
 
 EXE_NAME=DRAMSim
+STATIC_LIB_NAME := libdramsim.a
 LIB_NAME=libdramsim.so
 LIB_NAME_MACOS=libdramsim.dylib
 
@@ -22,7 +23,7 @@ LIB_OBJ := $(addsuffix .o, $(basename $(LIB_SRC)))
 #build portable objects (i.e. with -fPIC)
 POBJ = $(addsuffix .po, $(basename $(LIB_SRC)))
 
-REBUILDABLES=$(OBJ) ${POBJ} $(EXE_NAME) $(LIB_NAME) 
+REBUILDABLES=$(OBJ) ${POBJ} $(EXE_NAME) $(LIB_NAME) $(STATIC_LIB_NAME)
 
 all: ${EXE_NAME}
 
@@ -34,6 +35,9 @@ $(EXE_NAME): $(OBJ)
 $(LIB_NAME): $(POBJ)
 	g++ -g -shared -Wl,-soname,$@ -o $@ $^
 	@echo "Built $@ successfully"
+
+$(STATIC_LIB_NAME): $(LIB_OBJ)
+	$(AR) crs $@ $^
 
 $(LIB_NAME_MACOS): $(POBJ)
 	g++ -dynamiclib -o $@ $^
