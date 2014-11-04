@@ -37,7 +37,7 @@
 
 #include <iostream>
 
-extern int SHOW_SIM_OUTPUT; //enable or disable PRINT() statements -- set by flag in TraceBasedSim.cpp
+extern int SHOW_SIM_OUTPUT;
 
 #define ERROR(str) std::cerr<<"[ERROR ("<<__FILE__<<":"<<__LINE__<<")]: "<<str<<std::endl;
 
