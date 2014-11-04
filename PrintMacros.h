@@ -35,6 +35,8 @@
 #ifndef PRINT_MACROS_H
 #define PRINT_MACROS_H
 
+#include <iostream>
+
 extern int SHOW_SIM_OUTPUT; //enable or disable PRINT() statements -- set by flag in TraceBasedSim.cpp
 
 #define ERROR(str) std::cerr<<"[ERROR ("<<__FILE__<<":"<<__LINE__<<")]: "<<str<<std::endl;
