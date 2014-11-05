@@ -328,7 +328,7 @@ void alignTransactionAddress(Transaction &trans)
 {
 	// zero out the low order bits which correspond to the size of a transaction
 
-	unsigned throwAwayBits = dramsim_log2((BL*JEDEC_DATA_BUS_BITS/8));
+	unsigned throwAwayBits = THROW_AWAY_BITS;
 
 	trans.address >>= throwAwayBits;
 	trans.address <<= throwAwayBits;

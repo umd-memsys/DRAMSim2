@@ -44,10 +44,18 @@ using namespace std;
 
 uint64_t TOTAL_STORAGE;
 unsigned NUM_BANKS;
+unsigned NUM_BANKS_LOG;
 unsigned NUM_CHANS;
+unsigned NUM_CHANS_LOG;
 unsigned NUM_ROWS;
+unsigned NUM_ROWS_LOG;
 unsigned NUM_COLS;
+unsigned NUM_COLS_LOG;
 unsigned DEVICE_WIDTH;
+unsigned BYTE_OFFSET_WIDTH;
+unsigned TRANSACTION_SIZE;
+unsigned THROW_AWAY_BITS;
+unsigned COL_LOW_BIT_WIDTH;
 
 unsigned REFRESH_PERIOD;
 float tCK;
@@ -417,6 +425,15 @@ void IniReader::ReadIniFile(string filename, bool isSystemFile)
 		ERROR ("Unable to load ini file "<<filename);
 		abort();
 	}
+	/* precompute frequently used values */
+	NUM_BANKS_LOG		= dramsim_log2(NUM_BANKS);
+	NUM_CHANS_LOG		= dramsim_log2(NUM_CHANS);
+	NUM_ROWS_LOG		= dramsim_log2(NUM_ROWS);
+	NUM_COLS_LOG		= dramsim_log2(NUM_COLS);
+	BYTE_OFFSET_WIDTH	= dramsim_log2(JEDEC_DATA_BUS_BITS / 8);
+	TRANSACTION_SIZE	= JEDEC_DATA_BUS_BITS / 8 * BL;
+	THROW_AWAY_BITS		= dramsim_log2(TRANSACTION_SIZE);
+	COL_LOW_BIT_WIDTH	= THROW_AWAY_BITS - BYTE_OFFSET_WIDTH;
 }
 
 void IniReader::OverrideKeys(const OverrideMap *map)
