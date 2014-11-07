@@ -463,6 +463,36 @@ bool IniReader::CheckIfAllSet()
 	}
 	return true;
 }
+
+/*
+ * There is probably a way of doing this with templates, but since
+ * we have the types defined as an enum, doing this with macros is trivial.
+ *
+ * Return value: 0 on success, -1 on error
+ */
+#define DEF_GETTER(_funcname, _type, _typename)				\
+	int _funcname(const std::string& field, _type *val)		\
+	{								\
+		int i;							\
+									\
+		for (i=0; configMap[i].variablePtr != NULL; i++)	\
+		{							\
+			if (field.compare(configMap[i].iniKey))		\
+				continue;				\
+			if (configMap[i].variableType != _typename)	\
+				return -1;				\
+			*val = *(_type *)configMap[i].variablePtr;	\
+			return 0;					\
+		}							\
+		return -1;						\
+	}
+
+/* TODO: getter for strings is missing. Probably not that useful though */
+DEF_GETTER(IniReader::getBool, bool, BOOL)
+DEF_GETTER(IniReader::getUint, unsigned int, UINT)
+DEF_GETTER(IniReader::getUint64, uint64_t, UINT64)
+DEF_GETTER(IniReader::getFloat, float, FLOAT)
+
 void IniReader::InitEnumsFromStrings()
 {
 	if (ADDRESS_MAPPING_SCHEME == "scheme1")
