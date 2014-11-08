@@ -497,6 +497,40 @@ void MultiChannelMemorySystem::RegisterCallbacks(
 		channels[i]->RegisterCallbacks(readDone, writeDone, reportPower); 
 	}
 }
+
+/*
+ * The getters below are useful to external simulators interfacing with DRAMSim
+ *
+ * Return value: 0 on success, -1 on error
+ */
+int MultiChannelMemorySystem::getIniBool(const std::string& field, bool *val)
+{
+	if (!IniReader::CheckIfAllSet())
+		exit(-1);
+	return IniReader::getBool(field, val);
+}
+
+int MultiChannelMemorySystem::getIniUint(const std::string& field, unsigned int *val)
+{
+	if (!IniReader::CheckIfAllSet())
+		exit(-1);
+	return IniReader::getUint(field, val);
+}
+
+int MultiChannelMemorySystem::getIniUint64(const std::string& field, uint64_t *val)
+{
+	if (!IniReader::CheckIfAllSet())
+		exit(-1);
+	return IniReader::getUint64(field, val);
+}
+
+int MultiChannelMemorySystem::getIniFloat(const std::string& field, float *val)
+{
+	if (!IniReader::CheckIfAllSet())
+		exit(-1);
+	return IniReader::getFloat(field, val);
+}
+
 namespace DRAMSim {
 MultiChannelMemorySystem *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, string *visfilename) 
 {

@@ -74,6 +74,10 @@ public:
 	static void InitEnumsFromStrings();
 	static bool CheckIfAllSet();
 	static void WriteValuesOut(std::ofstream &visDataOut);
+	static int getBool(const std::string &field, bool *val);
+	static int getUint(const std::string &field, unsigned int *val);
+	static int getUint64(const std::string &field, uint64_t *val);
+	static int getFloat(const std::string &field, float *val);
 
 private:
 	static void WriteParams(std::ofstream &visDataOut, paramType t);

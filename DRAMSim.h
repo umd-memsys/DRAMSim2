@@ -56,6 +56,10 @@ namespace DRAMSim
 				TransactionCompleteCB *readDone,
 				TransactionCompleteCB *writeDone,
 				void (*reportPower)(double bgpower, double burstpower, double refreshpower, double actprepower));
+			int getIniBool(const std::string &field, bool *val);
+			int getIniUint(const std::string &field, unsigned int *val);
+			int getIniUint64(const std::string &field, uint64_t *val);
+			int getIniFloat(const std::string &field, float *val);
 	};
 	MultiChannelMemorySystem *getMemorySystemInstance(const string &dev, const string &sys, const string &pwd, const string &trc, unsigned megsOfMemory, std::string *visfilename=NULL);
 }
