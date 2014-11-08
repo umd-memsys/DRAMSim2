@@ -73,11 +73,20 @@ extern bool VIS_FILE_OUTPUT;
 
 extern uint64_t TOTAL_STORAGE;
 extern unsigned NUM_BANKS;
+extern unsigned NUM_BANKS_LOG;
 extern unsigned NUM_RANKS;
+extern unsigned NUM_RANKS_LOG;
 extern unsigned NUM_CHANS;
+extern unsigned NUM_CHANS_LOG;
 extern unsigned NUM_ROWS;
+extern unsigned NUM_ROWS_LOG;
 extern unsigned NUM_COLS;
+extern unsigned NUM_COLS_LOG;
 extern unsigned DEVICE_WIDTH;
+extern unsigned BYTE_OFFSET_WIDTH;
+extern unsigned TRANSACTION_SIZE;
+extern unsigned THROW_AWAY_BITS;
+extern unsigned COL_LOW_BIT_WIDTH;
 
 //in nanoseconds
 extern unsigned REFRESH_PERIOD;

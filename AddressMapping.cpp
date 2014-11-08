@@ -36,15 +36,15 @@ namespace DRAMSim
 void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsigned &newTransactionRank, unsigned &newTransactionBank, unsigned &newTransactionRow, unsigned &newTransactionColumn)
 {
 	uint64_t tempA, tempB;
-	unsigned transactionSize = (JEDEC_DATA_BUS_BITS/8)*BL; 
+	unsigned transactionSize = TRANSACTION_SIZE;
 	uint64_t transactionMask =  transactionSize - 1; //ex: (64 bit bus width) x (8 Burst Length) - 1 = 64 bytes - 1 = 63 = 0x3f mask
-	unsigned channelBitWidth = dramsim_log2(NUM_CHANS);
-	unsigned	rankBitWidth = dramsim_log2(NUM_RANKS);
-	unsigned	bankBitWidth = dramsim_log2(NUM_BANKS);
-	unsigned	rowBitWidth = dramsim_log2(NUM_ROWS);
-	unsigned	colBitWidth = dramsim_log2(NUM_COLS);
+	unsigned channelBitWidth = NUM_CHANS_LOG;
+	unsigned rankBitWidth = NUM_RANKS_LOG;
+	unsigned bankBitWidth = NUM_BANKS_LOG;
+	unsigned rowBitWidth = NUM_ROWS_LOG;
+	unsigned colBitWidth = NUM_COLS_LOG;
 	// this forces the alignment to the width of a single burst (64 bits = 8 bytes = 3 address bits for DDR parts)
-	unsigned	byteOffsetWidth = dramsim_log2((JEDEC_DATA_BUS_BITS/8));
+	unsigned byteOffsetWidth = BYTE_OFFSET_WIDTH;
 	// Since we're assuming that a request is for BL*BUS_WIDTH, the bottom bits
 	// of this address *should* be all zeros if it's not, issue a warning
 
@@ -74,7 +74,7 @@ void addressMapping(uint64_t physicalAddress, unsigned &newTransactionChan, unsi
 	// from the bottom bits of the column 
 	// 
 	// For example: cowLowBits = log2(64bytes) - 3 bits = 3 bits 
-	unsigned colLowBitWidth = dramsim_log2(transactionSize) - byteOffsetWidth;
+	unsigned colLowBitWidth = COL_LOW_BIT_WIDTH;
 
 	physicalAddress >>= colLowBitWidth;
 	unsigned colHighBitWidth = colBitWidth - colLowBitWidth; 
