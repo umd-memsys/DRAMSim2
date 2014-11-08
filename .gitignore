@@ -2,6 +2,8 @@ results/
 *.o
 *.po
 *.dep
+*.deppo
 *.swp
 DRAMSim
+libdramsim.a
 libdramsim.so
