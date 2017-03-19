@@ -53,6 +53,7 @@ BusPacket::BusPacket(BusPacketType packtype, uint64_t physicalAddr,
 	column(col),
 	row(rw),
 	bank(b),
+	bankgroup(b/NUM_BANKS_PER_BANKGROUP),
 	rank(r),
 	physicalAddress(physicalAddr),
 	data(dat)
@@ -70,22 +71,22 @@ void BusPacket::print(uint64_t currentClockCycle, bool dataStart)
 		switch (busPacketType)
 		{
 		case READ:
-			cmd_verify_out << currentClockCycle << ": read ("<<rank<<","<<bank<<","<<column<<",0);"<<endl;
+			cmd_verify_out << currentClockCycle << ": read ("<<rank<<","<<bankgroup<<","<<bank<<","<<column<<",0);"<<endl;
 			break;
 		case READ_P:
-			cmd_verify_out << currentClockCycle << ": read ("<<rank<<","<<bank<<","<<column<<",1);"<<endl;
+			cmd_verify_out << currentClockCycle << ": read ("<<rank<<","<<bankgroup<<","<<bank<<","<<column<<",1);"<<endl;
 			break;
 		case WRITE:
-			cmd_verify_out << currentClockCycle << ": write ("<<rank<<","<<bank<<","<<column<<",0 , 0, 'h0);"<<endl;
+			cmd_verify_out << currentClockCycle << ": write ("<<rank<<","<<bankgroup<<","<<bank<<",,"<<column<<",0 , 0, 'h0);"<<endl;
 			break;
 		case WRITE_P:
-			cmd_verify_out << currentClockCycle << ": write ("<<rank<<","<<bank<<","<<column<<",1, 0, 'h0);"<<endl;
+			cmd_verify_out << currentClockCycle << ": write ("<<rank<<","<<bankgroup<<","<<bank<<","<<column<<",1, 0, 'h0);"<<endl;
 			break;
 		case ACTIVATE:
-			cmd_verify_out << currentClockCycle <<": activate (" << rank << "," << bank << "," << row <<");"<<endl;
+			cmd_verify_out << currentClockCycle <<": activate (" << rank << ","<<bankgroup<<"," << bank << "," << row <<");"<<endl;
 			break;
 		case PRECHARGE:
-			cmd_verify_out << currentClockCycle <<": precharge (" << rank << "," << bank << "," << row <<");"<<endl;
+			cmd_verify_out << currentClockCycle <<": precharge (" << rank << ","<<bankgroup<<"," << bank << "," << row <<");"<<endl;
 			break;
 		case REFRESH:
 			cmd_verify_out << currentClockCycle <<": refresh (" << rank << ");"<<endl;

@@ -93,6 +93,18 @@ MemoryController::MemoryController(MemorySystem *parent, CSVWriter &csvOut_, ost
 
 	writeDataCountdown.reserve(NUM_RANKS);
 	writeDataToSend.reserve(NUM_RANKS);
+    for (unsigned i = 0; i < NUM_RANKS; i++) {
+        writeDataToSend[i] = NULL;
+        writeDataCountdown[i] = -1;
+    }
+
+    outgoingDataPackets.reserve(NUM_RANKS);
+    dataCyclesLefts.reserve(NUM_RANKS);
+    for (unsigned i = 0; i < NUM_RANKS; i++) {
+        outgoingDataPackets[i] = NULL;
+        dataCyclesLefts[i] = -1;
+    }
+
 	refreshCountdown.reserve(NUM_RANKS);
 
 	//Power related packets
@@ -104,7 +116,7 @@ MemoryController::MemoryController(MemorySystem *parent, CSVWriter &csvOut_, ost
 	totalEpochLatency = vector<uint64_t> (NUM_RANKS*NUM_BANKS,0);
 
 	//staggers when each rank is due for a refresh
-	for (size_t i=0;i<NUM_RANKS;i++)
+	for (size_t i=0; i < NUM_RANKS;i++)
 	{
 		refreshCountdown.push_back((int)((REFRESH_PERIOD/tCK)/NUM_RANKS)*(i+1));
 	}
@@ -341,9 +353,20 @@ void MemoryController::update()
 						}
 						else
 						{
-							bankStates[i][j].nextRead = max(currentClockCycle + max(tCCD, BL/2), bankStates[i][j].nextRead);
-							bankStates[i][j].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY,
-									bankStates[i][j].nextWrite);
+                            if(DDR4){
+                                if(poppedBusPacket ->bankgroup == j / NUM_BANKS_PER_BANKGROUP){
+                                    bankStates[i][j].nextRead = max(currentClockCycle + max(tCCDL, BL/2), bankStates[i][j].nextRead);
+                                    bankStates[i][j].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY, bankStates[i][j].nextWrite);
+                                }
+                                else{
+                                    bankStates[i][j].nextRead = max(currentClockCycle + max(tCCDS, BL/2), bankStates[i][j].nextRead);
+                                    bankStates[i][j].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY, bankStates[i][j].nextWrite);
+                                }
+                            }
+                            else {
+                                bankStates[i][j].nextRead = max(currentClockCycle + max(tCCDS, BL/2), bankStates[i][j].nextRead);
+                                bankStates[i][j].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY, bankStates[i][j].nextWrite);
+                            }
 						}
 					}
 				}
@@ -397,9 +420,20 @@ void MemoryController::update()
 						}
 						else
 						{
-							bankStates[i][j].nextWrite = max(currentClockCycle + max(BL/2, tCCD), bankStates[i][j].nextWrite);
-							bankStates[i][j].nextRead = max(currentClockCycle + WRITE_TO_READ_DELAY_B,
-									bankStates[i][j].nextRead);
+                            if(DDR4){
+                                if(poppedBusPacket ->bankgroup == j / NUM_BANKS_PER_BANKGROUP){
+                                    bankStates[i][j].nextRead = max(currentClockCycle + max(tCCDL, BL/2), bankStates[i][j].nextRead);
+                                    bankStates[i][j].nextWrite = max(currentClockCycle + WL + max(BL/2, tWTRL), bankStates[i][j].nextWrite);
+                                }
+                                else{
+                                    bankStates[i][j].nextRead = max(currentClockCycle + max(tCCDS, BL/2), bankStates[i][j].nextRead);
+                                    bankStates[i][j].nextWrite = max(currentClockCycle + WL + max(BL/2, tWTRS), bankStates[i][j].nextWrite);
+                                }
+                            }
+                            else {
+                                bankStates[i][j].nextRead = max(currentClockCycle + max(tCCDS, BL/2), bankStates[i][j].nextRead);
+                                bankStates[i][j].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY, bankStates[i][j].nextWrite);
+                            }
 						}
 					}
 				}
@@ -412,6 +446,7 @@ void MemoryController::update()
 					bankStates[rank][bank].nextRead = bankStates[rank][bank].nextActivate;
 					bankStates[rank][bank].nextWrite = bankStates[rank][bank].nextActivate;
 				}
+
 
 				break;
 			case ACTIVATE:
@@ -437,7 +472,15 @@ void MemoryController::update()
 				{
 					if (i!=poppedBusPacket->bank)
 					{
-						bankStates[rank][i].nextActivate = max(currentClockCycle + tRRD, bankStates[rank][i].nextActivate);
+                        if(DDR4){
+                            if (poppedBusPacket->bankgroup == i / NUM_BANKS_PER_BANKGROUP)
+                                bankStates[rank][i].nextActivate = max(currentClockCycle + tRRDL, bankStates[rank][i].nextActivate);
+                            else
+                                bankStates[rank][i].nextActivate = max(currentClockCycle + tRRDS, bankStates[rank][i].nextActivate);
+                        }
+                        else{
+						bankStates[rank][i].nextActivate = max(currentClockCycle + tRRDS, bankStates[rank][i].nextActivate);
+                        }
 					}
 				}
 

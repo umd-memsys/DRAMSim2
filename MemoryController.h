@@ -100,6 +100,8 @@ private:
 	BusPacket *outgoingCmdPacket;
 	unsigned cmdCyclesLeft;
 	BusPacket *outgoingDataPacket;
+	vector<BusPacket*> outgoingDataPackets;
+	vector<unsigned> dataCyclesLefts;
 	unsigned dataCyclesLeft;
 
 	uint64_t totalTransactions;

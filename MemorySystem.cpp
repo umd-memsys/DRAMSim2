@@ -48,6 +48,7 @@ ofstream cmd_verify_out; //used in Rank.cpp and MemoryController.cpp if VERIFICA
 unsigned NUM_DEVICES;
 unsigned NUM_RANKS;
 unsigned NUM_RANKS_LOG;
+unsigned NUM_BANKS_PER_BANKGROUP;
 
 namespace DRAMSim {
 
@@ -117,6 +118,7 @@ MemorySystem::MemorySystem(unsigned id, unsigned int megsOfMemory, CSVWriter &cs
 	{
 		NUM_RANKS = megsOfMemory / megsOfStoragePerRank;
 		NUM_RANKS_LOG = dramsim_log2(NUM_RANKS);
+		NUM_BANKS_PER_BANKGROUP = NUM_BANKS / NUM_BANKGROUPS;
 		if (NUM_RANKS == 0)
 		{
 			PRINT("WARNING: Cannot create memory system with "<<megsOfMemory<<"MB, defaulting to minimum size of "<<megsOfStoragePerRank<<"MB");

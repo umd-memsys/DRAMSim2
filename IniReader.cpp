@@ -45,6 +45,7 @@ using namespace std;
 uint64_t TOTAL_STORAGE;
 unsigned NUM_BANKS;
 unsigned NUM_BANKS_LOG;
+unsigned NUM_BANKGROUPS;
 unsigned NUM_CHANS;
 unsigned NUM_CHANS_LOG;
 unsigned NUM_ROWS;
@@ -65,12 +66,15 @@ unsigned AL;
 unsigned BL;
 unsigned tRAS;
 unsigned tRCD;
-unsigned tRRD;
+unsigned tRRDS;
+unsigned tRRDL;
 unsigned tRC;
 unsigned tRP;
-unsigned tCCD;
+unsigned tCCDS;
+unsigned tCCDL;
 unsigned tRTP;
-unsigned tWTR;
+unsigned tWTRS;
+unsigned tWTRL;
 unsigned tWR;
 unsigned tRTRS;
 unsigned tRFC;
@@ -114,6 +118,7 @@ string SCHEDULING_POLICY;
 string ADDRESS_MAPPING_SCHEME;
 string QUEUING_STRUCTURE;
 
+bool DDR4;
 bool DEBUG_TRANS_Q;
 bool DEBUG_CMD_Q;
 bool DEBUG_ADDR_MAP;
@@ -139,7 +144,8 @@ QueuingStructure queuingStructure;
 //Map the string names to the variables they set
 static ConfigMap configMap[] =
 {
-	//DEFINE_UINT_PARAM -- see IniReader.h
+	//DEFINE_UINT_PARAM -- see IniReader.
+        DEFINE_UINT_PARAM(NUM_BANKGROUPS,DEV_PARAM),
 	DEFINE_UINT_PARAM(NUM_BANKS,DEV_PARAM),
 	DEFINE_UINT_PARAM(NUM_ROWS,DEV_PARAM),
 	DEFINE_UINT_PARAM(NUM_COLS,DEV_PARAM),
@@ -151,12 +157,15 @@ static ConfigMap configMap[] =
 	DEFINE_UINT_PARAM(BL,DEV_PARAM),
 	DEFINE_UINT_PARAM(tRAS,DEV_PARAM),
 	DEFINE_UINT_PARAM(tRCD,DEV_PARAM),
-	DEFINE_UINT_PARAM(tRRD,DEV_PARAM),
+	DEFINE_UINT_PARAM(tRRDS,DEV_PARAM),
+	DEFINE_UINT_PARAM(tRRDL,DEV_PARAM),
 	DEFINE_UINT_PARAM(tRC,DEV_PARAM),
 	DEFINE_UINT_PARAM(tRP,DEV_PARAM),
-	DEFINE_UINT_PARAM(tCCD,DEV_PARAM),
+	DEFINE_UINT_PARAM(tCCDS,DEV_PARAM),
+		DEFINE_UINT_PARAM(tCCDL,DEV_PARAM),
 	DEFINE_UINT_PARAM(tRTP,DEV_PARAM),
-	DEFINE_UINT_PARAM(tWTR,DEV_PARAM),
+	DEFINE_UINT_PARAM(tWTRS,DEV_PARAM),
+		DEFINE_UINT_PARAM(tWTRL,DEV_PARAM),
 	DEFINE_UINT_PARAM(tWR,DEV_PARAM),
 	DEFINE_UINT_PARAM(tRTRS,DEV_PARAM),
 	DEFINE_UINT_PARAM(tRFC,DEV_PARAM),
@@ -206,6 +215,7 @@ static ConfigMap configMap[] =
 	DEFINE_BOOL_PARAM(DEBUG_POWER,SYS_PARAM),
 	DEFINE_BOOL_PARAM(VIS_FILE_OUTPUT,SYS_PARAM),
 	DEFINE_BOOL_PARAM(VERIFICATION_OUTPUT,SYS_PARAM),
+		DEFINE_BOOL_PARAM(DDR4,SYS_PARAM),
 	{"", NULL, UINT, SYS_PARAM, false} // tracer value to signify end of list; if you delete it, epic fail will result
 };
 

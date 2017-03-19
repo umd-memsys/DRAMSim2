@@ -75,6 +75,8 @@ extern uint64_t TOTAL_STORAGE;
 extern unsigned NUM_BANKS;
 extern unsigned NUM_BANKS_LOG;
 extern unsigned NUM_RANKS;
+extern unsigned NUM_BANKGROUPS;
+extern unsigned NUM_BANKS_PER_BANKGROUP;
 extern unsigned NUM_RANKS_LOG;
 extern unsigned NUM_CHANS;
 extern unsigned NUM_CHANS_LOG;
@@ -99,12 +101,15 @@ extern unsigned AL;
 extern unsigned BL;
 extern unsigned tRAS;
 extern unsigned tRCD;
-extern unsigned tRRD;
+extern unsigned tRRDS;
+extern unsigned tRRDL;
 extern unsigned tRC;
 extern unsigned tRP;
-extern unsigned tCCD;
+extern unsigned tCCDS;
+extern unsigned tCCDL;
 extern unsigned tRTP;
-extern unsigned tWTR;
+extern unsigned tWTRS;
+extern unsigned tWTRL;
 extern unsigned tWR;
 extern unsigned tRTRS;
 extern unsigned tRFC;
@@ -119,7 +124,7 @@ extern unsigned tCMD;
 extern unsigned NUM_DEVICES;
 
 //same bank
-#define READ_TO_PRE_DELAY (AL+BL/2+ max(tRTP,tCCD)-tCCD)
+#define READ_TO_PRE_DELAY (AL+BL/2+ max(tRTP,tCCDS)-tCCDS)
 #define WRITE_TO_PRE_DELAY (WL+BL/2+tWR)
 #define READ_TO_WRITE_DELAY (RL+BL/2+tRTRS-WL)
 #define READ_AUTOPRE_DELAY (AL+tRTP+tRP)
@@ -141,6 +146,7 @@ extern std::string ROW_BUFFER_POLICY;
 extern std::string SCHEDULING_POLICY;
 extern std::string ADDRESS_MAPPING_SCHEME;
 extern std::string QUEUING_STRUCTURE;
+extern bool DDR4;
 
 enum TraceType
 {

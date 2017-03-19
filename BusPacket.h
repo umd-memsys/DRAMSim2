@@ -62,6 +62,7 @@ public:
 	unsigned row;
 	unsigned bank;
 	unsigned rank;
+	unsigned bankgroup;
 	uint64_t physicalAddress;
 	void *data;
 

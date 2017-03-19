@@ -108,8 +108,20 @@ void Rank::receiveFromBus(BusPacket *packet)
 		bankStates[packet->bank].nextPrecharge = max(bankStates[packet->bank].nextPrecharge, currentClockCycle + READ_TO_PRE_DELAY);
 		for (size_t i=0;i<NUM_BANKS;i++)
 		{
-			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + max(tCCD, BL/2));
-			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + READ_TO_WRITE_DELAY);
+            if(DDR4){
+                if(packet ->bankgroup == i / NUM_BANKS_PER_BANKGROUP){
+                    bankStates[i].nextRead = max(currentClockCycle + max(tCCDL, BL/2), bankStates[i].nextRead);
+                    bankStates[i].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY, bankStates[i].nextWrite);
+                }
+                else{
+                    bankStates[i].nextRead = max(currentClockCycle + max(tCCDS, BL/2), bankStates[i].nextRead);
+                    bankStates[i].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY, bankStates[i].nextWrite);
+                }
+            }
+            else{
+                bankStates[i].nextRead = max(currentClockCycle + max(tCCDS, BL/2), bankStates[i].nextRead);
+                bankStates[i].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY, bankStates[i].nextWrite);
+            }
 		}
 
 		//get the read data and put it in the storage which delays until the appropriate time (RL)
@@ -136,9 +148,21 @@ void Rank::receiveFromBus(BusPacket *packet)
 		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + READ_AUTOPRE_DELAY);
 		for (size_t i=0;i<NUM_BANKS;i++)
 		{
+            if(DDR4){
+                if(packet ->bankgroup == i / NUM_BANKS_PER_BANKGROUP){
+                    bankStates[i].nextRead = max(currentClockCycle + max(tCCDL, BL/2), bankStates[i].nextRead);
+                    bankStates[i].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY, bankStates[i].nextWrite);
+                }
+                else{
+                    bankStates[i].nextRead = max(currentClockCycle + max(tCCDS, BL/2), bankStates[i].nextRead);
+                    bankStates[i].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY, bankStates[i].nextWrite);
+                }
+            }
+            else {
+                bankStates[i].nextRead = max(currentClockCycle + max(tCCDS, BL/2), bankStates[i].nextRead);
+                bankStates[i].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY, bankStates[i].nextWrite);
+            }
 			//will set next read/write for all banks - including current (which shouldnt matter since its now idle)
-			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + max(BL/2, tCCD));
-			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + READ_TO_WRITE_DELAY);
 		}
 
 		//get the read data and put it in the storage which delays until the appropriate time (RL)
@@ -166,8 +190,20 @@ void Rank::receiveFromBus(BusPacket *packet)
 		bankStates[packet->bank].nextPrecharge = max(bankStates[packet->bank].nextPrecharge, currentClockCycle + WRITE_TO_PRE_DELAY);
 		for (size_t i=0;i<NUM_BANKS;i++)
 		{
-			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + WRITE_TO_READ_DELAY_B);
-			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + max(BL/2, tCCD));
+            if(DDR4){
+                if(packet ->bankgroup == i / NUM_BANKS_PER_BANKGROUP){
+                    bankStates[i].nextRead = max(currentClockCycle + max(tCCDL, BL/2), bankStates[i].nextRead);
+                    bankStates[i].nextWrite = max(currentClockCycle + WL + max(BL/2, tWTRL), bankStates[i].nextWrite);
+                }
+                else{
+                    bankStates[i].nextRead = max(currentClockCycle + max(tCCDS, BL/2), bankStates[i].nextRead);
+                    bankStates[i].nextWrite = max(currentClockCycle + WL + max(BL/2, tWTRS), bankStates[i].nextWrite);
+                }
+            }
+            else{
+                bankStates[i].nextRead = max(currentClockCycle + WL + BL/2 + tWTRS, bankStates[i].nextRead);
+                bankStates[i].nextWrite = max(currentClockCycle + max(BL/2, tCCDS), bankStates[i].nextWrite);
+            }
 		}
 
 		//take note of where data is going when it arrives
@@ -191,8 +227,20 @@ void Rank::receiveFromBus(BusPacket *packet)
 		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + WRITE_AUTOPRE_DELAY);
 		for (size_t i=0;i<NUM_BANKS;i++)
 		{
-			bankStates[i].nextWrite = max(bankStates[i].nextWrite, currentClockCycle + max(tCCD, BL/2));
-			bankStates[i].nextRead = max(bankStates[i].nextRead, currentClockCycle + WRITE_TO_READ_DELAY_B);
+            if(DDR4){
+                if(packet ->bankgroup == i / NUM_BANKS_PER_BANKGROUP){
+                    bankStates[i].nextRead = max(currentClockCycle + max(tCCDL, BL/2), bankStates[i].nextRead);
+                    bankStates[i].nextWrite = max(currentClockCycle + WL + max(BL/2, tWTRL), bankStates[i].nextWrite);
+                }
+                else{
+                    bankStates[i].nextRead = max(currentClockCycle + max(tCCDS, BL/2), bankStates[i].nextRead);
+                    bankStates[i].nextWrite = max(currentClockCycle + WL + max(BL/2, tWTRS), bankStates[i].nextWrite);
+                }
+            }
+            else{
+                bankStates[i].nextRead = max(currentClockCycle + max(tCCDS, BL/2), bankStates[i].nextRead);
+                bankStates[i].nextWrite = max(currentClockCycle + READ_TO_WRITE_DELAY, bankStates[i].nextWrite);
+            }
 		}
 
 		//take note of where data is going when it arrives
@@ -233,7 +281,15 @@ void Rank::receiveFromBus(BusPacket *packet)
 		{
 			if (i != packet->bank)
 			{
-				bankStates[i].nextActivate = max(bankStates[i].nextActivate, currentClockCycle + tRRD);
+                if(DDR4){
+                    if (packet->bankgroup == i / NUM_BANKS_PER_BANKGROUP)
+                        bankStates[i].nextActivate = max(currentClockCycle + tRRDL, bankStates[i].nextActivate);
+                    else
+                        bankStates[i].nextActivate = max(currentClockCycle + tRRDS, bankStates[i].nextActivate);
+                }
+                else{
+                    bankStates[i].nextActivate = max(currentClockCycle + tRRDS, bankStates[i].nextActivate);
+                }
 			}
 		}
 		delete(packet); 
@@ -251,6 +307,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 		bankStates[packet->bank].nextActivate = max(bankStates[packet->bank].nextActivate, currentClockCycle + tRP);
 		delete(packet); 
 		break;
+
 	case REFRESH:
 		refreshWaiting = false;
 		for (size_t i=0;i<NUM_BANKS;i++)
@@ -264,6 +321,7 @@ void Rank::receiveFromBus(BusPacket *packet)
 		}
 		delete(packet); 
 		break;
+
 	case DATA:
 		// TODO: replace this check with something that works?
 		/*
