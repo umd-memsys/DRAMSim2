@@ -7,6 +7,11 @@ DRAMSim
 	as their own respective objects within the source, including: ranks,
 	banks, command queue, the memory controller, etc.
 
+  We also added support and config files for STT-MRAM, 
+  you can run the simulations the same way as DRAM. 
+  Refer Asifuzzaman, K., etc. Enabling a reliable STT-MRAM main memory simulation (MEMSYS2017)
+  for more info about STT-MRAM.
+
 	The overarching goal is to have a simulator that is extremely small,
 	portable, and accurate. The simulator core has a well-defined interface
 	which allows it to be CPU simulator agnostic and should be easily
