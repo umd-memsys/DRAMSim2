@@ -94,6 +94,9 @@ unsigned IDD6;
 unsigned IDD6L;
 unsigned IDD7;
 
+// Delay Queue
+unsigned int DQ_DEPTH;
+
 
 //in bytes
 unsigned JEDEC_DATA_BUS_BITS;
@@ -206,8 +209,29 @@ static ConfigMap configMap[] =
 	DEFINE_BOOL_PARAM(DEBUG_POWER,SYS_PARAM),
 	DEFINE_BOOL_PARAM(VIS_FILE_OUTPUT,SYS_PARAM),
 	DEFINE_BOOL_PARAM(VERIFICATION_OUTPUT,SYS_PARAM),
+	// Delay queue
+	// DEFINE_UINT_PARAM(DQ_DEPTH, SYS_PARAM),
+	{"DQ_DEPTH", &DQ_DEPTH, UINT, SYS_PARAM, true },
 	{"", NULL, UINT, SYS_PARAM, false} // tracer value to signify end of list; if you delete it, epic fail will result
 };
+
+IniReader::IniReader(void){
+	for (size_t i=0; configMap[i].variablePtr != NULL; i++) 
+	{ 
+		switch (configMap[i].variableType) 
+		{
+			case UINT:
+			case UINT64:
+			case FLOAT:   
+			case BOOL:
+				*(unsigned *)configMap[i].variablePtr = 0;
+				break;
+			case STRING:
+				break;
+		}
+	}
+}
+
 
 void IniReader::WriteParams(std::ofstream &visDataOut, paramType type)
 {

@@ -88,6 +88,8 @@ extern unsigned TRANSACTION_SIZE;
 extern unsigned THROW_AWAY_BITS;
 extern unsigned COL_LOW_BIT_WIDTH;
 
+extern unsigned int DQ_DEPTH;
+
 //in nanoseconds
 extern unsigned REFRESH_PERIOD;
 extern float tCK;

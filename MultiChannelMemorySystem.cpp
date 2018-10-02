@@ -38,6 +38,7 @@
 #include "AddressMapping.h"
 #include "IniReader.h"
 
+#include <queue>
 
 
 using namespace DRAMSim; 
@@ -388,6 +389,24 @@ void MultiChannelMemorySystem::actual_update()
 		}
 		csvOut->finalize();
 	}
+
+	// Delay Queue
+
+	vector<delayedInfo>::iterator it = delayedTransactions.begin();
+	while(it != delayedTransactions.end()) 
+	{
+		if ((*it).delayedTicks>0)
+		{
+			(*it).delayedTicks--;
+			it++;
+		}
+		else
+		{
+			struct delayedInfo t = *it;
+			addTransaction_delayed(t.isWrite, t.addr);
+			it = delayedTransactions.erase(it);
+		}
+	}
 	
 	for (size_t i=0; i<NUM_CHANS; i++)
 	{
@@ -397,6 +416,7 @@ void MultiChannelMemorySystem::actual_update()
 
 	currentClockCycle++; 
 }
+
 unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 {
 	// Single channel case is a trivial shortcut case 
@@ -425,10 +445,12 @@ unsigned MultiChannelMemorySystem::findChannelNumber(uint64_t addr)
 	return channelNumber;
 
 }
+
 ostream &MultiChannelMemorySystem::getLogFile()
 {
 	return dramsim_log; 
 }
+
 bool MultiChannelMemorySystem::addTransaction(const Transaction &trans)
 {
 	// copy the transaction and send the pointer to the new transaction 
@@ -443,8 +465,20 @@ bool MultiChannelMemorySystem::addTransaction(Transaction *trans)
 
 bool MultiChannelMemorySystem::addTransaction(bool isWrite, uint64_t addr)
 {
-	unsigned channelNumber = findChannelNumber(addr); 
-	return channels[channelNumber]->addTransaction(isWrite, addr); 
+	struct delayedInfo newTransaction = {addr, isWrite, DQ_DEPTH};
+	delayedTransactions.push_back(newTransaction);
+	return true;
+}
+
+void MultiChannelMemorySystem::addTransaction_delayed(bool isWrite, uint64_t addr)
+{
+	unsigned channelNumber = findChannelNumber(addr);
+
+	if ( channels[channelNumber]->addTransaction(isWrite, addr) == false ) 
+	{
+		struct delayedInfo newTransaction = {addr, isWrite, 1};
+		delayedTransactions.push_back( newTransaction ) ;
+	}
 }
 
 /*
@@ -475,7 +509,6 @@ bool MultiChannelMemorySystem::willAcceptTransaction()
 }
 
 
-
 void MultiChannelMemorySystem::printStats(bool finalStats) {
 
 	(*csvOut) << "ms" <<currentClockCycle * tCK * 1E-6; 
@@ -487,6 +520,7 @@ void MultiChannelMemorySystem::printStats(bool finalStats) {
 	}
 	csvOut->finalize();
 }
+
 void MultiChannelMemorySystem::RegisterCallbacks( 
 		TransactionCompleteCB *readDone,
 		TransactionCompleteCB *writeDone,

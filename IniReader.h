@@ -63,6 +63,7 @@ typedef struct _configMap
 
 class IniReader
 {
+	IniReader(void);
 
 public:
 	typedef std::map<string, string> OverrideMap;
